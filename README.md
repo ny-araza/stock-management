@@ -110,6 +110,13 @@ To learn more about pro version features and pricing, visit our [pricing page](h
 
 ## Changelog
 
+### Version 2.3.0 - [April 28, 2026]
+- Added **AI Dashboard** with token usage and revenue tracking.
+- Added **Sales Dashboard** with retention and multi-channel analytics.
+- Added **Finance Dashboard** with cashflow and balance management.
+- Introduced **6 New Layout variations** for improved UI flexibility.
+- Integrated **Advanced Data Visualization** with 7+ new chart types.
+
 ### Version 2.1.0 - [Dec 30, 2025]
 
 - Resolved Date Picker positioning and input issues in Charts.
