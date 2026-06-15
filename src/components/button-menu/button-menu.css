@@ -1,0 +1,35 @@
+button{
+    border: none;
+    font-size: 18px;
+    background-color: #fff;
+    cursor: pointer;
+    color: rgba(8, 8, 8, 0.749);
+    height: 50px;
+}
+
+.button-list-main{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    border-radius: 10px;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.button-list-main:hover{
+    background-color: rgba(128, 128, 128, 0.148);
+}
+
+.button-list-main .content{
+    width: 100%;
+    text-align: left;
+    font-size: 17px;
+}
+
+.icon{
+    margin-right: 10px;
+}
+
+
+

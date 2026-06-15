@@ -1,0 +1,21 @@
+.side-bar{
+    width: 300px;
+    background-color: #fff;
+}
+
+.header-bloc{
+    width: 100%;
+    height: 88px;
+    background-color: #fff;
+}
+
+.container-bloc{
+    display: flex;
+}
+
+
+@media screen and  (max-width: 1000px){
+    .side-bar{
+        display: none;
+    }
+}

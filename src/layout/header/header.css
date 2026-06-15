@@ -1,0 +1,50 @@
+.main-header{
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    padding-right: 20px;
+    justify-content: space-between;
+}
+
+.main-header .left{
+    display: flex;
+    align-items: center;
+}
+
+.main-header .right{
+    display: flex;
+    align-items: center;
+}
+
+.main-header .left .icon-button, .main-header .right .icon-button{
+    border: 1px solid rgba(76, 76, 76, 0.134);
+    margin-right: 10px;
+    border-radius: 10px;
+}
+
+.main-header .left .input-header{
+    margin-right: 10px;
+    width: 400px;
+}
+
+.main-header .right .profile-header{
+    display: flex;
+    align-items: center;
+}
+
+.main-header .right .logo-header{
+    width: 40px;
+    border-radius: 50%;
+}
+
+.profile-header Button{
+    border-radius: 10px;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+}
+
+.logo-header, .icon-header{
+    margin-right: 10px;
+    margin-left: 10px;
+}
