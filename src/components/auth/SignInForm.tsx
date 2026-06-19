@@ -32,7 +32,6 @@ export default function SignInForm() {
 
       navigate("/home")
 
-      console.log("Django: ", response)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (errors: any) {
         setError(errors.use_login|| "Identifiants incorrect ou erreur serveurs.")
