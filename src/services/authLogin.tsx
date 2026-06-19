@@ -1,7 +1,6 @@
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { apiFetch } from "./api";
 
-const apiUrl = import.meta.env.VITE_API_URL;
 
 export interface LoginPayload {
     use_login: string;
@@ -44,6 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 setUser(null)
+                
             }
             finally {
                 setLoading(false)
@@ -68,15 +68,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 return { success: true , message: "Athentification réussie"}
             }
 
-            // return { success: false, message: "Erreur d'authentification" };
+            return { success: false, message: "Erreur d'authentification" };
 
-            // const data = await res.json();
-
-            // if (!res.ok) {
-            //     throw data;
-            // }
-
-            // return data;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             return {
