@@ -83,15 +83,10 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="/" className="lg:hidden">
-            <img
-              className="dark:hidden"
-              src="./images/logo/logo.svg"
-              alt="Logo"
-            />
+          <Link to="#" className="lg:hidden" style={{width: "50px"}}>
             <img
               className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
+              src="./images/logo-stock.png"
               alt="Logo"
             />
           </Link>
@@ -155,7 +150,6 @@ const AppHeader: React.FC = () => {
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
-            {/* <!-- Dark Mode Toggler --> */}
           </div>
           {/* <!-- User Area --> */}
           <UserDropdown />
