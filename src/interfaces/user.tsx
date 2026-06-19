@@ -1,4 +1,4 @@
-export interface User {
+export interface UserFull {
     use_id: number,
     use_login: string,
     use_pwd: string,
