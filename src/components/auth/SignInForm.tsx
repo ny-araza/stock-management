@@ -4,18 +4,20 @@ import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
-import { authApi, LoginPayload } from "../../services/authLogin";
+// import { authApi, LoginPayload } from "../../services/authLogin";
+import { useAuth } from "../../services/authLogin";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [login, setLogin] = useState("")
+  const [id, setId] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const {login} = useAuth()
 
   function resetForm() {
-    setLogin("")
+    setId("")
     setPassword("")
   }
 
@@ -25,13 +27,18 @@ export default function SignInForm() {
     setError(null);
     setLoading(true)
     try {
-      const response = await authApi.login({
-        use_login: login,
-        use_pwd: password
-      })
-
+      // const response = await authApi.login({
+      //   use_login: login,
+      //   use_pwd: password
+      // })
+      const result = await login(id, password)
+      if (!result.success){
+        setError("Identifiant ou mot de passe incorrecte")
+        return ;
+      }
+      console.log(result)
       navigate("/home")
-
+      // console.log(response)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (errors: any) {
         setError(errors.use_login|| "Identifiants incorrect ou erreur serveurs.")
@@ -63,8 +70,8 @@ export default function SignInForm() {
                   </Label>
                   <Input placeholder="type your idnetifiants"
                     id="username"
-                    value={login}
-                    onChange={(e) => setLogin(e.target.value)}
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
                     name="username" />
                 </div>
                 <div>
