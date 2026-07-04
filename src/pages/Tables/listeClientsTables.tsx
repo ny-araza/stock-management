@@ -1,15 +1,15 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
-import BasicTableOne from "../../components/tables/BasicTables/BasicTableOne";
+import ClientsTable from "../../components/tables/BasicTables/clientsTable";
 
-export default function BasicTables() {
+export default function ListClientsTables() {
   return (
     <>
       
-      <PageBreadcrumb pageTitle="Listes clients" />
+      <PageBreadcrumb pageTitle="Listes clients"  />
       <div className="space-y-6">
         <ComponentCard title="">
-          <BasicTableOne />
+          <ClientsTable />
         </ComponentCard>
       </div>
     </>

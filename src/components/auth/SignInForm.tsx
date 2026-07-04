@@ -27,10 +27,6 @@ export default function SignInForm() {
     setError(null);
     setLoading(true)
     try {
-      // const response = await authApi.login({
-      //   use_login: login,
-      //   use_pwd: password
-      // })
       const result = await login(id, password)
       if (!result.success){
         setError("Identifiant ou mot de passe incorrecte")
@@ -38,7 +34,6 @@ export default function SignInForm() {
       }
       console.log(result)
       navigate("/home")
-      // console.log(response)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (errors: any) {
         setError(errors.use_login|| "Identifiants incorrect ou erreur serveurs.")

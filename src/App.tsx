@@ -12,12 +12,13 @@ import Buttons from "./pages/UiElements/Buttons";
 import LineChart from "./pages/Charts/LineChart";
 import BarChart from "./pages/Charts/BarChart";
 import Calendar from "./pages/Calendar";
-import BasicTables from "./pages/Tables/BasicTables";
 import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import ListClientsTables from "./pages/Tables/listeClientsTables";
+import ListArticlesTables from "./pages/Tables/listeArticlesTables";
 
 export default function App() {
   return (
@@ -28,19 +29,16 @@ export default function App() {
           {/* Dashboard Layout */}
           <Route index path="/" element={<SignIn />} />
           <Route element={<AppLayout />}>
-            {/* Others Page */}
             <Route path="/home" element={<Home />} />
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
 
-            {/* Forms */}
             <Route path="/form-elements" element={<FormElements />} />
+            {/* liste */}
+            <Route path="/clients" element={<ListClientsTables />} />
+            <Route path="/articles" element={<ListArticlesTables />} />
 
-            {/* Tables */}
-            <Route path="/basic-tables" element={<BasicTables />} />
-
-            {/* Ui Elements */}
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/avatars" element={<Avatars />} />
             <Route path="/badge" element={<Badges />} />

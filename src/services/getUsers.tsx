@@ -1,4 +1,4 @@
-import type { User } from "../interfaces/user";
+import type { User } from "../interfaces/interfaces";
 
 
 const apiUrl: string = import.meta.env.VITE_API_URL

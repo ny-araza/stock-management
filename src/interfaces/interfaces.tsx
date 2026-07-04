@@ -28,3 +28,23 @@ export interface Client {
     cli_rcs: string,
     cli_type: string
 }
+
+export interface Articles {
+    art_id: number,
+    art_code: string,
+    art_nom: string,
+    art_datecre: string,
+    art_datemdf: string,
+    art_usercre: string,
+    art_usermdf: string,
+    art_poids: string,
+    art_taille: string,
+    art_stockmini: number,
+    art_enabled: boolean,
+    art_fam_id: number,
+    art_sof_id: number,
+    art_codebarre: string,
+    art_lot_id: number,
+    art_stockable: boolean,
+    art_marque: string
+}

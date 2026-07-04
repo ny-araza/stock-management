@@ -4,6 +4,7 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { Link } from "react-router";
 import { useAuth } from "../../services/authLogin";
 import { User } from "../../services/authLogin";
+import { apiFetch } from "../../services/api";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +24,20 @@ export default function UserDropdown() {
   function closeDropdown() {
     setIsOpen(false);
   }
+
+  const logOut = async () => {
+    const res = await apiFetch("/api/logout/", {
+      method: "POST",
+      credentials: "include"
+    })
+    if (res.status){
+      console.log(res.message)
+    }
+    else{
+      console.log(res.message)
+    }
+  }
+
   return (
     <div className="relative">
       <button
@@ -97,6 +112,7 @@ export default function UserDropdown() {
         </ul>
         <Link
           to="/signin"
+          onClick={logOut}
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
           <svg

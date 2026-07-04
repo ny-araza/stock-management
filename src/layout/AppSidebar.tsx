@@ -8,7 +8,6 @@ import {
   HorizontaLDots,
   ListIcon,
   PieChartIcon,
-  TableIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -30,7 +29,7 @@ const navItems: NavItem[] = [
     name: "Gestion Commerciale",
     icon: <ListIcon />,
     subItems: [
-      { name: "Clients", path: "/basic-tables", pro: false },
+      { name: "Clients", path: "/clients", pro: false },
       { name: "Ventes", path: "#", pro: false },
       { name: "BC / PROFORMA", path: "#", pro: false },
       { name: "Caisse", path: "#", pro: false },
@@ -48,7 +47,7 @@ const navItems: NavItem[] = [
     name: "Stock",
     icon: <ListIcon />,
     subItems: [
-      { name: "Articles", path: "#", pro: false },
+      { name: "Articles", path: "/articles", pro: false },
       { name: "Stock", path: "#", pro: false },
     ],
   }
