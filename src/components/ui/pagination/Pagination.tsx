@@ -46,7 +46,6 @@ export default function Pagination({
 
         return pages;
     };
-
     return (
         <div className="w-full flex items-center justify-between p-4 border-t border-gray-100 dark:border-white/[0.05]">
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -65,7 +64,7 @@ export default function Pagination({
                 {getVisiblePages().map((item, index) =>
                     item === "..." ? (
                         <span
-                            key={index}
+                            key={`ellipsis-${index}`}
                             className="px-2 text-gray-500"
                         >
                             ...
@@ -83,7 +82,8 @@ export default function Pagination({
                             {item}
                         </span>
                     )
-                )}
+                )
+                }
 
                 <Button
                     onClick={() => onPageChange(page + 1)}

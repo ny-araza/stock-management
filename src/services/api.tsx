@@ -1,7 +1,17 @@
 const BASE_URL = import.meta.env.VITE_BASE_URL
 
-export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-    const url = `${BASE_URL}${endpoint}`
+export const apiFetch = async (
+    endpoint: string,
+    options: RequestInit = {},
+    params?: Record<string, string>
+) => {
+    const url = new URL(`${BASE_URL}${endpoint}`)
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.append(key, value)
+        })
+    }
 
     const defaultOptions: RequestInit = {
         ...options,
@@ -12,7 +22,7 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         },
     }
 
-    const response = await fetch(url, defaultOptions);
+    const response = await fetch(url.toString(), defaultOptions);
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const error = new Error(errorData.detail || 'An error occured');

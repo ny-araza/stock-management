@@ -26,11 +26,11 @@ const navItems: NavItem[] = [
     path: "/home"
   },
   {
-    name: "Gestion Commerciale",
+    name: "Commerciale",
     icon: <ListIcon />,
     subItems: [
       { name: "Clients", path: "/clients", pro: false },
-      { name: "Ventes", path: "#", pro: false },
+      { name: "Ventes (sortie)", path: "#", pro: false },
       { name: "BC / PROFORMA", path: "#", pro: false },
       { name: "Caisse", path: "#", pro: false },
     ],

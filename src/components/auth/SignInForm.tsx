@@ -48,7 +48,7 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign In
+              Se connecter
             </h1>
           </div>
           <div>
@@ -61,9 +61,9 @@ export default function SignInForm() {
               <div className="space-y-6">
                 <div>
                   <Label>
-                    Id <span className="text-error-500">*</span>{" "}
+                    Identifiant <span className="text-error-500">*</span>{" "}
                   </Label>
-                  <Input placeholder="type your idnetifiants"
+                  <Input placeholder="Entrer votre identifiants"
                     id="username"
                     value={id}
                     onChange={(e) => setId(e.target.value)}
@@ -71,12 +71,12 @@ export default function SignInForm() {
                 </div>
                 <div>
                   <Label>
-                    Password <span className="text-error-500">*</span>{" "}
+                    Mot de passe <span className="text-error-500">*</span>{" "}
                   </Label>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
+                      placeholder="Entrer votre mot de passe"
                       name="password" id="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -99,7 +99,7 @@ export default function SignInForm() {
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                     onClick={resetForm}
                   >
-                    Rest form
+                    Effacer le formulaire
                   </Link>
                 </div>
                 <div className="error" style={{color: 'red'}}>
@@ -107,7 +107,7 @@ export default function SignInForm() {
                 </div>
                 <div>
                   <Button className="w-full" size="sm" type="submit">
-                    {loading ? "loading..." : "Log In"}
+                    {loading ? "loading..." : "Se connecter"}
                   </Button>
                 </div>
               </div>

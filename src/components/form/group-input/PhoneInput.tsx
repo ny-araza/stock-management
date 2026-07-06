@@ -19,7 +19,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   selectPosition = "start", // Default position is 'start'
 }) => {
   const [selectedCountry, setSelectedCountry] = useState<string>("US");
-  const [phoneNumber, setPhoneNumber] = useState<string>("+1");
+  const [phoneNumber, setPhoneNumber] = useState<string>("+261");
 
   const countryCodes: Record<string, string> = countries.reduce(
     (acc, { code, label }) => ({ ...acc, [code]: label }),

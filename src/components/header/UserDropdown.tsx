@@ -106,7 +106,7 @@ export default function UserDropdown() {
                   fill=""
                 />
               </svg>
-              Account settings
+              Mon compte
             </DropdownItem>
           </li>
         </ul>
@@ -130,7 +130,7 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          Sign out
+          Se deconnecter
         </Link>
       </Dropdown>
     </div>
