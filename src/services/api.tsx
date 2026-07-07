@@ -25,7 +25,7 @@ export const apiFetch = async (
     const response = await fetch(url.toString(), defaultOptions);
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const error = new Error(errorData.detail || 'An error occured');
+        const error = new Error(errorData.errors || 'An error occured');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (error as any).response = { data: errorData }
         throw error;
