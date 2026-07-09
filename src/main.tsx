@@ -7,6 +7,9 @@ import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 import { AuthProvider } from "./services/authLogin.tsx";
+import { ModuleRegistry, AllCommunityModule} from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

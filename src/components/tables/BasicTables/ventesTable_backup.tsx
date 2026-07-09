@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import { apiFetch } from "../../../services/api";
 import { ListeVente } from "../../../interfaces/interfaces";
 import Button from "../../ui/button/Button";
@@ -14,97 +14,17 @@ import { useForm } from "../../../hooks/useForm";
 import PhoneInput from "react-phone-number-input"
 import "react-phone-number-input/style.css"
 import { postData } from "../../../services/sendDataService";
-import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
+import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
   ICellRendererParams,
-  FilterChangedEvent,
 } from "ag-grid-community";
+import { useMemo } from "react";
 import {
   themeAlpine,
 } from "ag-grid-community";
+import { useRef } from "react";
 
-// Champs numeriques cote backend (django_filters.NumberFilter)
-// -> on evite d'ajouter "icontains", on envoie la valeur brute.
-const NUMBER_FIELDS = new Set(["vte_valide", "vte_paye"]);
-
-// Champs date cote backend (DateFilter / DateTimeFilter)
-const DATE_FIELDS = new Set([
-  "vte_datecre",
-  "vte_datemd",
-  "vte_datevalide",
-  "vte_datepay",
-  "ve_dateecheance",
-]);
-
-// Filtre custom a 3 choix : Tous / Vrai / Faux (pour vte_valide, vte_paye)
-interface BooleanFilterProps extends CustomFilterProps {
-  trueLabel: string;
-  falseLabel: string;
-}
-
-function BooleanFilter({ model, onModelChange, trueLabel, falseLabel }: BooleanFilterProps) {
-  const doesFilterPass = () => true;
-  useGridFilter({ doesFilterPass });
-
-  const options: { value: string | null; label: string }[] = [
-    { value: null, label: "Tous" },
-    { value: "1", label: trueLabel },
-    { value: "0", label: falseLabel },
-  ];
-
-  return (
-    <div className="p-2 flex flex-col gap-2 min-w-[160px]">
-      {options.map((opt) => (
-        <label key={opt.label} className="flex items-center gap-2 cursor-pointer text-sm">
-          <input
-            type="radio"
-            name={`bool-filter-${trueLabel}`}
-            checked={model === opt.value}
-            onChange={() => onModelChange(opt.value)}
-          />
-          {opt.label}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-// Convertit le filterModel d'AgGrid en query params compris par VenteFilter
-function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
-  const params = new URLSearchParams();
-
-  Object.entries(filterModel).forEach(([field, model]) => {
-    if (!model) return;
-
-    // filtre texte -> le backend applique deja icontains (filter_overrides)
-    if (model.filterType === "text" && model.filter) {
-      params.append(field, model.filter);
-      return;
-    }
-
-    // filtre booleen custom (BooleanFilter) -> model est directement "1" ou "0"
-    if (NUMBER_FIELDS.has(field)) {
-      if (typeof model === "string" && model !== "") {
-        params.append(field, model);
-      } else if (model.filterType === "number" && model.filter !== undefined && model.filter !== null) {
-        params.append(field, String(model.filter));
-      }
-      return;
-    }
-
-    // filtre date -> on garde juste la partie AAAA-MM-JJ
-    console.log(model.filterType)
-    if (model.filterType === "date" && DATE_FIELDS.has(field)) {
-      if (model.dateFrom) {
-        params.append(field, model.dateFrom.split(" ")[0]);
-      }
-      return;
-    }
-  });
-
-  return params;
-}
 
 export default function VentesTable() {
   const gridRef = useRef<AgGridReact<ListeVente>>(null);
@@ -120,11 +40,8 @@ export default function VentesTable() {
   const [search, setSearch] = useState("")
   const [totalPages, setTotalPages] = useState(1)
   const [reference, setReference] = useState("")
-
-  // filtres agGrid envoyes au backend
-  const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
-  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  //filtre agGrid
+  // const [filterModel, setFilterModel] = useState<FilterModel | undefined>({});
   const { values, handleChange, setField } = useForm({
     code: "",
     denomination: "",
@@ -139,13 +56,11 @@ export default function VentesTable() {
     paiement: "",
   });
   const [onSubmitClick, setOnSubmutCliked] = useState(0)
-
   const columnDefs = useMemo<ColDef<ListeVente>[]>(() => [
     {
       field: "vte_code",
       headerName: "Code",
       pinned: "left",
-      filter: "agTextColumnFilter",
       cellClass: (params) =>
         codeColor(params.data?.vte_valide, params.data?.vte_paye),
     },
@@ -153,19 +68,17 @@ export default function VentesTable() {
     {
       field: "ve_code_bl",
       headerName: "Code BL",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_cli_code",
       headerName: "Code Client",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_cli_nom",
       headerName: "Client",
-      filter: "agTextColumnFilter",
+
       cellRenderer: (params: ICellRendererParams<ListeVente>) => (
         <div className="py-1">
 
@@ -188,22 +101,18 @@ export default function VentesTable() {
     {
       field: "ve_adresse_liv",
       headerName: "Adresse",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_datecre",
       headerName: "Création",
-      filter: "agDateColumnFilter",
       valueFormatter: (params) =>
         formatDate(params.value),
-
     },
 
     {
       field: "vte_datemd",
       headerName: "Modification",
-      filter: "agDateColumnFilter",
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -211,27 +120,21 @@ export default function VentesTable() {
     {
       field: "vte_usercre",
       headerName: "Créé par",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_usermdf",
       headerName: "Modifié par",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_valide",
       headerName: "Validé",
-      filter: BooleanFilter,
-      filterParams: { trueLabel: "Validé", falseLabel: "Non validé" },
-      floatingFilter: false,
     },
 
     {
       field: "vte_datevalide",
       headerName: "Date validation",
-      filter: "agDateColumnFilter",
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -239,15 +142,11 @@ export default function VentesTable() {
     {
       field: "vte_paye",
       headerName: "Payé",
-      filter: BooleanFilter,
-      filterParams: { trueLabel: "Payé", falseLabel: "Non payé" },
-      floatingFilter: false,
     },
 
     {
       field: "vte_datepay",
       headerName: "Date paiement",
-      filter: "agDateColumnFilter",
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -255,43 +154,36 @@ export default function VentesTable() {
     {
       field: "vte_modepaye",
       headerName: "Mode",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_payeclient",
       headerName: "Montant payé",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vte_montant_ht",
       headerName: "HT",
-      filter: "agNumberColumnFilter",
     },
 
     {
       field: "vte_montant_ttc",
       headerName: "TTC",
-      filter: "agNumberColumnFilter",
     },
 
     {
       field: "vte_livreur",
       headerName: "Livreur",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "vet_operateur",
       headerName: "Opérateur",
-      filter: "agTextColumnFilter",
     },
 
     {
       field: "ve_dateecheance",
       headerName: "Échéance",
-      filter: "agDateColumnFilter",
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -299,26 +191,18 @@ export default function VentesTable() {
     {
       field: "ve_remise",
       headerName: "Remise",
-      filter: false,
     },
 
     {
       field: "ve_proforma",
       headerName: "Proforma",
-      filter: false,
     },
   ], []);
-  const onFilterChanged = () => {
+  // configuration poar defaut
 
-    const model = gridRef.current?.api.getFilterModel();
-
-    console.log("FILTER MODEL :", model);
-
-  };
-  // configuration par defaut
   const defaultColDef = useMemo<ColDef>(() => ({
     sortable: true,
-    filter: true,
+    filter: false,
     floatingFilter: true,
     resizable: true,
     flex: 1,
@@ -326,30 +210,44 @@ export default function VentesTable() {
   }), []);
 
   const typeOptions: Option[] = [
-    { value: "test1", label: "type1" },
-    { value: "test2", label: "type2" },
+    {
+      value: "test1",
+      label: "type1"
+    },
+    {
+      value: "test2",
+      label: "type2"
+    }
   ]
 
   const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espece", label: "Espèce" },
+    {
+      value: "mobile_money",
+      label: "Mobile Money"
+    },
+    {
+      value: "virements",
+      label: "Virements"
+    },
+    {
+      value: "espece",
+      label: "Espèce"
+    }
   ]
 
-  // fetch avec search + filtres AgGrid (envoyes au backend)
-  const fetchVentes = useCallback(async (
-    pageNumber = page,
-    keyword = search,
-    filters = filterParams,
-  ) => {
+
+  //transformer les filtre en parametre http
+
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const fetchVentes = async (_pageNumber = page, keyword = search) => {
     try {
       setLoading(true);
-
-      const query = new URLSearchParams(filters);
-      query.set("page", String(pageNumber));
-      if (keyword) query.set("search", keyword);
-
-      const res = await apiFetch(`/api/ventes/?${query.toString()}`);
+      // const query = buildFilterQuery();
+      // const res = await apiFetch(
+      //   `/api/ventes/?page=${page}&${query}`
+      // );
+      const res = await apiFetch(`/api/ventes/?page=${page}&search=${encodeURIComponent(keyword)}`);
 
       if (res.status) {
         setventes(res.ventes);
@@ -366,41 +264,20 @@ export default function VentesTable() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, filterParams]);
+  };
 
   useEffect(() => {
-    fetchVentes(page, search, filterParams);
+    fetchVentes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  // recupere le filterModel d'AgGrid, le convertit, puis relance le fetch (debounce)
-  const onGridFilterChanged = (_event: FilterChangedEvent<ListeVente>) => {
-    const model = gridRef.current?.api.getFilterModel() ?? {};
-    const params = buildFilterParams(model);
-    console.log(params)
-    if (filterDebounce.current) clearTimeout(filterDebounce.current);
-    filterDebounce.current = setTimeout(() => {
-      setFilterParams(params);
-      setPage(1);
-      fetchVentes(1, search, params);
-    }, 1000); // laisse le temps de finir de taper avant d'interroger le backend
-  };
-
-  useEffect(() => {
-    return () => {
-      if (filterDebounce.current) clearTimeout(filterDebounce.current);
-    };
-  }, []);
-
-  const handleResetFilters = () => {
-    gridRef.current?.api.setFilterModel(null); // vide les filtres AgGrid
-    setFilterParams(new URLSearchParams());
-    setSearch("");
+  //fonction de recherche
+  const handleSearch = async () => {
     setPage(1);
-    fetchVentes(1, "", new URLSearchParams());
-  };
-  // get last codeCli
+    await fetchVentes(1, search)
+  }
+
+  //get last codeCli
   const loadReference = async () => {
     try {
       const ref = await generateReference("t_client", "cli_code");
@@ -412,6 +289,7 @@ export default function VentesTable() {
   useEffect(() => {
     loadReference();
   }, [isOpen, onSubmitClick]);
+
 
   const isFormEmpty = (
     data: Record<string, unknown>,
@@ -426,7 +304,7 @@ export default function VentesTable() {
       );
   };
 
-  // envoyer les donnee nouveau client
+  //envoyer les donnee nouveau client
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setOnSubmutCliked(onSubmitClick + 1)
@@ -452,7 +330,9 @@ export default function VentesTable() {
       );
       if (res.status) {
         alert("Client enregistré");
+
       } else {
+
         setSendError(res.error)
       }
     } catch (err) {
@@ -465,21 +345,18 @@ export default function VentesTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference])
 
-  // if (loading) return <div className="p-5">Chargement des ventes...</div>;
-  // if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
+  if (loading) return <div className="p-5">Chargement des ventes...</div>;
+  if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
 
   function formatDate(date: string): string {
     if (!date) {
       return "Pas de date"
     }
     const temp = date.split('T')
-    if (temp) {
-
-      const heure = temp[1].replace('Z', '')
-      return `${temp[0]} à ${heure}`
-    }
-    return "Format invalide"
+    const heure = temp[1].replace('Z', '')
+    return `${temp[0]} à ${heure}`
   }
+
 
   const styleForm: CSSProperties = {
     display: "flex",
@@ -508,20 +385,25 @@ export default function VentesTable() {
     }
   }
 
+
+
   return (
     <>
       <div style={styleMenu}>
         <Button onClick={openModal}>
           <PlusIcon></PlusIcon>
         </Button>
-        <div style={{ alignItems: "center", justifyContent: "center", display: "flex", fontSize: 10 }}>
-          <span className="bg-orange-300">Non payé</span>
-          <span className="bg-red-500">Non validé</span>
-        </div>
         <form method="POST">
           <div className="flex relative">
-            <Button onClick={handleResetFilters}>
-              <span>Réinitialiser</span>
+            <input
+              type="text"
+              placeholder="Rechercher client ..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value) }}
+              className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
+            />
+            <Button onClick={handleSearch}>
+              <span>search</span>
             </Button>
           </div>
         </form>
@@ -543,7 +425,6 @@ export default function VentesTable() {
               pagination={false}
               theme={themeAlpine}
               ref={gridRef}
-              onFilterChanged={onGridFilterChanged}
             />
           </div>
         </div>

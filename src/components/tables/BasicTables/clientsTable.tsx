@@ -78,10 +78,6 @@ export default function ClientsTable() {
     }
   ]
 
-  const onChangeOption = () => {
-    console.log("ceci est un handler")
-  }
-
   const fetchClients = async (pageNumber = page, keyword = search) => {
     try {
       setLoading(true);
