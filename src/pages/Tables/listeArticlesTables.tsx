@@ -6,7 +6,7 @@ export default function ListArticlesTables() {
   return (
     <>
       
-      <PageBreadcrumb pageTitle="Listes articles"  />
+      <PageBreadcrumb pageTitle="Articles"  />
       <div className="space-y-6">
         <ComponentCard title="">
           <ArticlesTables/>

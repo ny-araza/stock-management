@@ -440,6 +440,8 @@ export default function VentesTable() {
     minWidth: 150,
   }), []);
 
+  
+
   // fetch avec search + filtres AgGrid (envoyes au backend)
   const fetchVentes = useCallback(async (
     pageNumber = page,

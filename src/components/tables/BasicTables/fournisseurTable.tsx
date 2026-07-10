@@ -1,19 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CSSProperties, useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { apiFetch } from "../../../services/api";
-import { Client } from "../../../interfaces/interfaces";
+import { Fourniseur } from "../../../interfaces/interfaces";
 import Button from "../../ui/button/Button";
-import { PlusIcon } from "../../../icons";
-import Input from "../../form/input/InputField";
-import Label from "../../form/Label";
-import { Modal } from "../../ui/modal";
-import { useModal } from "../../../hooks/useModal";
-import Select, { Option } from "../../form/Select"
-import Pagination from "../../ui/pagination/Pagination";
-import { generateReference } from "../../../services/codeService";
-import { useForm } from "../../../hooks/useForm";
-import PhoneInput from "react-phone-number-input"
-import "react-phone-number-input/style.css"
-import { postData } from "../../../services/sendDataService";
 import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
 import {
   ColDef,
@@ -22,17 +11,26 @@ import {
   colorSchemeLight,
   themeQuartz,
 } from "ag-grid-community";
+import Pagination from "../../ui/pagination/Pagination";
+import { PlusIcon } from "../../../icons";
+import { useModal } from "../../../hooks/useModal";
+import { Modal } from "../../ui/modal";
+import { useForm } from "../../../hooks/useForm";
+import { postData } from "../../../services/sendDataService";
+import Input from "../../form/input/InputField";
+import Label from "../../form/Label";
+import Select, { Option } from "../../form/Select"
+import { generateReference } from "../../../services/codeService";
+import PhoneInput from "react-phone-number-input"
 
-
-// export default function ClientsTable()
 // Champs numeriques cote backend (django_filters.NumberFilter)
 // -> on evite d'ajouter "icontains", on envoie la valeur brute.
-const NUMBER_FIELDS = new Set(["cli_enabled"]);
+const NUMBER_FIELDS = new Set(["fou_enabled"]);
 
 // Champs date cote backend (DateFilter / DateTimeFilter)
 const DATE_FIELDS = new Set([
-  "cli_datecre",
-  "cli_datemdf",
+  "fou_datecre",
+  "fou_datemdf",
 ]);
 
 
@@ -46,7 +44,6 @@ interface DateGranularityModel {
   value: string; // "2023" | "2023-03" | "2023-03-13"
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, any, DateGranularityModel>) {
   const doesFilterPass = () => true;
   useGridFilter({ doesFilterPass });
@@ -142,7 +139,7 @@ function BooleanFilter({ model, onModelChange, trueLabel, falseLabel }: BooleanF
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Convertit le filterModel d'AgGrid en query params compris par VenteFilter
 function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
   const params = new URLSearchParams();
 
@@ -186,18 +183,19 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
   return params;
 }
 
-export default function ClientsTable() {
-  const gridRef = useRef<AgGridReact<Client>>(null);
-  const { isOpen, openModal, closeModal } = useModal();
-  const [clients, setClients] = useState<Client[]>([])
+
+export default function FournisseurTable() {
+  const gridRef = useRef<AgGridReact<Fourniseur>>(null);
+  const [fournisseur, setFournisseur] = useState<Fourniseur[]>([])
   const [error, setError] = useState<string | null>(null);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [hasNext, setHasNext] = useState<boolean>(false);
   const [hasPrevious, setHasPrevious] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [search, setSearch] = useState("")
   const [totalPages, setTotalPages] = useState(1)
+  const { isOpen, openModal, closeModal } = useModal();
+  const [sendError, setSendError] = useState<string | null>(null);
   const [reference, setReference] = useState("")
   //theme dark 
   const [isDark, setIsDark] = useState(
@@ -218,6 +216,10 @@ export default function ClientsTable() {
   }, []);
 
   const myTheme = useMemo(() => {
+    // return themeQuartz.withPart(isDark ? colorSchemeDarkBlue : colorSchemeLight).withParams({
+    //   headerCellHoverBackgroundColor: "#781d99",
+    //   rowHoverColor: "#781d99"
+    // });
     if (isDark) {
       return themeQuartz
         .withPart(colorSchemeDarkBlue)
@@ -235,10 +237,6 @@ export default function ClientsTable() {
     }
   }, [isDark]);
 
-  // filtres agGrid envoyes au backend
-  const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
-  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const { values, handleChange, setField } = useForm({
     code: "",
     denomination: "",
@@ -246,31 +244,31 @@ export default function ClientsTable() {
     contact2: undefined as string | undefined,
     adresse: "",
     email: "",
-    nif: "",
-    stat: "",
-    rcs: "",
-    type_client: "",
+    commercial: "",
     paiement: "",
   });
   const [onSubmitClick, setOnSubmutCliked] = useState(0)
 
-  const columnDefs = useMemo<ColDef<Client>[]>(() => [
+  // filtres agGrid envoyes au backend
+  const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
+  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const columnDefs = useMemo<ColDef<Fourniseur>[]>(() => [
     {
-      field: "cli_code",
+      field: "fou_code",
       headerName: "Code",
       pinned: "left",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
     },
-
     {
-      field: "cli_nom",
-      headerName: "Nom client",
+      field: "fou_nom",
+      headerName: "Nom",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
     },
     {
-      field: "cli_datecre",
+      field: "fou_datecre",
       headerName: "Date de création",
       filter: DateGranularityFilter,
       floatingFilter: false,
@@ -279,7 +277,7 @@ export default function ClientsTable() {
     },
 
     {
-      field: "cli_datemdf",
+      field: "fou_datemdf",
       headerName: "Modification",
       filter: DateGranularityFilter,
       floatingFilter: false,
@@ -288,43 +286,49 @@ export default function ClientsTable() {
     },
 
     {
-      field: "cli_usercre",
+      field: "fou_usercre",
       headerName: "Créé par",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
     },
 
     {
-      field: "cli_usermdf",
+      field: "fou_usermdf",
       headerName: "Modifié par",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
     },
 
     {
-      field: "cli_tel1",
-      headerName: "Tel1",
+      field: "fou_tel1",
+      headerName: "Contact1",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
     },
 
     {
-      field: "cli_tel2",
-      headerName: "Tel2",
+      field: "fou_tel2",
+      headerName: "Contact2",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
     },
 
     {
-      field: "cli_adresse",
-      headerName: "Adrèsse",
-      filter: "agTextColumnFilter",
+      field: "fou_adresse",
+      headerName: "Adrèse",
+      filter: "agNumberColumnFilter",
       suppressHeaderFilterButton: true,
     },
 
+    {
+      field: "fou_mail",
+      headerName: "Mail",
+      filter: "agNumberColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
 
     {
-      field: "cli_enabled",
+      field: "fou_enabled",
       headerName: "Status",
       filter: BooleanFilter,
       filterParams: { trueLabel: "Actif", falseLabel: "Non actif" },
@@ -336,41 +340,19 @@ export default function ClientsTable() {
       }
     },
 
+
     {
-      field: "cli_email",
-      headerName: "Email",
+      field: "fou_modepay",
+      headerName: "Mode de paiement",
+      filter: "agNumberColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "fou_commercial",
+      headerName: "Commercial",
       filter: "agTextColumnFilter",
       suppressHeaderFilterButton: true,
-    },
-
-    {
-      field: "cli_modepay",
-      headerName: "Mode de paiement",
-      filter: DateGranularityFilter,
-      floatingFilter: false,
-    },
-
-    {
-      field: "cli_nif",
-      headerName: "NIF",
-      filter: false,
-      suppressHeaderFilterButton: true,
-    },
-
-    {
-      field: "cli_stat",
-      headerName: "STAT",
-      filter: false,
-    },
-    {
-      field: "cli_rcs",
-      headerName: "RCS",
-      filter: false,
-    },
-    {
-      field: "cli_type",
-      headerName: "Type",
-      filter: false,
     },
   ], []);
 
@@ -385,10 +367,6 @@ export default function ClientsTable() {
     minWidth: 150,
   }), []);
 
-  const typeOptions: Option[] = [
-    { value: "test1", label: "type1" },
-    { value: "test2", label: "type2" },
-  ]
 
   const paiementOption: Option[] = [
     { value: "mobile_money", label: "Mobile Money" },
@@ -397,21 +375,20 @@ export default function ClientsTable() {
   ]
 
   // fetch avec search + filtres AgGrid (envoyes au backend)
-  const fetchClients = useCallback(async (
+  const fetchFourniseur = useCallback(async (
     pageNumber = page,
     keyword = search,
     filters = filterParams,
   ) => {
     try {
-
       const query = new URLSearchParams(filters);
       query.set("page", String(pageNumber));
       if (keyword) query.set("search", keyword);
 
-      const res = await apiFetch(`/api/clients/?${query.toString()}`);
+      const res = await apiFetch(`/api/fournisseurs/?${query.toString()}`);
 
       if (res.status) {
-        setClients(res.clients);
+        setFournisseur(res.fournisseur);
         setHasNext(res.next !== null);
         setHasPrevious(res.previous !== null);
         setTotalCount(res.count);
@@ -419,19 +396,18 @@ export default function ClientsTable() {
       } else {
         throw new Error(res.message || "Une erreur est survenue");
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message);
     }
   }, [page, search, filterParams]);
 
   useEffect(() => {
-    fetchClients(page, search, filterParams);
+    fetchFourniseur(page, search, filterParams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onGridFilterChanged = (_event: FilterChangedEvent<Client>) => {
+  const onGridFilterChanged = (_event: FilterChangedEvent<Fourniseur>) => {
     const model = gridRef.current?.api.getFilterModel() ?? {};
     const params = buildFilterParams(model);
     console.log(params)
@@ -439,7 +415,7 @@ export default function ClientsTable() {
     filterDebounce.current = setTimeout(() => {
       setFilterParams(params);
       setPage(1);
-      fetchClients(1, search, params);
+      fetchFourniseur(1, search, params);
     }, 1000); // laisse le temps de finir de taper avant d'interroger le backend
   };
 
@@ -449,67 +425,11 @@ export default function ClientsTable() {
     };
   }, []);
 
-  const handleResetFilters = () => {
-    gridRef.current?.api.setFilterModel(null); // vide les filtres AgGrid
-    setFilterParams(new URLSearchParams());
-    setSearch("");
-    setPage(1);
-    fetchClients(1, "", new URLSearchParams());
-  };
-
-
-  const isFormEmpty = (
-    data: Record<string, unknown>,
-    ignoredFields: string[] = []
-  ): boolean => {
-    return Object.entries(data)
-      .filter(([key]) => !ignoredFields.includes(key))
-      .every(([, value]) =>
-        value === "" ||
-        value === null ||
-        value === undefined
-      );
-  };
-
-  // envoyer les donnee nouveau client
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOnSubmutCliked(onSubmitClick + 1)
-    try {
-      if (!values.denomination && isFormEmpty(values, ["code", "denomination"])) {
-        setSendError("Veuiller au moins remplir le champs denomination")
-        return
-      }
-      const res = await postData(
-        "/api/create-client-fournis/", "t_client", {
-        cli_code: reference,
-        cli_nom: values.denomination,
-        cli_tel1: values.contact1,
-        cli_tel2: values.contact2,
-        cli_email: values.email,
-        cli_adresse: values.adresse,
-        cli_modepay: values.paiement,
-        cli_nif: values.nif,
-        cli_stat: values.stat,
-        cli_rcs: values.rcs,
-        cli_type: values.type_client,
-      }
-      );
-      if (res.status) {
-        alert("Client enregistré");
-      } else {
-        setSendError(res.error)
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
   // get last codeCli
   const loadReference = async () => {
     try {
-      const ref = await generateReference("t_client", "cli_code");
+      const ref = await generateReference("t_fournis", "fou_code");
       setReference(ref);
-      console.log(ref)
     } catch (err) {
       console.error(err);
     }
@@ -524,6 +444,14 @@ export default function ClientsTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference])
 
+  const handleResetFilters = () => {
+    gridRef.current?.api.setFilterModel(null); // vide les filtres AgGrid
+    setFilterParams(new URLSearchParams());
+    setSearch("");
+    setPage(1);
+    fetchFourniseur(1, "", new URLSearchParams());
+  };
+
   if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
 
   function formatDate(date: string): string {
@@ -531,19 +459,11 @@ export default function ClientsTable() {
       return ""
     }
     const temp = date.split('T')
-    if (temp) {
-
+    if (temp.length == 2) {
       const heure = temp[1].replace('Z', '')
       return `${temp[0]} à ${heure}`
     }
     return "Format invalide"
-  }
-
-  const styleForm: CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    width: "100%",
   }
 
   const styleMenu: CSSProperties = {
@@ -553,10 +473,55 @@ export default function ClientsTable() {
     marginTop: "10px"
   }
 
+  const isFormEmpty = (
+    data: Record<string, unknown>,
+    ignoredFields: string[] = []
+  ): boolean => {
+    return Object.entries(data)
+      .filter(([key]) => !ignoredFields.includes(key))
+      .every(([, value]) =>
+        value === "" ||
+        value === null ||
+        value === undefined
+      );
+  };
+
+
+  // envoyer les donnee nouveau client
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOnSubmutCliked(onSubmitClick + 1)
+    try {
+      if (!values.denomination && isFormEmpty(values, ["code", "denomination"])) {
+        setSendError("Veuiller au moins remplir le champs denomination")
+        return
+      }
+      const res = await postData(
+        "/api/create-client-fournis/", "t_fournis", {
+        fou_code: reference,
+        fou_nom: values.denomination,
+        fou_tel1: values.contact1,
+        fou_tel2: values.contact2,
+        fou_mail: values.email,
+        fou_adresse: values.adresse,
+        fou_modepay: values.paiement,
+        fou_commercial: values.commercial
+      }
+      );
+      if (res.status) {
+        alert("Fournisseur enregistré");
+      } else {
+        setSendError(res.error)
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <>
       <div style={styleMenu}>
-        <Button onClick={openModal}>
+        <Button title="Ajouter un forunisseur" onClick={openModal}>
           <PlusIcon></PlusIcon>
         </Button>
         <form method="POST">
@@ -576,8 +541,8 @@ export default function ClientsTable() {
               width: "100%",
             }}
           >
-            <AgGridReact<Client>
-              rowData={clients}
+            <AgGridReact<Fourniseur>
+              rowData={fournisseur}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               animateRows
@@ -603,7 +568,7 @@ export default function ClientsTable() {
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Ajouter un nouveau client
+              Ajouter un nouveau fournisseur
             </h4>
 
           </div>
@@ -628,10 +593,10 @@ export default function ClientsTable() {
                       value={values.denomination}
                       type="text"
                       onChange={handleChange}
-                      placeholder="Nom du client"
+                      placeholder="Nom du fournisseur"
                     />
                   </div>
-                  <div style={styleForm} className="insert-num-client">
+                  <div className="insert-num-client">
                     <div>
                       <Label>Contact 1</Label>
                       <PhoneInput
@@ -659,7 +624,7 @@ export default function ClientsTable() {
                       name="adresse"
                       value={values.adresse}
                       onChange={handleChange}
-                      placeholder="Adresse du client"
+                      placeholder="Adresse du fournisseur"
                     />
                   </div>
                 </div>
@@ -672,55 +637,16 @@ export default function ClientsTable() {
                       name="email"
                       value={values.email}
                       onChange={handleChange}
-                      placeholder="client@gmail.com"
+                      placeholder="fournisseur@gmail.com"
                     />
                   </div>
 
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>NIF</Label>
-                    <Input
-                      name="nif"
-                      value={values.nif}
-                      onChange={handleChange}
-                      placeholder="NF"
+                  <div className="lg:col-span-1">
+                    <Label>Paiment</Label>
+                    <Select
+                      options={paiementOption}
+                      onChange={(value) => setField("paiement", value)}
                     />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>STAT</Label>
-                    <Input
-                      name="stat"
-                      value={values.stat}
-                      onChange={handleChange}
-                      placeholder="STAT"
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>RCS</Label>
-                    <Input
-                      name="rcs"
-                      value={values.rcs}
-                      onChange={handleChange}
-                      placeholder="RCS"
-                    />
-                  </div>
-                  <div style={styleForm}>
-                    <div className="col-span-2 w-100">
-                      <Label>Type de client</Label>
-                      <Select
-                        options={typeOptions}
-                        onChange={(value) => setField("type_client", value)}
-                      />
-                    </div>
-                    <div className="col-span-2 w-100">
-                      <Label>Paiments</Label>
-                      <Select
-                        options={paiementOption}
-                        onChange={(value) => setField("paiement", value)}
-                      />
-                    </div>
-
                   </div>
                 </div>
               </div>

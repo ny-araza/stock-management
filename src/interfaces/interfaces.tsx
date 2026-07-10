@@ -80,7 +80,7 @@ export interface Articles {
     art_marque: string
 }
 
-export interface BC{
+export interface BC {
     cmf_id: number,
     cmf_code: string,
     cmf_datecre: string,
@@ -96,4 +96,22 @@ export interface BC{
     cmf_islivre: boolean,
     cmf_fou_code: string,
     cmf_lettre: string
+}
+
+
+export interface Fourniseur {
+    fou_id: number,
+    fou_code: string,
+    fou_nom: string,
+    fou_datecre: string,
+    fou_datemdf: string,
+    fou_usercre: string,
+    fou_usermdf: string,
+    fou_tel1: string,
+    fou_tel2: string,
+    fou_adresse: string,
+    fou_mail: string,
+    fou_enabled: boolean,
+    fou_modepay: string,
+    fou_commercial: string,
 }

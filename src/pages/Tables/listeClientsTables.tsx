@@ -6,7 +6,7 @@ export default function ListClientsTables() {
   return (
     <>
       
-      <PageBreadcrumb pageTitle="Listes clients"  />
+      <PageBreadcrumb pageTitle="Clients"  />
       <div className="space-y-6">
         <ComponentCard title="">
           <ClientsTable />

@@ -6,7 +6,7 @@ export default function ListVentesTables() {
   return (
     <>
       
-      <PageBreadcrumb pageTitle="Liste des ventes"  />
+      <PageBreadcrumb pageTitle="Ventes"  />
       <div  className="space-y-6">
         <ComponentCard title="">
           <VentesTable />

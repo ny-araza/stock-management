@@ -21,6 +21,7 @@ import ListClientsTables from "./pages/Tables/listeClientsTables";
 import ListArticlesTables from "./pages/Tables/listeArticlesTables";
 import ListVentesTables from "./pages/Tables/listeVentesTables";
 import ListBcTables from "./pages/Tables/listeBcTables";
+import ListFournisseurTables from "./pages/Tables/listeFournisseurTables";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/articles" element={<ListArticlesTables />} />
             <Route path="ventes" element={<ListVentesTables />} />
             <Route path="/bc" element={<ListBcTables />} />
+            <Route path="/fournisseurs" element={<ListFournisseurTables />} />
 
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/avatars" element={<Avatars />} />
