@@ -19,9 +19,9 @@ import {
   ColDef,
   ICellRendererParams,
   FilterChangedEvent,
-} from "ag-grid-community";
-import {
-  themeAlpine,
+  colorSchemeDarkBlue,
+  colorSchemeLight,
+  themeQuartz,
 } from "ag-grid-community";
 
 // Champs numeriques cote backend (django_filters.NumberFilter)
@@ -37,11 +37,85 @@ const DATE_FIELDS = new Set([
   "ve_dateecheance",
 ]);
 
+
 // Filtre custom a 3 choix : Tous / Vrai / Faux (pour vte_valide, vte_paye)
 interface BooleanFilterProps extends CustomFilterProps {
   trueLabel: string;
   falseLabel: string;
 }
+interface DateGranularityModel {
+  granularity: "year" | "month" | "day";
+  value: string; // "2023" | "2023-03" | "2023-03-13"
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, any, DateGranularityModel>) {
+  const doesFilterPass = () => true;
+  useGridFilter({ doesFilterPass });
+
+  const [granularity, setGranularity] = useState<DateGranularityModel["granularity"]>(
+    model?.granularity ?? "day"
+  );
+  const value = model?.value ?? "";
+
+  const updateGranularity = (g: DateGranularityModel["granularity"]) => {
+    setGranularity(g);
+    onModelChange(null); // on vide la valeur precedente, sans revenir a "day"
+  };
+
+  const updateValue = (v: string) => {
+    if (!v) {
+      onModelChange(null);
+      return;
+    }
+    onModelChange({ granularity, value: v });
+  };
+
+
+  return (
+    <div className="p-2 flex flex-col gap-2 min-w-[180px]">
+      <select
+        className="border rounded p-1 text-sm"
+        value={granularity}
+        onChange={(e) => updateGranularity(e.target.value as DateGranularityModel["granularity"])}
+      >
+        <option value="year">Année</option>
+        <option value="month">Mois</option>
+        <option value="day">Jour</option>
+      </select>
+
+      {granularity === "year" && (
+        <input
+          type="number"
+          placeholder="2023"
+          className="border rounded p-1 text-sm"
+          value={value}
+          onChange={(e) => updateValue(e.target.value)}
+        />
+      )}
+
+      {granularity === "month" && (
+        <input
+          type="month"
+          placeholder="2023-12"
+          className="border rounded p-1 text-sm"
+          value={value}
+          onChange={(e) => updateValue(e.target.value)}
+        />
+      )}
+
+      {granularity === "day" && (
+        <input
+          type="date"
+          className="border rounded p-1 text-sm"
+          value={value}
+          onChange={(e) => updateValue(e.target.value)}
+        />
+      )}
+    </div>
+  );
+}
+
 
 function BooleanFilter({ model, onModelChange, trueLabel, falseLabel }: BooleanFilterProps) {
   const doesFilterPass = () => true;
@@ -94,17 +168,33 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
     }
 
     // filtre date -> on garde juste la partie AAAA-MM-JJ
-    console.log(model.filterType)
-    if (model.filterType === "date" && DATE_FIELDS.has(field)) {
-      if (model.dateFrom) {
-        params.append(field, model.dateFrom.split(" ")[0]);
+    // if (model.filterType === "date" && DATE_FIELDS.has(field)) {
+    //   if (model.dateFrom) {
+    //     params.append(field, model.dateFrom.split(" ")[0]);
+    //   }
+    //   return;
+    // }
+    if (DATE_FIELDS.has(field) && model && typeof model === "object" && "granularity" in model) {
+      const { granularity, value } = model as DateGranularityModel;
+      if (!value) return;
+
+      if (granularity === "year") {
+        params.append(`${field}_year`, value);
+      } else if (granularity === "month") {
+        const [year, month] = value.split("-");
+        params.append(`${field}_year`, year);
+        params.append(`${field}_month`, String(Number(month)));
+      } else if (granularity === "day") {
+        params.append(field, value); // utilise le lookup_expr="date" deja configure
       }
       return;
     }
+
   });
 
   return params;
 }
+
 
 export default function VentesTable() {
   const gridRef = useRef<AgGridReact<ListeVente>>(null);
@@ -120,6 +210,45 @@ export default function VentesTable() {
   const [search, setSearch] = useState("")
   const [totalPages, setTotalPages] = useState(1)
   const [reference, setReference] = useState("")
+  //theme dark 
+  const [isDark, setIsDark] = useState(
+    document.documentElement.classList.contains("dark")
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const myTheme = useMemo(() => {
+    // return themeQuartz.withPart(isDark ? colorSchemeDarkBlue : colorSchemeLight).withParams({
+    //   headerCellHoverBackgroundColor: "#781d99",
+    //   rowHoverColor: "#781d99"
+    // });
+    if (isDark) {
+      return themeQuartz
+        .withPart(colorSchemeDarkBlue)
+        .withParams({
+          backgroundColor: "#101828",
+          rowHoverColor: "#781d99"
+        })
+    }
+    else {
+      return themeQuartz
+        .withPart(colorSchemeLight)
+        .withParams({
+          rowHoverColor: "#cb92df"
+        })
+    }
+  }, [isDark]);
 
   // filtres agGrid envoyes au backend
   const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
@@ -146,6 +275,7 @@ export default function VentesTable() {
       headerName: "Code",
       pinned: "left",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
       cellClass: (params) =>
         codeColor(params.data?.vte_valide, params.data?.vte_paye),
     },
@@ -154,18 +284,21 @@ export default function VentesTable() {
       field: "ve_code_bl",
       headerName: "Code BL",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_cli_code",
       headerName: "Code Client",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_cli_nom",
       headerName: "Client",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
       cellRenderer: (params: ICellRendererParams<ListeVente>) => (
         <div className="py-1">
 
@@ -189,21 +322,23 @@ export default function VentesTable() {
       field: "ve_adresse_liv",
       headerName: "Adresse",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_datecre",
-      headerName: "Création",
-      filter: "agDateColumnFilter",
+      headerName: "Date de création",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
       valueFormatter: (params) =>
         formatDate(params.value),
-
     },
 
     {
       field: "vte_datemd",
       headerName: "Modification",
-      filter: "agDateColumnFilter",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -212,12 +347,14 @@ export default function VentesTable() {
       field: "vte_usercre",
       headerName: "Créé par",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_usermdf",
       headerName: "Modifié par",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
@@ -226,12 +363,18 @@ export default function VentesTable() {
       filter: BooleanFilter,
       filterParams: { trueLabel: "Validé", falseLabel: "Non validé" },
       floatingFilter: false,
+      valueFormatter: (params) => {
+        if (params.value == 1) {
+          return "Validé"
+        } else return "Non validé"
+      }
     },
 
     {
       field: "vte_datevalide",
       headerName: "Date validation",
-      filter: "agDateColumnFilter",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -242,12 +385,18 @@ export default function VentesTable() {
       filter: BooleanFilter,
       filterParams: { trueLabel: "Payé", falseLabel: "Non payé" },
       floatingFilter: false,
+      valueFormatter: (params) => {
+        if (params.value == 1) {
+          return "Payé"
+        } else return "Non payé"
+      }
     },
 
     {
       field: "vte_datepay",
       headerName: "Date paiement",
-      filter: "agDateColumnFilter",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -256,42 +405,49 @@ export default function VentesTable() {
       field: "vte_modepaye",
       headerName: "Mode",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_payeclient",
       headerName: "Montant payé",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_montant_ht",
       headerName: "HT",
       filter: "agNumberColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_montant_ttc",
       headerName: "TTC",
       filter: "agNumberColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vte_livreur",
       headerName: "Livreur",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "vet_operateur",
       headerName: "Opérateur",
       filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
 
     {
       field: "ve_dateecheance",
       headerName: "Échéance",
-      filter: "agDateColumnFilter",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
       valueFormatter: (params) =>
         formatDate(params.value),
     },
@@ -300,6 +456,7 @@ export default function VentesTable() {
       field: "ve_remise",
       headerName: "Remise",
       filter: false,
+      suppressHeaderFilterButton: true,
     },
 
     {
@@ -308,18 +465,13 @@ export default function VentesTable() {
       filter: false,
     },
   ], []);
-  const onFilterChanged = () => {
 
-    const model = gridRef.current?.api.getFilterModel();
-
-    console.log("FILTER MODEL :", model);
-
-  };
   // configuration par defaut
   const defaultColDef = useMemo<ColDef>(() => ({
     sortable: true,
     filter: true,
     floatingFilter: true,
+    suppressFloatingFilterButton: true,
     resizable: true,
     flex: 1,
     minWidth: 150,
@@ -470,7 +622,7 @@ export default function VentesTable() {
 
   function formatDate(date: string): string {
     if (!date) {
-      return "Pas de date"
+      return ""
     }
     const temp = date.split('T')
     if (temp) {
@@ -541,7 +693,7 @@ export default function VentesTable() {
               defaultColDef={defaultColDef}
               animateRows
               pagination={false}
-              theme={themeAlpine}
+              theme={myTheme}
               ref={gridRef}
               onFilterChanged={onGridFilterChanged}
             />
