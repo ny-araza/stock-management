@@ -1,12 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { apiFetch } from "../../../services/api";
 import { Client } from "../../../interfaces/interfaces";
 import Button from "../../ui/button/Button";
@@ -22,12 +14,182 @@ import { useForm } from "../../../hooks/useForm";
 import PhoneInput from "react-phone-number-input"
 import "react-phone-number-input/style.css"
 import { postData } from "../../../services/sendDataService";
+import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
+import {
+  ColDef,
+  FilterChangedEvent,
+  colorSchemeDarkBlue,
+  colorSchemeLight,
+  themeQuartz,
+} from "ag-grid-community";
 
+
+// export default function ClientsTable()
+// Champs numeriques cote backend (django_filters.NumberFilter)
+// -> on evite d'ajouter "icontains", on envoie la valeur brute.
+const NUMBER_FIELDS = new Set(["cli_enabled"]);
+
+// Champs date cote backend (DateFilter / DateTimeFilter)
+const DATE_FIELDS = new Set([
+  "cli_datecre",
+  "cli_datemdf",
+]);
+
+
+// Filtre custom a 3 choix : Tous / Vrai / Faux (pour vte_valide, vte_paye)
+interface BooleanFilterProps extends CustomFilterProps {
+  trueLabel: string;
+  falseLabel: string;
+}
+interface DateGranularityModel {
+  granularity: "year" | "month" | "day";
+  value: string; // "2023" | "2023-03" | "2023-03-13"
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, any, DateGranularityModel>) {
+  const doesFilterPass = () => true;
+  useGridFilter({ doesFilterPass });
+
+  const [granularity, setGranularity] = useState<DateGranularityModel["granularity"]>(
+    model?.granularity ?? "day"
+  );
+  const value = model?.value ?? "";
+
+  const updateGranularity = (g: DateGranularityModel["granularity"]) => {
+    setGranularity(g);
+    onModelChange(null); // on vide la valeur precedente, sans revenir a "day"
+  };
+
+  const updateValue = (v: string) => {
+    if (!v) {
+      onModelChange(null);
+      return;
+    }
+    onModelChange({ granularity, value: v });
+  };
+
+
+  return (
+    <div className="p-2 flex flex-col gap-2 min-w-[180px]">
+      <select
+        className="border rounded p-1 text-sm"
+        value={granularity}
+        onChange={(e) => updateGranularity(e.target.value as DateGranularityModel["granularity"])}
+      >
+        <option value="year">Année</option>
+        <option value="month">Mois</option>
+        <option value="day">Jour</option>
+      </select>
+
+      {granularity === "year" && (
+        <input
+          type="number"
+          placeholder="2023"
+          className="border rounded p-1 text-sm"
+          value={value}
+          onChange={(e) => updateValue(e.target.value)}
+        />
+      )}
+
+      {granularity === "month" && (
+        <input
+          type="month"
+          placeholder="2023-12"
+          className="border rounded p-1 text-sm"
+          value={value}
+          onChange={(e) => updateValue(e.target.value)}
+        />
+      )}
+
+      {granularity === "day" && (
+        <input
+          type="date"
+          className="border rounded p-1 text-sm"
+          value={value}
+          onChange={(e) => updateValue(e.target.value)}
+        />
+      )}
+    </div>
+  );
+}
+
+
+function BooleanFilter({ model, onModelChange, trueLabel, falseLabel }: BooleanFilterProps) {
+  const doesFilterPass = () => true;
+  useGridFilter({ doesFilterPass });
+
+  const options: { value: string | null; label: string }[] = [
+    { value: null, label: "Tous" },
+    { value: "1", label: trueLabel },
+    { value: "0", label: falseLabel },
+  ];
+
+  return (
+    <div className="p-2 flex flex-col gap-2 min-w-[160px]">
+      {options.map((opt) => (
+        <label key={opt.label} className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="radio"
+            name={`bool-filter-${trueLabel}`}
+            checked={model === opt.value}
+            onChange={() => onModelChange(opt.value)}
+          />
+          {opt.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
+  const params = new URLSearchParams();
+
+  Object.entries(filterModel).forEach(([field, model]) => {
+    if (!model) return;
+
+    // filtre texte -> le backend applique deja icontains (filter_overrides)
+    if (model.filterType === "text" && model.filter) {
+      params.append(field, model.filter);
+      return;
+    }
+
+    // filtre booleen custom (BooleanFilter) -> model est directement "1" ou "0"
+    if (NUMBER_FIELDS.has(field)) {
+      if (typeof model === "string" && model !== "") {
+        params.append(field, model);
+      } else if (model.filterType === "number" && model.filter !== undefined && model.filter !== null) {
+        params.append(field, String(model.filter));
+      }
+      return;
+    }
+
+    if (DATE_FIELDS.has(field) && model && typeof model === "object" && "granularity" in model) {
+      const { granularity, value } = model as DateGranularityModel;
+      if (!value) return;
+
+      if (granularity === "year") {
+        params.append(`${field}_year`, value);
+      } else if (granularity === "month") {
+        const [year, month] = value.split("-");
+        params.append(`${field}_year`, year);
+        params.append(`${field}_month`, String(Number(month)));
+      } else if (granularity === "day") {
+        params.append(field, value); // utilise le lookup_expr="date" deja configure
+      }
+      return;
+    }
+
+  });
+
+  return params;
+}
 
 export default function ClientsTable() {
+  const gridRef = useRef<AgGridReact<Client>>(null);
   const { isOpen, openModal, closeModal } = useModal();
   const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -37,6 +199,46 @@ export default function ClientsTable() {
   const [search, setSearch] = useState("")
   const [totalPages, setTotalPages] = useState(1)
   const [reference, setReference] = useState("")
+  //theme dark 
+  const [isDark, setIsDark] = useState(
+    document.documentElement.classList.contains("dark")
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const myTheme = useMemo(() => {
+    if (isDark) {
+      return themeQuartz
+        .withPart(colorSchemeDarkBlue)
+        .withParams({
+          backgroundColor: "#101828",
+          rowHoverColor: "#781d99"
+        })
+    }
+    else {
+      return themeQuartz
+        .withPart(colorSchemeLight)
+        .withParams({
+          rowHoverColor: "#cb92df"
+        })
+    }
+  }, [isDark]);
+
+  // filtres agGrid envoyes au backend
+  const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
+  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { values, handleChange, setField } = useForm({
     code: "",
     denomination: "",
@@ -52,36 +254,161 @@ export default function ClientsTable() {
   });
   const [onSubmitClick, setOnSubmutCliked] = useState(0)
 
-  const typeOptions: Option[] = [
+  const columnDefs = useMemo<ColDef<Client>[]>(() => [
     {
-      value: "test1",
-      label: "type1"
+      field: "cli_code",
+      headerName: "Code",
+      pinned: "left",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_nom",
+      headerName: "Nom client",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
     },
     {
-      value: "test2",
-      label: "type2"
-    }
+      field: "cli_datecre",
+      headerName: "Date de création",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
+      valueFormatter: (params) =>
+        formatDate(params.value),
+    },
+
+    {
+      field: "cli_datemdf",
+      headerName: "Modification",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
+      valueFormatter: (params) =>
+        formatDate(params.value),
+    },
+
+    {
+      field: "cli_usercre",
+      headerName: "Créé par",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_usermdf",
+      headerName: "Modifié par",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_tel1",
+      headerName: "Tel1",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_tel2",
+      headerName: "Tel2",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_adresse",
+      headerName: "Adrèsse",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+
+    {
+      field: "cli_enabled",
+      headerName: "Status",
+      filter: BooleanFilter,
+      filterParams: {trueLabel: "Actif", falseLabel: "Non actif"},
+      floatingFilter: false,
+      valueFormatter: (params) =>{
+        if (params.value == 1){
+          return "Actif"
+        }else return "Non actif"
+      }
+    },
+
+    {
+      field: "cli_email",
+      headerName: "Email",
+      filter: "agTextColumnFilter",
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_modepay",
+      headerName: "Mode de paiement",
+      filter: DateGranularityFilter,
+      floatingFilter: false,
+    },
+
+    {
+      field: "cli_nif",
+      headerName: "NIF",
+      filter: false,
+      suppressHeaderFilterButton: true,
+    },
+
+    {
+      field: "cli_stat",
+      headerName: "STAT",
+      filter: false,
+    },
+    {
+      field: "cli_rcs",
+      headerName: "RCS",
+      filter: false,
+    },
+    {
+      field: "cli_type",
+      headerName: "Type",
+      filter: false,
+    },
+  ], []);
+
+  // configuration par defaut
+  const defaultColDef = useMemo<ColDef>(() => ({
+    sortable: true,
+    filter: true,
+    floatingFilter: true,
+    suppressFloatingFilterButton: true,
+    resizable: true,
+    flex: 1,
+    minWidth: 150,
+  }), []);
+
+  const typeOptions: Option[] = [
+    { value: "test1", label: "type1" },
+    { value: "test2", label: "type2" },
   ]
 
   const paiementOption: Option[] = [
-    {
-      value: "mobile_money",
-      label: "Mobile Money"
-    },
-    {
-      value: "virements",
-      label: "Virements"
-    },
-    {
-      value: "espece",
-      label: "Espèce"
-    }
+    { value: "mobile_money", label: "Mobile Money" },
+    { value: "virements", label: "Virements" },
+    { value: "espece", label: "Espèce" },
   ]
 
-  const fetchClients = async (pageNumber = page, keyword = search) => {
+  // fetch avec search + filtres AgGrid (envoyes au backend)
+  const fetchClients = useCallback(async (
+    pageNumber = page,
+    keyword = search,
+    filters = filterParams,
+  ) => {
     try {
-      setLoading(true);
-      const res = await apiFetch(`/api/clients/?page=${page}&search=${encodeURIComponent(keyword)}`);
+
+      const query = new URLSearchParams(filters);
+      query.set("page", String(pageNumber));
+      if (keyword) query.set("search", keyword);
+
+      const res = await apiFetch(`/api/clients/?${query.toString()}`);
 
       if (res.status) {
         setClients(res.clients);
@@ -95,23 +422,41 @@ export default function ClientsTable() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [page, search, filterParams]);
+
   useEffect(() => {
-    fetchClients();
+    fetchClients(page, search, filterParams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  //fonction de recherche
-  const handleSearch = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const onGridFilterChanged = (_event: FilterChangedEvent<Client>) => {
+    const model = gridRef.current?.api.getFilterModel() ?? {};
+    const params = buildFilterParams(model);
+    console.log(params)
+    if (filterDebounce.current) clearTimeout(filterDebounce.current);
+    filterDebounce.current = setTimeout(() => {
+      setFilterParams(params);
+      setPage(1);
+      fetchClients(1, search, params);
+    }, 1000); // laisse le temps de finir de taper avant d'interroger le backend
+  };
+
+  useEffect(() => {
+    return () => {
+      if (filterDebounce.current) clearTimeout(filterDebounce.current);
+    };
+  }, []);
+
+  const handleResetFilters = () => {
+    gridRef.current?.api.setFilterModel(null); // vide les filtres AgGrid
+    setFilterParams(new URLSearchParams());
+    setSearch("");
     setPage(1);
-
-    await fetchClients(1, search)
-  }
-
-  //get last codeCli
+    fetchClients(1, "", new URLSearchParams());
+  };
+  // get last codeCli
   const loadReference = async () => {
     try {
       const ref = await generateReference("t_client", "cli_code");
@@ -123,7 +468,6 @@ export default function ClientsTable() {
   useEffect(() => {
     loadReference();
   }, [isOpen, onSubmitClick]);
-
 
   const isFormEmpty = (
     data: Record<string, unknown>,
@@ -138,7 +482,7 @@ export default function ClientsTable() {
       );
   };
 
-  //envoyer les donnee nouveau client
+  // envoyer les donnee nouveau client
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setOnSubmutCliked(onSubmitClick + 1)
@@ -164,9 +508,7 @@ export default function ClientsTable() {
       );
       if (res.status) {
         alert("Client enregistré");
-
       } else {
-
         setSendError(res.error)
       }
     } catch (err) {
@@ -179,18 +521,20 @@ export default function ClientsTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference])
 
-  if (loading) return <div className="p-5">Chargement des clients...</div>;
   if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
 
   function formatDate(date: string): string {
     if (!date) {
-      return "Pas de date"
+      return ""
     }
     const temp = date.split('T')
-    const heure = temp[1].replace('Z', '')
-    return `${temp[0]} à ${heure}`
-  }
+    if (temp) {
 
+      const heure = temp[1].replace('Z', '')
+      return `${temp[0]} à ${heure}`
+    }
+    return "Format invalide"
+  }
 
   const styleForm: CSSProperties = {
     display: "flex",
@@ -206,156 +550,40 @@ export default function ClientsTable() {
     marginTop: "10px"
   }
 
-
   return (
     <>
       <div style={styleMenu}>
         <Button onClick={openModal}>
           <PlusIcon></PlusIcon>
         </Button>
-        <form action="" method="POST">
+        <form method="POST">
           <div className="flex relative">
-            <input
-              type="text"
-              placeholder="Search client ..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
-            />
-            <Button onClick={handleSearch}>
-              <span>search</span>
+            <Button onClick={handleResetFilters}>
+              <span>Réinitialiser</span>
             </Button>
           </div>
         </form>
       </div>
       <div className="overflow-hidden border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-        <div className="max-w-full overflow-x-auto">
-          <Table>
-            {/* Table Header */}
-            <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-              <TableRow>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Code
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Clients
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Date de creation
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Modifié le
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Crée par
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Modifier par
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Adresse
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Email
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Status
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Paiements
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                >
-                  Type
-                </TableCell>
-              </TableRow>
-            </TableHeader>
-
-            {/* Table Body */}
-            <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {clients.map((client) => (
-                <TableRow key={client.cli_id}>
-                  <TableCell className="px-5 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {client.cli_code}
-                  </TableCell>
-                  <TableCell className="px-5 py-4 sm:px-6 text-start">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                          {client.cli_nom}
-                        </span>
-                        <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                          {client.cli_tel1}
-                        </span>
-                        <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                          {client.cli_tel2}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {formatDate(client.cli_datecre)}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {formatDate(client.cli_datemdf)}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_usercre}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_usermdf}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_adresse}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_email}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_stat}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_modepay}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {client.cli_type}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="overflow-x-auto">
+          <div
+            className="ag-theme-quartz dark:ag-theme-quartz-dark"
+            style={{
+              height: "800px",
+              width: "100%",
+            }}
+          >
+            <AgGridReact<Client>
+              rowData={clients}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              animateRows
+              pagination={false}
+              theme={myTheme}
+              ref={gridRef}
+              onFilterChanged={onGridFilterChanged}
+            />
+          </div>
         </div>
         <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-white/[0.05]">
           <Pagination

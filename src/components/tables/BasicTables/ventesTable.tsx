@@ -1,19 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CSSProperties, useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { apiFetch } from "../../../services/api";
 import { ListeVente } from "../../../interfaces/interfaces";
 import Button from "../../ui/button/Button";
-import { PlusIcon } from "../../../icons";
-import Input from "../../form/input/InputField";
-import Label from "../../form/Label";
-import { Modal } from "../../ui/modal";
-import { useModal } from "../../../hooks/useModal";
-import Select, { Option } from "../../form/Select"
-import Pagination from "../../ui/pagination/Pagination";
-import { generateReference } from "../../../services/codeService";
-import { useForm } from "../../../hooks/useForm";
-import PhoneInput from "react-phone-number-input"
-import "react-phone-number-input/style.css"
-import { postData } from "../../../services/sendDataService";
 import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
 import {
   ColDef,
@@ -23,6 +12,7 @@ import {
   colorSchemeLight,
   themeQuartz,
 } from "ag-grid-community";
+import Pagination from "../../ui/pagination/Pagination";
 
 // Champs numeriques cote backend (django_filters.NumberFilter)
 // -> on evite d'ajouter "icontains", on envoie la valeur brute.
@@ -48,7 +38,6 @@ interface DateGranularityModel {
   value: string; // "2023" | "2023-03" | "2023-03-13"
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, any, DateGranularityModel>) {
   const doesFilterPass = () => true;
   useGridFilter({ doesFilterPass });
@@ -167,13 +156,6 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
       return;
     }
 
-    // filtre date -> on garde juste la partie AAAA-MM-JJ
-    // if (model.filterType === "date" && DATE_FIELDS.has(field)) {
-    //   if (model.dateFrom) {
-    //     params.append(field, model.dateFrom.split(" ")[0]);
-    //   }
-    //   return;
-    // }
     if (DATE_FIELDS.has(field) && model && typeof model === "object" && "granularity" in model) {
       const { granularity, value } = model as DateGranularityModel;
       if (!value) return;
@@ -198,18 +180,14 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
 
 export default function VentesTable() {
   const gridRef = useRef<AgGridReact<ListeVente>>(null);
-  const { isOpen, openModal, closeModal } = useModal();
   const [ventes, setventes] = useState<ListeVente[]>([])
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [hasNext, setHasNext] = useState<boolean>(false);
   const [hasPrevious, setHasPrevious] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [search, setSearch] = useState("")
   const [totalPages, setTotalPages] = useState(1)
-  const [reference, setReference] = useState("")
   //theme dark 
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark")
@@ -253,21 +231,6 @@ export default function VentesTable() {
   // filtres agGrid envoyes au backend
   const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
   const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const { values, handleChange, setField } = useForm({
-    code: "",
-    denomination: "",
-    contact1: undefined as string | undefined,
-    contact2: undefined as string | undefined,
-    adresse: "",
-    email: "",
-    nif: "",
-    stat: "",
-    rcs: "",
-    type_client: "",
-    paiement: "",
-  });
-  const [onSubmitClick, setOnSubmutCliked] = useState(0)
 
   const columnDefs = useMemo<ColDef<ListeVente>[]>(() => [
     {
@@ -477,17 +440,6 @@ export default function VentesTable() {
     minWidth: 150,
   }), []);
 
-  const typeOptions: Option[] = [
-    { value: "test1", label: "type1" },
-    { value: "test2", label: "type2" },
-  ]
-
-  const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espece", label: "Espèce" },
-  ]
-
   // fetch avec search + filtres AgGrid (envoyes au backend)
   const fetchVentes = useCallback(async (
     pageNumber = page,
@@ -495,8 +447,6 @@ export default function VentesTable() {
     filters = filterParams,
   ) => {
     try {
-      setLoading(true);
-
       const query = new URLSearchParams(filters);
       query.set("page", String(pageNumber));
       if (keyword) query.set("search", keyword);
@@ -512,13 +462,9 @@ export default function VentesTable() {
       } else {
         throw new Error(res.message || "Une erreur est survenue");
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message);
-    } finally {
-      setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, filterParams]);
 
   useEffect(() => {
@@ -526,7 +472,7 @@ export default function VentesTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  // recupere le filterModel d'AgGrid, le convertit, puis relance le fetch (debounce)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const onGridFilterChanged = (_event: FilterChangedEvent<ListeVente>) => {
     const model = gridRef.current?.api.getFilterModel() ?? {};
     const params = buildFilterParams(model);
@@ -552,73 +498,8 @@ export default function VentesTable() {
     setPage(1);
     fetchVentes(1, "", new URLSearchParams());
   };
-  // get last codeCli
-  const loadReference = async () => {
-    try {
-      const ref = await generateReference("t_client", "cli_code");
-      setReference(ref);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  useEffect(() => {
-    loadReference();
-  }, [isOpen, onSubmitClick]);
 
-  const isFormEmpty = (
-    data: Record<string, unknown>,
-    ignoredFields: string[] = []
-  ): boolean => {
-    return Object.entries(data)
-      .filter(([key]) => !ignoredFields.includes(key))
-      .every(([, value]) =>
-        value === "" ||
-        value === null ||
-        value === undefined
-      );
-  };
-
-  // envoyer les donnee nouveau client
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOnSubmutCliked(onSubmitClick + 1)
-    try {
-      if (!values.denomination && isFormEmpty(values, ["code", "denomination"])) {
-        setSendError("Veuiller au moins remplir le champs denomination")
-        return
-      }
-      const res = await postData(
-        "/api/create-client/", "t_client", {
-        cli_code: reference,
-        cli_nom: values.denomination,
-        cli_tel1: values.contact1,
-        cli_tel2: values.contact2,
-        cli_email: values.email,
-        cli_adresse: values.adresse,
-        cli_modepay: values.paiement,
-        cli_nif: values.nif,
-        cli_stat: values.stat,
-        cli_rcs: values.rcs,
-        cli_type: values.type_client,
-      }
-      );
-      if (res.status) {
-        alert("Client enregistré");
-      } else {
-        setSendError(res.error)
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    setField("code", reference)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reference])
-
-  // if (loading) return <div className="p-5">Chargement des ventes...</div>;
-  // if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
+  if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
 
   function formatDate(date: string): string {
     if (!date) {
@@ -633,13 +514,6 @@ export default function VentesTable() {
     return "Format invalide"
   }
 
-  const styleForm: CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    width: "100%",
-  }
-
   const styleMenu: CSSProperties = {
     display: "flex",
     justifyContent: "space-between",
@@ -648,24 +522,21 @@ export default function VentesTable() {
   }
 
   function codeColor(isValide: boolean | undefined, isPaye: boolean | undefined): string {
-    const natifStyle = "px-5 py-3 text-start text-theme-sm"
+    const natifStyle = "px-5 py-3 text-start"
     if (!isValide && !isPaye) {
-      return `bg-error-600 ${natifStyle} dark:text-gray-100`
+      return `bg-error-600 ${natifStyle} `
     }
     else if (isValide && !isPaye) {
-      return `bg-warning-500 ${natifStyle} dark:text-gray-100`
+      return `bg-warning-500 ${natifStyle}`
     }
     else {
-      return `${natifStyle} dark:text-gray-400`
+      return `${natifStyle} `
     }
   }
 
   return (
     <>
       <div style={styleMenu}>
-        <Button onClick={openModal}>
-          <PlusIcon></PlusIcon>
-        </Button>
         <div style={{ alignItems: "center", justifyContent: "center", display: "flex", fontSize: 10 }}>
           <span className="bg-orange-300">Non payé</span>
           <span className="bg-red-500">Non validé</span>
@@ -710,146 +581,6 @@ export default function VentesTable() {
           />
         </div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Ajouter un nouveau client
-            </h4>
-
-          </div>
-          <form className="flex flex-col" onSubmit={handleSubmit}>
-            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-              <div>
-
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-
-                  <div>
-                    <Label>Code</Label>
-                    <Input
-                      name="code"
-                      value={values.code}
-                      disabled
-                    />
-                  </div>
-                  <div>
-                    <Label>Dénomination</Label>
-                    <Input
-                      name="denomination"
-                      value={values.denomination}
-                      type="text"
-                      onChange={handleChange}
-                      placeholder="Nom du client"
-                    />
-                  </div>
-                  <div style={styleForm} className="insert-num-client">
-                    <div>
-                      <Label>Contact 1</Label>
-                      <PhoneInput
-                        international
-                        defaultCountry="MG"
-                        value={values.contact1}
-                        onChange={(value) => setField("contact1", value)}
-                        className="rounded-lg text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <Label>Contact 2</Label>
-                      <PhoneInput
-                        international
-                        defaultCountry="MG"
-                        value={values.contact2}
-                        onChange={(value) => setField("contact2", value)}
-                        className="rounded-lg text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Adresse</Label>
-                    <Input
-                      name="adresse"
-                      value={values.adresse}
-                      onChange={handleChange}
-                      placeholder="Adresse du client"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-7">
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Email</Label>
-                    <Input
-                      name="email"
-                      value={values.email}
-                      onChange={handleChange}
-                      placeholder="client@gmail.com"
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>NIF</Label>
-                    <Input
-                      name="nif"
-                      value={values.nif}
-                      onChange={handleChange}
-                      placeholder="NF"
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>STAT</Label>
-                    <Input
-                      name="stat"
-                      value={values.stat}
-                      onChange={handleChange}
-                      placeholder="STAT"
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>RCS</Label>
-                    <Input
-                      name="rcs"
-                      value={values.rcs}
-                      onChange={handleChange}
-                      placeholder="RCS"
-                    />
-                  </div>
-                  <div style={styleForm}>
-                    <div className="col-span-2 w-100">
-                      <Label>Type de client</Label>
-                      <Select
-                        options={typeOptions}
-                        onChange={(value) => setField("type_client", value)}
-                      />
-                    </div>
-                    <div className="col-span-2 w-100">
-                      <Label>Paiments</Label>
-                      <Select
-                        options={paiementOption}
-                        onChange={(value) => setField("paiement", value)}
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-between">
-              <span className="text-red-600">{sendError}</span>
-              <div>
-                <Button size="sm" variant="outline" className="mr-5" onClick={closeModal}>
-                  Fermer
-                </Button>
-                <Button size="sm" type="submit" >
-                  Sauvegarder
-                </Button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </Modal>
     </>
   );
 }
