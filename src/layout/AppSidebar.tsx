@@ -29,9 +29,10 @@ const navItems: NavItem[] = [
     name: "Commerciale",
     icon: <ListIcon />,
     subItems: [
-      { name: "Clients", path: "/clients", pro: false },
       { name: "Ventes (sortie)", path: "/ventes", pro: false },
-      { name: "BC / PROFORMA", path: "#", pro: false },
+      { name: "BC", path: "/bc", pro: false },
+      { name: "Clients", path: "/clients", pro: false },
+      { name: "Fournisseurs", path: "#", pro: false },
       { name: "Caisse", path: "#", pro: false },
     ],
   },

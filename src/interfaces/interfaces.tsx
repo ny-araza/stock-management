@@ -79,3 +79,21 @@ export interface Articles {
     art_stockable: boolean,
     art_marque: string
 }
+
+export interface BC{
+    cmf_id: number,
+    cmf_code: string,
+    cmf_datecre: string,
+    cmf_datemdf: string,
+    cmf_usercre: string,
+    cmf_usermdf: string,
+    cmf_date: string,
+    cmf_modecmd: string,
+    cmf_dateliv: string,
+    cmf_enabled: boolean,
+    cmf_montant_ht: number,
+    cmf_montant_ttc: number,
+    cmf_islivre: boolean,
+    cmf_fou_code: string,
+    cmf_lettre: string
+}
