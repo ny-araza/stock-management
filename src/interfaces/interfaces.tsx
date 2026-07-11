@@ -1,3 +1,5 @@
+import { BaseOption } from "../components/form/form-elements/inputSearch"
+
 export interface UserFull {
     use_id: number,
     use_login: string,
@@ -115,3 +117,33 @@ export interface Fourniseur {
     fou_modepay: string,
     fou_commercial: string,
 }
+
+export interface Famille {
+
+    fam_id: number,
+    fam_code: string,
+    fam_nom: string,
+    fam_datecre: string,
+    fam_datemdf: string,
+    fam_usercre: string,
+    fam_usermdf: string,
+    fam_enabled: string,
+}
+
+export interface FamilleOption extends BaseOption, Famille { }
+
+export interface SousFamille {
+    sof_id: number,
+    sof_code: string,
+    sof_nom: string,
+    sof_datecre: string,
+    sof_datemdf: string,
+    sof_usercre: string,
+    sof_usermdf: string,
+    sof_fam_id: number,
+    sof_fabricant: string,
+    sof_paysorg: string,
+    sof_enabled: boolean
+}
+
+export interface SousFamilleOption extends BaseOption, SousFamille { }
