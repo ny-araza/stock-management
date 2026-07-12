@@ -31,6 +31,7 @@ export interface Client {
     cli_type: string
 }
 
+
 export interface ListeVente {
     vte_id: number,
     vte_code: string,

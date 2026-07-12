@@ -924,7 +924,7 @@ export default function ArticleTable() {
                       placeholder="Rechercher une famille..."
                     />
                     <div className="relative inline-block">
-                      <button className="dropdown-toggle" type="button" onClick={toggleDropdown_1}>
+                      <button className="dropdown-toggle dark:text-gray-400" type="button" onClick={toggleDropdown_1}>
                         +
                       </button>
                       <Dropdown
@@ -944,7 +944,7 @@ export default function ArticleTable() {
                               code: e.target.value,
                             }))
                           }
-                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800"
+                          className="mb-3 w-full rounded border px-3 py-2"
                         />
                         <input
                           type="text"
@@ -968,10 +968,10 @@ export default function ArticleTable() {
                       options={sousFamilleOptions}
                       value={selectedSousFamille}
                       onChange={setSelectedSousFamille}
-                      placeholder="Rechercher une sous-famille..."
+                      placeholder="sous-famille..."
                     />
                     <div className="relative inline-block">
-                      <button className="dropdown-toggle" type="button" onClick={toggleDropdown}>
+                      <button className="dropdown-toggle dark:text-gray-400" type="button" onClick={toggleDropdown}>
                         +
                       </button>
                       <Dropdown

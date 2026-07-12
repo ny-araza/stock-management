@@ -15,8 +15,7 @@ interface SelectFieldProps<T extends BaseOption> {
     placeholder?: string;
     isSearchable?: boolean;
     isDisabled?: boolean;
-    onAdd?: () => void,
-
+    className?: string
 }
 
 // 3. Déclarer le composant avec le type générique <T extends BaseOption>
@@ -28,7 +27,7 @@ export function SelectField<T extends BaseOption>({
     placeholder = "Sélectionnez...",
     isSearchable = true,
     isDisabled = false,
-    onAdd
+    className
 }: SelectFieldProps<T>) {
 
     // Gestionnaire de changement typé pour react-select
@@ -40,8 +39,8 @@ export function SelectField<T extends BaseOption>({
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-            {label && <label>{label}</label>}
+        <div className="dark:bg-dark-900" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            {label && <label className="dark:text-gray-400">{label}</label>}
             <Select<T>
                 options={options}
                 value={value}
@@ -49,30 +48,6 @@ export function SelectField<T extends BaseOption>({
                 placeholder={placeholder}
                 isSearchable={isSearchable}
                 isDisabled={isDisabled}
-                noOptionsMessage={() => (
-                    <div style={{ padding: 8 }}>
-                        <div>Aucun résultat</div>
-
-                        {onAdd && (
-                            <button
-                                type="button"
-                                onMouseDown={(e) => {
-                                    // Empêche react-select de fermer avant le clic
-                                    e.preventDefault();
-                                    onAdd();
-                                }}
-                                style={{
-                                    marginTop: 8,
-                                    width: "100%",
-                                    padding: "6px",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                + Ajouter
-                            </button>
-                        )}
-                    </div>
-                )}
             />
         </div>
     );

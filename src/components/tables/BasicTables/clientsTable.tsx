@@ -203,6 +203,8 @@ export default function ClientsTable() {
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark")
   );
+  const [typeCLient, setTypeClient] = useState<Option[]>([])
+  const [modepay, setModePay] = useState<Option[]>([])
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -239,7 +241,7 @@ export default function ClientsTable() {
   const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
   const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { values, handleChange, setField } = useForm({
+  const { values, handleChange, setField, reset } = useForm({
     code: "",
     denomination: "",
     contact1: undefined as string | undefined,
@@ -385,16 +387,18 @@ export default function ClientsTable() {
     minWidth: 150,
   }), []);
 
-  const typeOptions: Option[] = [
-    { value: "test1", label: "type1" },
-    { value: "test2", label: "type2" },
-  ]
+  const typeOptions: Option[] = typeCLient.map((item:any) => ({
+    ...item,
+    value: item.enu_ud,
+    label: item.enu_nom
+  }))
 
-  const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espece", label: "Espèce" },
-  ]
+  const modePayOptions: Option[] = modepay.map((item:any) => ({
+    ...item,
+    value: item.enu_ud,
+    label: item.enu_nom
+  }))
+
 
   // fetch avec search + filtres AgGrid (envoyes au backend)
   const fetchClients = useCallback(async (
@@ -434,7 +438,6 @@ export default function ClientsTable() {
   const onGridFilterChanged = (_event: FilterChangedEvent<Client>) => {
     const model = gridRef.current?.api.getFilterModel() ?? {};
     const params = buildFilterParams(model);
-    console.log(params)
     if (filterDebounce.current) clearTimeout(filterDebounce.current);
     filterDebounce.current = setTimeout(() => {
       setFilterParams(params);
@@ -497,6 +500,7 @@ export default function ClientsTable() {
       );
       if (res.status) {
         alert("Client enregistré");
+        reset()
       } else {
         setSendError(res.error)
       }
@@ -509,20 +513,55 @@ export default function ClientsTable() {
     try {
       const ref = await generateReference("t_client", "cli_code");
       setReference(ref);
-      console.log(ref)
     } catch (err) {
       console.error(err);
     }
   };
 
+  // get load enumeration (type client)
+  const fetchTypeClient = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams()
+      query.set("enu_code", enu_code)
+      const res = await apiFetch(`/api/generate-enumeration/?${query.toString()}`)
+
+      if (res.success) {
+        setTypeClient(res.nom_enumeration)
+      }
+    } catch (error: any) {
+      setError(error.error)
+    }
+  }
+
+  const fetchModePay = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams()
+      query.set("enu_code", enu_code)
+      const res = await apiFetch(`/api/generate-enumeration/?${query.toString()}`)
+
+      if (res.success) {
+        setModePay(res.nom_enumeration)
+      }
+    } catch (error: any) {
+      setError(error.error)
+    }
+  }
+
   useEffect(() => {
     loadReference();
+    fetchTypeClient("TYPE_CLT")
+    fetchModePay("MODE_PAY")
   }, [isOpen, onSubmitClick]);
 
   useEffect(() => {
     setField("code", reference)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference])
+
+  const handleCloseModal = () => {
+    reset()
+    closeModal()
+  }
 
   if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
 
@@ -599,7 +638,7 @@ export default function ClientsTable() {
           />
         </div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+      <Modal isOpen={isOpen} onClose={handleCloseModal} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
@@ -639,7 +678,7 @@ export default function ClientsTable() {
                         defaultCountry="MG"
                         value={values.contact1}
                         onChange={(value) => setField("contact1", value)}
-                        className="rounded-lg text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
+                        className="rounded-lg border border-gray-300 dark:border-gray-700 dark:text-gray-300 px-3 py-2"
                       />
                     </div>
                     <div>
@@ -649,7 +688,7 @@ export default function ClientsTable() {
                         defaultCountry="MG"
                         value={values.contact2}
                         onChange={(value) => setField("contact2", value)}
-                        className="rounded-lg text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
+                        className="rounded-lg border border-gray-300 dark:border-gray-700 px-3  dark:text-gray-300 py-2"
                       />
                     </div>
                   </div>
@@ -716,7 +755,7 @@ export default function ClientsTable() {
                     <div className="col-span-2 w-100">
                       <Label>Paiments</Label>
                       <Select
-                        options={paiementOption}
+                        options={modePayOptions}
                         onChange={(value) => setField("paiement", value)}
                       />
                     </div>
@@ -728,9 +767,6 @@ export default function ClientsTable() {
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-between">
               <span className="text-red-600">{sendError}</span>
               <div>
-                <Button size="sm" variant="outline" className="mr-5" onClick={closeModal}>
-                  Fermer
-                </Button>
                 <Button size="sm" type="submit" >
                   Sauvegarder
                 </Button>
