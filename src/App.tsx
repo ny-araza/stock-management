@@ -22,7 +22,6 @@ import ListArticlesTables from "./pages/Tables/listeArticlesTables";
 import ListVentesTables from "./pages/Tables/listeVentesTables";
 import ListBcTables from "./pages/Tables/listeBcTables";
 import ListFournisseurTables from "./pages/Tables/listeFournisseurTables";
-import Accueil from "./pages/accueil/accueil";
 
 export default function App() {
   return (
@@ -38,7 +37,6 @@ export default function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
             {/* accueil */}
-            <Route path="/accueil" element={<Accueil />} />
 
             <Route path="/form-elements" element={<FormElements />} />
             {/* liste */}
