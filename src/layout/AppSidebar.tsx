@@ -22,6 +22,11 @@ type NavItem = {
 const navItems: NavItem[] = [
 
   {
+    icon: <ListIcon />,
+    name: "Accueil",
+    path: "/accueil"
+  },
+  {
     icon: <GridIcon />,
     name: "Dashboard",
     path: "/home"
@@ -279,7 +284,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="/images/logo/logo-icon.svg"
+              src="/images/logo-stock.png"
               alt="Logo"
               width={32}
               height={32}

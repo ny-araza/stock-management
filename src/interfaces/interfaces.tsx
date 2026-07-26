@@ -131,7 +131,6 @@ export interface Famille {
     fam_enabled: string,
 }
 
-export interface FamilleOption extends BaseOption, Famille { }
 
 export interface SousFamille {
     sof_id: number,
@@ -147,4 +146,26 @@ export interface SousFamille {
     sof_enabled: boolean
 }
 
+export interface ArticleLigneEntrer {
+    pri_id: number,
+    pri_art_code: string,
+    pri_pu: string
+}
+
+export interface Enumeration {
+    enu_id: number;
+    enu_nom: string;
+}
+
+interface Option {
+    value: string;
+    label: string;
+}
+
+export interface ArticleLigneEntrerOption extends BaseOption, ArticleLigneEntrer {}
+
+export interface FamilleOption extends BaseOption, Famille { }
+
 export interface SousFamilleOption extends BaseOption, SousFamille { }
+
+export interface EnumerationOption extends Option, Enumeration { }

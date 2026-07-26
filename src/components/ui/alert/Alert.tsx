@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
 
 interface AlertProps {
   variant: "success" | "error" | "warning" | "info"; // Alert type
@@ -7,6 +8,9 @@ interface AlertProps {
   showLink?: boolean; // Whether to show the "Learn More" link
   linkHref?: string; // Link URL
   linkText?: string; // Link text
+  open?: boolean;
+  duration?: number;
+  onClose?: () => void;
 }
 
 const Alert: React.FC<AlertProps> = ({
@@ -16,8 +20,30 @@ const Alert: React.FC<AlertProps> = ({
   showLink = false,
   linkHref = "#",
   linkText = "Learn more",
+  open = true,
+  duration = 4000,
+  onClose,
 }) => {
   // Tailwind classes for each variant
+  const [visible, setVisible] = useState(open);
+
+  useEffect(() => {
+    setVisible(open);
+
+    if (!open) return;
+
+    const timer = setTimeout(() => {
+      setVisible(false);
+
+      setTimeout(() => {
+        onClose?.();
+      }, 300);
+
+    }, duration);
+
+    return () => clearTimeout(timer);
+  }, [open, duration, onClose]);
+
   const variantClasses = {
     success: {
       container:
@@ -113,8 +139,31 @@ const Alert: React.FC<AlertProps> = ({
 
   return (
     <div
-      className={`rounded-xl border p-4 ${variantClasses[variant].container}`}
-    >
+    className={`
+      fixed
+      left-1/2
+      top-[10px]
+      z-[9999]
+      w-[420px]
+      max-w-[95vw]
+      -translate-x-1/2
+      rounded-xl
+      border
+      p-4
+      shadow-2xl
+      transition-all
+      duration-300
+      ease-out
+
+      ${
+        visible
+          ? "translate-y-0 opacity-100"
+          : "-translate-y-20 opacity-0"
+      }
+
+      ${variantClasses[variant].container}
+    `}
+  >
       <div className="flex items-start gap-3">
         <div className={`-mt-0.5 ${variantClasses[variant].icon}`}>
           {icons[variant]}

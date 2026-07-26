@@ -660,7 +660,7 @@ export default function ArticleTable() {
       }
 
       const res = await postData(
-        "/api/create-client-fournis/", "t_article", {
+        "/api/insert-database/", "t_article", {
         art_code: values.code,
         art_nom: values.designation,
         art_poids: parseFloat(values.poids),

@@ -497,7 +497,7 @@ export default function FournisseurTable() {
         return
       }
       const res = await postData(
-        "/api/create-client-fournis/", "t_fournis", {
+        "/api/insert-database/", "t_fournis", {
         fou_code: reference,
         fou_nom: values.denomination,
         fou_tel1: values.contact1,

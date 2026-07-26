@@ -484,7 +484,7 @@ export default function ClientsTable() {
         return
       }
       const res = await postData(
-        "/api/create-client-fournis/", "t_client", {
+        "/api/insert-database/", "t_client", {
         cli_code: reference,
         cli_nom: values.denomination,
         cli_tel1: values.contact1,
