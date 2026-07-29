@@ -32,8 +32,7 @@ export default function SignInForm() {
         setError("Identifiant ou mot de passe incorrecte")
         return ;
       }
-      console.log(result)
-      navigate("/home")
+      navigate("/accueil")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (errors: any) {
         setError(errors.use_login|| "Identifiants incorrect ou erreur serveurs.")
