@@ -1,22 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CSSProperties, useEffect, useState, useRef, useMemo, useCallback } from "react";
+import {
+  CSSProperties,
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { apiFetch } from "../../services/api";
-import { Articles, Famille, FamilleOption, SousFamille, SousFamilleOption } from "../../interfaces/interfaces";
+import {
+  Articles,
+  Famille,
+  FamilleOption,
+  SousFamille,
+  SousFamilleOption,
+} from "../../interfaces/interfaces";
 import Button from "../../components/ui/button/Button";
 import { PlusIcon } from "../../icons";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import { Modal } from "../../components/ui/modal";
 import { useModal } from "../../hooks/useModal";
-import Select, { Option } from "../../components/form/Select"
+import Select, { Option } from "../../components/form/Select";
 import Pagination from "../../components/ui/pagination/Pagination";
 import { useForm } from "../../hooks/useForm";
-import "react-phone-number-input/style.css"
+import "react-phone-number-input/style.css";
 import { postData } from "../../services/sendDataService";
 import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
 import {
   ColDef,
   FilterChangedEvent,
+  _consoleError,
   colorSchemeDarkBlue,
   colorSchemeLight,
   themeQuartz,
@@ -30,11 +44,7 @@ import { Dropdown } from "../../components/ui/dropdown/Dropdown";
 const NUMBER_FIELDS = new Set(["art_enabled", "art_stockable"]);
 
 // Champs date cote backend (DateFilter / DateTimeFilter)
-const DATE_FIELDS = new Set([
-  "art_datecre",
-  "art_datemdf",
-]);
-
+const DATE_FIELDS = new Set(["art_datecre", "art_datemdf"]);
 
 // Filtre custom a 3 choix : Tous / Vrai / Faux (pour vte_valide, vte_paye)
 interface BooleanFilterProps extends CustomFilterProps {
@@ -46,13 +56,16 @@ interface DateGranularityModel {
   value: string; // "2023" | "2023-03" | "2023-03-13"
 }
 
-function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, any, DateGranularityModel>) {
+function DateGranularityFilter({
+  model,
+  onModelChange,
+}: CustomFilterProps<any, any, DateGranularityModel>) {
   const doesFilterPass = () => true;
   useGridFilter({ doesFilterPass });
 
-  const [granularity, setGranularity] = useState<DateGranularityModel["granularity"]>(
-    model?.granularity ?? "day"
-  );
+  const [granularity, setGranularity] = useState<
+    DateGranularityModel["granularity"]
+  >(model?.granularity ?? "day");
   const value = model?.value ?? "";
 
   const updateGranularity = (g: DateGranularityModel["granularity"]) => {
@@ -68,13 +81,16 @@ function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, 
     onModelChange({ granularity, value: v });
   };
 
-
   return (
     <div className="p-2 flex flex-col gap-2 min-w-[180px]">
       <select
         className="border rounded p-1 text-sm"
         value={granularity}
-        onChange={(e) => updateGranularity(e.target.value as DateGranularityModel["granularity"])}
+        onChange={(e) =>
+          updateGranularity(
+            e.target.value as DateGranularityModel["granularity"],
+          )
+        }
       >
         <option value="year">Année</option>
         <option value="month">Mois</option>
@@ -113,8 +129,12 @@ function DateGranularityFilter({ model, onModelChange }: CustomFilterProps<any, 
   );
 }
 
-
-function BooleanFilter({ model, onModelChange, trueLabel, falseLabel }: BooleanFilterProps) {
+function BooleanFilter({
+  model,
+  onModelChange,
+  trueLabel,
+  falseLabel,
+}: BooleanFilterProps) {
   const doesFilterPass = () => true;
   useGridFilter({ doesFilterPass });
 
@@ -127,7 +147,10 @@ function BooleanFilter({ model, onModelChange, trueLabel, falseLabel }: BooleanF
   return (
     <div className="p-2 flex flex-col gap-2 min-w-[160px]">
       {options.map((opt) => (
-        <label key={opt.label} className="flex items-center gap-2 cursor-pointer text-sm">
+        <label
+          key={opt.label}
+          className="flex items-center gap-2 cursor-pointer text-sm"
+        >
           <input
             type="radio"
             name={`bool-filter-${trueLabel}`}
@@ -157,13 +180,22 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
     if (NUMBER_FIELDS.has(field)) {
       if (typeof model === "string" && model !== "") {
         params.append(field, model);
-      } else if (model.filterType === "number" && model.filter !== undefined && model.filter !== null) {
+      } else if (
+        model.filterType === "number" &&
+        model.filter !== undefined &&
+        model.filter !== null
+      ) {
         params.append(field, String(model.filter));
       }
       return;
     }
 
-    if (DATE_FIELDS.has(field) && model && typeof model === "object" && "granularity" in model) {
+    if (
+      DATE_FIELDS.has(field) &&
+      model &&
+      typeof model === "object" &&
+      "granularity" in model
+    ) {
       const { granularity, value } = model as DateGranularityModel;
       if (!value) return;
 
@@ -178,7 +210,6 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
       }
       return;
     }
-
   });
 
   return params;
@@ -187,17 +218,17 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
 export default function ArticleTable() {
   const gridRef = useRef<AgGridReact<Articles>>(null);
   const { isOpen, openModal, closeModal } = useModal();
-  const [articles, setArticles] = useState<Articles[]>([])
+  const [articles, setArticles] = useState<Articles[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [hasNext, setHasNext] = useState<boolean>(false);
   const [hasPrevious, setHasPrevious] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [search, setSearch] = useState("")
-  const [totalPages, setTotalPages] = useState(1)
+  const [search, setSearch] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
   const [isDark, setIsDark] = useState(
-    document.documentElement.classList.contains("dark")
+    document.documentElement.classList.contains("dark"),
   );
   interface Enumeration {
     enu_id: number;
@@ -205,10 +236,13 @@ export default function ArticleTable() {
   }
 
   const [enumeration, setEnumeration] = useState<Enumeration[]>([]);
-  const [famille, setFamille] = useState<Famille[]>([])
-  const [selectedFamille, setSelectedFamille] = useState<FamilleOption | null>(null);
-  const [sousFamille, setSousFamille] = useState<SousFamille[]>([])
-  const [selectedSousFamille, setSelectedSousFamille] = useState<SousFamilleOption | null>(null);
+  const [famille, setFamille] = useState<Famille[]>([]);
+  const [selectedFamille, setSelectedFamille] = useState<FamilleOption | null>(
+    null,
+  );
+  const [sousFamille, setSousFamille] = useState<SousFamille[]>([]);
+  const [selectedSousFamille, setSelectedSousFamille] =
+    useState<SousFamilleOption | null>(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -245,24 +279,21 @@ export default function ArticleTable() {
 
   const myTheme = useMemo(() => {
     if (isDark) {
-      return themeQuartz
-        .withPart(colorSchemeDarkBlue)
-        .withParams({
-          backgroundColor: "#101828",
-          rowHoverColor: "#781d99"
-        })
-    }
-    else {
-      return themeQuartz
-        .withPart(colorSchemeLight)
-        .withParams({
-          rowHoverColor: "#cb92df"
-        })
+      return themeQuartz.withPart(colorSchemeDarkBlue).withParams({
+        backgroundColor: "#101828",
+        rowHoverColor: "#781d99",
+      });
+    } else {
+      return themeQuartz.withPart(colorSchemeLight).withParams({
+        rowHoverColor: "#cb92df",
+      });
     }
   }, [isDark]);
 
   // filtres agGrid envoyes au backend
-  const [filterParams, setFilterParams] = useState<URLSearchParams>(new URLSearchParams());
+  const [filterParams, setFilterParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
   const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { values, handleChange, setField, reset } = useForm({
@@ -278,7 +309,7 @@ export default function ArticleTable() {
     stockMini: "",
     codeBar: "",
     stockable: "1",
-    enabled: "1"
+    enabled: "1",
   });
   const prixArticle = {
     pri_unitevente: "",
@@ -289,7 +320,7 @@ export default function ArticleTable() {
     pri_tva: "",
     pri_nbcolis: "",
   };
-  const [ligneArticle, setLigneAticle] = useState<any[]>([])
+  const [ligneArticle, setLigneAticle] = useState<any[]>([]);
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
 
   // const handleLigneChange = (e) => {
@@ -297,7 +328,7 @@ export default function ArticleTable() {
   //   setLigneEnCours((prev) => ({ ...prev, [name]: value }));
   // };
   const handleLigneChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
 
@@ -324,7 +355,7 @@ export default function ArticleTable() {
     // évite d'ajouter une ligne totalement vide
     const estVide = Object.values(ligneEnCours).every((v) => v === "");
     if (estVide) return;
-    setLigneAticle([...ligneArticle, ligneEnCours])
+    setLigneAticle([...ligneArticle, ligneEnCours]);
     setLigneEnCours(prixArticle);
   };
 
@@ -338,229 +369,232 @@ export default function ArticleTable() {
   const supprimerLigne = (index: any) => {
     const nouvelleListe = ligneArticle.filter((_, i) => i !== index);
     // setField("ligneArticles", nouvelleListe);
-    setLigneAticle(nouvelleListe)
+    setLigneAticle(nouvelleListe);
   };
 
-  const [onSubmitClick, setOnSubmutCliked] = useState(0)
+  const [onSubmitClick, setOnSubmutCliked] = useState(0);
 
-  const columnDefs = useMemo<ColDef<Articles>[]>(() => [
-    {
-      field: "art_code",
-      headerName: "Code",
-      pinned: "left",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+  const columnDefs = useMemo<ColDef<Articles>[]>(
+    () => [
+      {
+        field: "art_code",
+        headerName: "Code",
+        pinned: "left",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_nom",
-      headerName: "Nom ",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
-    {
-      field: "art_datecre",
-      headerName: "Date de création",
-      filter: DateGranularityFilter,
-      floatingFilter: false,
-      valueFormatter: (params) =>
-        formatDate(params.value),
-    },
+      {
+        field: "art_nom",
+        headerName: "Nom ",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
+      {
+        field: "art_datecre",
+        headerName: "Date de création",
+        filter: DateGranularityFilter,
+        floatingFilter: false,
+        valueFormatter: (params) => formatDate(params.value),
+      },
 
-    {
-      field: "art_datemdf",
-      headerName: "Modification",
-      filter: DateGranularityFilter,
-      floatingFilter: false,
-      valueFormatter: (params) =>
-        formatDate(params.value),
-    },
+      {
+        field: "art_datemdf",
+        headerName: "Modification",
+        filter: DateGranularityFilter,
+        floatingFilter: false,
+        valueFormatter: (params) => formatDate(params.value),
+      },
 
-    {
-      field: "art_usercre",
-      headerName: "Créé par",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_usercre",
+        headerName: "Créé par",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_usermdf",
-      headerName: "Modifié par",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_usermdf",
+        headerName: "Modifié par",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_poids",
-      headerName: "Poids",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_poids",
+        headerName: "Poids",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_taille",
-      headerName: "Taille",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_taille",
+        headerName: "Taille",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_stockmini",
-      headerName: "Stock Minimal",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_stockmini",
+        headerName: "Stock Minimal",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
+      {
+        field: "art_enabled",
+        headerName: "Status",
+        filter: BooleanFilter,
+        filterParams: { trueLabel: "Actif", falseLabel: "Non actif" },
+        floatingFilter: false,
+        valueFormatter: (params) => {
+          if (params.value == 1) {
+            return "Actif";
+          } else return "Non actif";
+        },
+      },
+      {
+        field: "art_fam_id",
+        headerName: "Famille",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_enabled",
-      headerName: "Status",
-      filter: BooleanFilter,
-      filterParams: { trueLabel: "Actif", falseLabel: "Non actif" },
-      floatingFilter: false,
-      valueFormatter: (params) => {
-        if (params.value == 1) {
-          return "Actif"
-        } else return "Non actif"
-      }
-    },
-    {
-      field: "art_fam_id",
-      headerName: "Famille",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_sof_id",
+        headerName: "Sous famille",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_sof_id",
-      headerName: "Sous famille",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_codebarre",
+        headerName: "Code Barre",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_codebarre",
-      headerName: "Code Barre",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_lot_id",
+        headerName: "Lot",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
 
-    {
-      field: "art_lot_id",
-      headerName: "Lot",
-      filter: "agTextColumnFilter",
-      suppressHeaderFilterButton: true,
-    },
+      {
+        field: "art_stockable",
+        headerName: "Type",
+        filter: BooleanFilter,
+        filterParams: { trueLabel: "Stockable", falseLabel: "Non stockable" },
+        floatingFilter: false,
+        valueFormatter: (params) => {
+          if (params.value == 1) {
+            return "Stockable";
+          } else return "Non stockable";
+        },
+      },
 
-    {
-      field: "art_stockable",
-      headerName: "Type",
-      filter: BooleanFilter,
-      filterParams: { trueLabel: "Stockable", falseLabel: "Non stockable" },
-      floatingFilter: false,
-      valueFormatter: (params) => {
-        if (params.value == 1) {
-          return "Stockable"
-        } else return "Non stockable"
-      }
-    },
-
-    {
-      field: "art_marque",
-      headerName: "Marque",
-      filter: false,
-    },
-  ], []);
+      {
+        field: "art_marque",
+        headerName: "Marque",
+        filter: false,
+      },
+    ],
+    [],
+  );
 
   // configuration par defaut
-  const defaultColDef = useMemo<ColDef>(() => ({
-    sortable: true,
-    filter: true,
-    floatingFilter: true,
-    suppressFloatingFilterButton: true,
-    resizable: true,
-    minWidth: 150,
-  }), []);
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      suppressFloatingFilterButton: true,
+      resizable: true,
+      minWidth: 150,
+    }),
+    [],
+  );
 
   const typeOptions: Option[] = [
     { value: "1", label: "Stockable" },
     { value: "0", label: "Non stockable" },
-  ]
+  ];
 
   const StatusOptions: Option[] = [
     { value: "1", label: "Actif" },
     { value: "0", label: "Non actif" },
-  ]
+  ];
 
   // fetch avec search + filtres AgGrid (envoyes au backend)
-  const fetcharticles = useCallback(async (
-    pageNumber = page,
-    keyword = search,
-    filters = filterParams,
-  ) => {
-    try {
-      console.log(filters)
-      const query = new URLSearchParams(filters);
-      query.set("page", String(pageNumber));
-      if (keyword) query.set("search", keyword);
+  const fetcharticles = useCallback(
+    async (pageNumber = page, keyword = search, filters = filterParams) => {
+      try {
+        console.log(filters);
+        const query = new URLSearchParams(filters);
+        query.set("page", String(pageNumber));
+        if (keyword) query.set("search", keyword);
 
-      const res = await apiFetch(`/api/articles/?${query.toString()}`);
+        const res = await apiFetch(`/api/articles/?${query.toString()}`);
 
-      if (res.status) {
-        setArticles(res.articles);
-        setHasNext(res.next !== null);
-        setHasPrevious(res.previous !== null);
-        setTotalCount(res.count);
-        setTotalPages(res.total_pages)
-      } else {
-        throw new Error(res.message || "Une erreur est survenue");
+        if (res.status) {
+          setArticles(res.articles);
+          setHasNext(res.next !== null);
+          setHasPrevious(res.previous !== null);
+          setTotalCount(res.count);
+          setTotalPages(res.total_pages);
+        } else {
+          throw new Error(res.message || "Une erreur est survenue");
+        }
+      } catch (err: any) {
+        setError(err.message);
       }
-    } catch (err: any) {
-      setError(err.message);
-    }
-  }, [page, search, filterParams]);
+    },
+    [page, search, filterParams],
+  );
 
   // fetch enumeration nom
   const fetchEnumeration = async (enu_code: string) => {
     try {
-      const query = new URLSearchParams()
-      query.set("enu_code", enu_code)
-      const res = await apiFetch(`/api/generate-enumeration/?${query.toString()}`)
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
 
       if (res.success) {
-        setEnumeration(res.nom_enumeration)
+        setEnumeration(res.nom_enumeration);
       }
     } catch (error: any) {
-      setError(error.error)
+      setError(error.error);
     }
-  }
+  };
 
   //fetch famille
   const fetchFamille = async () => {
     try {
-      const res = await apiFetch(`/api/familles/`)
+      const res = await apiFetch(`/api/familles/`);
       if (res.status) {
-        setFamille(res.famille)
+        setFamille(res.famille);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
 
   //fetch famille
   const fetchSousFamille = async (id_famille: number | null | undefined) => {
     try {
-      const query = new URLSearchParams()
-      if (id_famille)
-        query.set("search", id_famille.toString())
-      const res = await apiFetch(`/api/sous-familles/?${query.toString()}`)
+      const query = new URLSearchParams();
+      if (id_famille) query.set("search", id_famille.toString());
+      const res = await apiFetch(`/api/sous-familles/?${query.toString()}`);
       if (res.status) {
-        setSousFamille(res.sous_famille)
+        setSousFamille(res.sous_famille);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
 
   useEffect(() => {
     fetcharticles(page, search, filterParams);
@@ -568,22 +602,24 @@ export default function ArticleTable() {
   }, [page]);
 
   useEffect(() => {
-    fetchFamille()
-    fetchSousFamille(selectedFamille?.fam_id)
-    fetchEnumeration("UNITE_VENTE")
-  }, [isOpen, selectedFamille])
+    fetchFamille();
+    fetchSousFamille(selectedFamille?.fam_id);
+    fetchEnumeration("UNITE_VENTE");
+  }, [isOpen, selectedFamille]);
 
   const familleOptions: FamilleOption[] = famille.map((item: Famille) => ({
     ...item,
-    value: item.fam_id,       // Requis par react-select (ID unique informatique)
-    label: item.fam_nom,      // Requis par react-select (Le texte affiché à l'écran)
+    value: item.fam_id, // Requis par react-select (ID unique informatique)
+    label: item.fam_nom, // Requis par react-select (Le texte affiché à l'écran)
   }));
 
-  const sousFamilleOptions: SousFamilleOption[] = sousFamille.map((item: SousFamille) => ({
-    ...item,
-    value: item.sof_id,       // Requis par react-select (ID unique informatique)
-    label: item.sof_nom,      // Requis par react-select (Le texte affiché à l'écran)
-  }));
+  const sousFamilleOptions: SousFamilleOption[] = sousFamille.map(
+    (item: SousFamille) => ({
+      ...item,
+      value: item.sof_id, // Requis par react-select (ID unique informatique)
+      label: item.sof_nom, // Requis par react-select (Le texte affiché à l'écran)
+    }),
+  );
 
   //ajouter une nouvelle famille
   const [newFamille, setnewFamille] = useState({
@@ -595,22 +631,21 @@ export default function ArticleTable() {
     nom: "",
   });
 
-
   // modifier une ligne
   const modifierLigne = (
     index: number,
-    field: keyof typeof ligneArticle[number],
-    value: string
+    field: keyof (typeof ligneArticle)[number],
+    value: string,
   ) => {
     setLigneAticle((prev) =>
       prev.map((ligne, i) =>
         i === index
           ? {
-            ...ligne,
-            [field]: value,
-          }
-          : ligne
-      )
+              ...ligne,
+              [field]: value,
+            }
+          : ligne,
+      ),
     );
   };
 
@@ -618,7 +653,7 @@ export default function ArticleTable() {
   const onGridFilterChanged = (_event: FilterChangedEvent<Articles>) => {
     const model = gridRef.current?.api.getFilterModel() ?? {};
     const params = buildFilterParams(model);
-    console.log(params)
+    console.log(params);
     if (filterDebounce.current) clearTimeout(filterDebounce.current);
     filterDebounce.current = setTimeout(() => {
       setFilterParams(params);
@@ -641,23 +676,26 @@ export default function ArticleTable() {
     fetcharticles(1, "", new URLSearchParams());
   };
 
-
   // envoyer les donnee nouveau client
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setOnSubmutCliked(onSubmitClick + 1)
+    setOnSubmutCliked(onSubmitClick + 1);
     try {
-      console.log(ligneArticle)
-      if (!values.code ||
+      console.log(ligneArticle);
+      if (
+        !values.code ||
         !values.designation ||
-        !selectedFamille || !selectedSousFamille ||
-        !values.stockMini) {
-        setSendError("Les champs suivant sont requis: Code, designation, famille/sousfamille, stockmini")
-        return
+        !selectedFamille ||
+        !selectedSousFamille ||
+        !values.stockMini
+      ) {
+        setSendError(
+          "Les champs suivant sont requis: Code, designation, famille/sousfamille, stockmini",
+        );
+        return;
       }
 
-      const res = await postData(
-        "/api/insert-database/", "t_article", {
+      const res = await postData("/api/insert-database/", "t_article", {
         art_code: values.code,
         art_nom: values.designation,
         art_poids: parseFloat(values.poids),
@@ -670,8 +708,7 @@ export default function ArticleTable() {
         art_lot_id: 1,
         art_stockable: values.stockable,
         art_marque: values.marque,
-      }
-      );
+      });
 
       ligneArticle.map((value) => {
         postData("/api/create-client-fournis/", "t_prix", {
@@ -683,20 +720,20 @@ export default function ArticleTable() {
           pri_tauxmarge: value.pri_tauxmarge,
           pri_tva: value.pri_tva,
           pri_unitevente: value.pri_unitevente,
-          pri_nbcolis: value.pri_nbcolis
-        })
-      })
+          pri_nbcolis: value.pri_nbcolis,
+        });
+      });
 
       if (res.status) {
         alert("Client enregistré");
-        reset()
-        setSelectedFamille(null)
-        setSelectedSousFamille(null)
+        reset();
+        setSelectedFamille(null);
+        setSelectedSousFamille(null);
         ligneArticle.map((_values, key) => {
-          supprimerLigne(key)
-        })
+          supprimerLigne(key);
+        });
       } else {
-        setSendError(res.error)
+        setSendError(res.error);
       }
     } catch (err) {
       console.error(err);
@@ -706,68 +743,71 @@ export default function ArticleTable() {
   //send new famille
   const handleSubmitFamilly = async () => {
     try {
-      if (!newFamille) return
+      if (!newFamille) return;
       const res = await postData("/api/create-client-fournis/", "t_famille", {
         fam_code: newFamille.code,
         fam_nom: newFamille.nom,
-        fam_enabled: 1
-      })
+        fam_enabled: 1,
+      });
       if (res.status) {
         alert("Famille enregistré");
       } else {
-        setSendError(res.error)
+        setSendError(res.error);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
 
   //send new sous famille
   const handleSubmitSousFamilly = async () => {
     try {
       if (!selectedSousFamille) {
-        setSendError("Veuillez selectionner la famille du sous famille")
+        setSendError("Veuillez selectionner la famille du sous famille");
       }
-      if (!newSousFamille) return
-      const res = await postData("/api/create-client-fournis/", "t_sous_famille", {
-        sof_code: newSousFamille.code,
-        sof_nom: newSousFamille.nom,
-        sof_fam_id: selectedFamille?.fam_id,
-        sof_enabled: 1
-      })
+      if (!newSousFamille) return;
+      const res = await postData(
+        "/api/create-client-fournis/",
+        "t_sous_famille",
+        {
+          sof_code: newSousFamille.code,
+          sof_nom: newSousFamille.nom,
+          sof_fam_id: selectedFamille?.fam_id,
+          sof_enabled: 1,
+        },
+      );
       if (res.status) {
         alert("SousFamille enregistré");
       } else {
-        setSendError(res.error)
+        setSendError(res.error);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
 
   const closeAndResetModal = () => {
-    closeModal()
-    reset()
-    setSelectedFamille(null)
-    setSelectedSousFamille(null)
+    closeModal();
+    reset();
+    setSelectedFamille(null);
+    setSelectedSousFamille(null);
     ligneArticle.map((_values, key) => {
-      supprimerLigne(key)
-    })
-  }
+      supprimerLigne(key);
+    });
+  };
 
   if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
 
   function formatDate(date: string): string {
     if (!date) {
-      return ""
+      return "";
     }
-    const temp = date.split('T')
+    const temp = date.split("T");
     if (temp) {
-
-      const heure = temp[1].replace('Z', '')
-      return `${temp[0]} à ${heure}`
+      const heure = temp[1].replace("Z", "");
+      return `${temp[0]} à ${heure}`;
     }
-    return "Format invalide"
+    return "Format invalide";
   }
 
   const styleForm: CSSProperties = {
@@ -775,15 +815,14 @@ export default function ArticleTable() {
     flexDirection: "column",
     justifyContent: "center",
     width: "100%",
-  }
+  };
 
   const styleMenu: CSSProperties = {
     display: "flex",
     justifyContent: "space-between",
     width: "100%",
-    marginTop: "10px"
-  }
-
+    marginTop: "10px",
+  };
 
   return (
     <>
@@ -831,20 +870,21 @@ export default function ArticleTable() {
           />
         </div>
       </div>
-      <Modal isOpen={isOpen} onClose={closeAndResetModal} className="max-w-[700px] m-4">
+      <Modal
+        isOpen={isOpen}
+        onClose={closeAndResetModal}
+        className="max-w-[700px] m-4"
+      >
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
               Ajouter un article
             </h4>
-
           </div>
           <form className="flex flex-col" onSubmit={handleSubmit}>
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
               <div>
-
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-
                   <div>
                     <Label>Code</Label>
                     <Input
@@ -921,14 +961,17 @@ export default function ArticleTable() {
                       placeholder="Rechercher une famille..."
                     />
                     <div className="relative inline-block">
-                      <button className="dropdown-toggle dark:text-gray-400" type="button" onClick={toggleDropdown_1}>
+                      <button
+                        className="dropdown-toggle dark:text-gray-400"
+                        type="button"
+                        onClick={toggleDropdown_1}
+                      >
                         +
                       </button>
                       <Dropdown
                         isOpen={isDropdownOpen_1}
                         onClose={closeDropdown_1}
                         className="w-40 p-2"
-
                       >
                         <Label>Ajouter famille</Label>
                         <input
@@ -955,7 +998,12 @@ export default function ArticleTable() {
                           }
                           className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800"
                         />
-                        <Button title="ajouter nouveau famille" onClick={handleSubmitFamilly}>+</Button>
+                        <Button
+                          title="ajouter nouveau famille"
+                          onClick={handleSubmitFamilly}
+                        >
+                          +
+                        </Button>
                       </Dropdown>
                     </div>
                   </div>
@@ -968,17 +1016,24 @@ export default function ArticleTable() {
                       placeholder="sous-famille..."
                     />
                     <div className="relative inline-block">
-                      <button className="dropdown-toggle dark:text-gray-400" type="button" onClick={toggleDropdown}>
+                      <button
+                        className="dropdown-toggle dark:text-gray-400"
+                        type="button"
+                        onClick={toggleDropdown}
+                      >
                         +
                       </button>
                       <Dropdown
                         isOpen={isDropdownOpen}
                         onClose={closeDropdown}
                         className="w-40 p-2"
-
                       >
                         <Label>Ajouter sous famille</Label>
-                        <Label>{selectedFamille ? `pour ${selectedFamille.fam_nom}` : ""}</Label>
+                        <Label>
+                          {selectedFamille
+                            ? `pour ${selectedFamille.fam_nom}`
+                            : ""}
+                        </Label>
                         <input
                           type="text"
                           placeholder="Code"
@@ -1003,7 +1058,12 @@ export default function ArticleTable() {
                           }
                           className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800"
                         />
-                        <Button title="ajouter nouveau sous famille" onClick={handleSubmitSousFamilly}>+</Button>
+                        <Button
+                          title="ajouter nouveau sous famille"
+                          onClick={handleSubmitSousFamilly}
+                        >
+                          +
+                        </Button>
                       </Dropdown>
                     </div>
                   </div>
@@ -1034,13 +1094,19 @@ export default function ArticleTable() {
                       <thead>
                         <tr className="bg-brand-500 text-white">
                           <th className="p-2 text-left font-medium">
-                            <select name="pri_unitevente"
+                            <select
+                              name="pri_unitevente"
                               value={ligneEnCours.pri_unitevente}
                               onChange={handleLigneChange}
                               onKeyDown={handleLigneKeyDown}
                             >
                               {enumeration.map((value) => (
-                                <option key={value.enu_id} value={value.enu_nom}>{value.enu_nom}</option>
+                                <option
+                                  key={value.enu_id}
+                                  value={value.enu_nom}
+                                >
+                                  {value.enu_nom}
+                                </option>
                               ))}
                             </select>
                           </th>
@@ -1151,12 +1217,19 @@ export default function ArticleTable() {
                                 <select
                                   value={ligne.pri_unitevente}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_unitevente", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_unitevente",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 >
                                   {enumeration.map((item) => (
-                                    <option key={item.enu_id} value={item.enu_nom}>
+                                    <option
+                                      key={item.enu_id}
+                                      value={item.enu_nom}
+                                    >
                                       {item.enu_nom}
                                     </option>
                                   ))}
@@ -1165,10 +1238,13 @@ export default function ArticleTable() {
 
                               <td className="p-2">
                                 <input
-
                                   value={ligne.pri_achat}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_achat", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_achat",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
@@ -1176,10 +1252,13 @@ export default function ArticleTable() {
 
                               <td className="p-2">
                                 <input
-
                                   value={ligne.pri_tauxmarge}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_tauxmarge", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_tauxmarge",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
@@ -1187,10 +1266,13 @@ export default function ArticleTable() {
 
                               <td className="p-2">
                                 <input
-
                                   value={ligne.pri_marge}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_marge", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_marge",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
@@ -1198,10 +1280,13 @@ export default function ArticleTable() {
 
                               <td className="p-2">
                                 <input
-
                                   value={ligne.pri_vte}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_vte", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_vte",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
@@ -1209,10 +1294,13 @@ export default function ArticleTable() {
 
                               <td className="p-2">
                                 <input
-
                                   value={ligne.pri_tva}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_tva", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_tva",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
@@ -1220,10 +1308,13 @@ export default function ArticleTable() {
 
                               <td className="p-2">
                                 <input
-
                                   value={ligne.pri_nbcolis}
                                   onChange={(e) =>
-                                    modifierLigne(index, "pri_nbcolis", e.target.value)
+                                    modifierLigne(
+                                      index,
+                                      "pri_nbcolis",
+                                      e.target.value,
+                                    )
                                   }
                                   className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
@@ -1250,7 +1341,7 @@ export default function ArticleTable() {
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-between">
               <span className="text-red-600">{sendError}</span>
               <div>
-                <Button size="sm" type="submit" >
+                <Button size="sm" type="submit">
                   Sauvegarder
                 </Button>
               </div>
