@@ -30,7 +30,6 @@ import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
 import {
   ColDef,
   FilterChangedEvent,
-  _consoleError,
   colorSchemeDarkBlue,
   colorSchemeLight,
   themeQuartz,

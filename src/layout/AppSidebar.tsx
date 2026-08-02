@@ -41,14 +41,15 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Fournisseurs", path: "#", pro: false },
       { name: "Approvisionnement", path: "#", pro: false },
+      { name: "Articles", path: "/articles", pro: false },
     ],
   },
   {
     name: "Stock",
     icon: <ListIcon />,
     subItems: [
-      { name: "Articles", path: "/articles", pro: false },
-      { name: "Stock", path: "#", pro: false },
+      { name: "Entree", path: "/entree", pro: false },
+      { name: "Etat de stock", path: "/stock", pro: false },
     ],
   },
 ];

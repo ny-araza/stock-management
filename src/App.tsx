@@ -8,6 +8,8 @@ import ListVentesTables from "./pages/Ventes/listeVentesTables";
 import ListBcTables from "./pages/Bc/listeBcTables";
 import ListFournisseurTables from "./pages/Fournisseurs/listeFournisseurTables";
 import Accueil from "./pages/Home/accueil";
+import ExempleUtilisation from "./pages/etatStock/ExempleUtilisation";
+import EntreeListeTables from "./pages/stock/listeEntreeTables";
 
 export default function App() {
   return (
@@ -23,9 +25,10 @@ export default function App() {
             <Route path="ventes" element={<ListVentesTables />} />
             <Route path="/bc" element={<ListBcTables />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
+            <Route path="/stock" element={<ExempleUtilisation />} />
+            <Route path="/entree" element={<EntreeListeTables />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
-
         </Routes>
       </Router>
     </>
