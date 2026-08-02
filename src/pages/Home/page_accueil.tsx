@@ -3,6 +3,7 @@ import Button from "../../components/ui/button/Button";
 import Entry from "./modal/newEntry";
 import { useState } from "react";
 import NewCommandFrns from "./modal/newCommandFrns";
+import Sortit from "./modal/newSortit";
 
 type ModalType =
   | "entry"
@@ -10,6 +11,7 @@ type ModalType =
   | "commandeClient"
   | "livraison"
   | "depense"
+  | "sortit"
   | null;
 
 export default function PageAccueil() {
@@ -41,10 +43,23 @@ export default function PageAccueil() {
           className="max-w-[700px] m-4"
         ></Entry>
         <Button
+          onClick={() => open("sortit")}
           size="sm"
           variant="outline"
           startIcon={<BoxIconLine className="size-10" />}
-          onClick={() => open('commandeFournisseur')}
+        >
+          Sortit en stock
+        </Button>
+        <Sortit
+          isOpen={openModal == "sortit"}
+          onClose={close}
+          className="max-w-[700px] m-4"
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          startIcon={<BoxIconLine className="size-10" />}
+          onClick={() => open("commandeFournisseur")}
         >
           Ajout nouvelle commande fournisseurs
         </Button>
@@ -58,14 +73,7 @@ export default function PageAccueil() {
           variant="outline"
           startIcon={<BoxIconLine className="size-10" />}
         >
-          Nouvelle commande clients
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          startIcon={<BoxIconLine className="size-10" />}
-        >
-          Nouvelle livraison fournisseurs
+          Ajout nouvelle livraison fournisseurs
         </Button>
         <Button
           size="sm"

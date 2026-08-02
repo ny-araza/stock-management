@@ -7,9 +7,9 @@ import {
   useMemo,
   useCallback,
 } from "react";
-import { apiFetch } from "../../services/api";
-import Button from "../../components/ui/button/Button";
-import Pagination from "../../components/ui/pagination/Pagination";
+import { apiFetch } from "../../../services/api";
+import Button from "../../../components/ui/button/Button";
+import Pagination from "../../../components/ui/pagination/Pagination";
 import "react-phone-number-input/style.css";
 import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
 import {
@@ -20,8 +20,8 @@ import {
   colorSchemeLight,
   themeQuartz,
 } from "ag-grid-community";
-import { Modal } from "../../components/ui/modal";
-import { useModal } from "../../hooks/useModal";
+import { Modal } from "../../../components/ui/modal";
+import { useModal } from "../../../hooks/useModal";
 
 // ---- Types correspondant aux données reçues par ce composant ----
 // (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)
@@ -446,6 +446,8 @@ export default function EntreeTable() {
 
       {/* Modal détail entrée */}
       <Modal
+        showCloseButton={false}
+        className="w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
         isOpen={selectedEntree ? true : false}
         onClose={() => setSelectedEntree(null)}
       >
@@ -501,7 +503,7 @@ export default function EntreeTable() {
               <h3 className="font-medium mb-2 text-gray-800 dark:text-white">
                 Lignes ({selectedEntree.lignes.length})
               </h3>
-              <div className="overflow-x-auto border rounded-md dark:border-white/[0.05]">
+              <div className="overflow-x-auto border rounded-md dark:border-white/[0.05] dark:text-white">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-white/[0.03]">
                     <tr>

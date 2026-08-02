@@ -1,5 +1,5 @@
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import ComponentCard from "../../components/common/ComponentCard";
+import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
+import ComponentCard from "../../../components/common/ComponentCard";
 import EntreeTable from "./entreeTable";
 
 export default function EntreeListeTables() {

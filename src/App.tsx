@@ -9,7 +9,7 @@ import ListBcTables from "./pages/Bc/listeBcTables";
 import ListFournisseurTables from "./pages/Fournisseurs/listeFournisseurTables";
 import Accueil from "./pages/Home/accueil";
 import ExempleUtilisation from "./pages/etatStock/ExempleUtilisation";
-import EntreeListeTables from "./pages/stock/listeEntreeTables";
+import EntreeListeTables from "./pages/stock/entree/listeEntreeTables";
 
 export default function App() {
   return (
