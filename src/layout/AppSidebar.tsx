@@ -30,9 +30,10 @@ const navItems: NavItem[] = [
     icon: <FontAwesomeIcon icon={faBriefcase} />,
     subItems: [
       { name: "Ventes", path: "/ventes", pro: false },
-      { name: "Bon de Commande", path: "/bc", pro: false },
-      { name: "Clients", path: "/clients", pro: false },
+      { name: "Commande fournisseurs", path: "/bc", pro: false },
+      { name: "Livraison fournisseurs", path: "/liv-frns", pro: false },
       { name: "Fournisseurs", path: "/fournisseurs", pro: false },
+      { name: "Clients", path: "/clients", pro: false },
       { name: "Caisse", path: "#", pro: false },
     ],
   },
@@ -49,9 +50,10 @@ const navItems: NavItem[] = [
     name: "Stock",
     icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
-      { name: "Entree", path: "/entree", pro: false },
-      { name: "Sortie", path: "/sortie", pro: false },
+      { name: "Entree en stock", path: "/entree", pro: false },
+      { name: "Sortie en stock", path: "/sortie", pro: false },
       { name: "Etat de stock", path: "/stock", pro: false },
+      { name: "Mouvement de stock", path: "/mvt-stock", pro: false },
     ],
   },
 ];

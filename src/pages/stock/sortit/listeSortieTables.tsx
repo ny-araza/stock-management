@@ -5,7 +5,7 @@ import SortitTable from "./sortitTable";
 export default function SortitListeTables() {
   return (
     <>
-      <PageBreadcrumb pageTitle="Entree" />
+      <PageBreadcrumb pageTitle="Sortie" />
       <div className="space-y-6">
         <ComponentCard title="">
           <SortitTable />

@@ -11,7 +11,6 @@ import Select from "../../../components/form/Select";
 import { Option } from "../../../components/form/Select";
 import TextArea from "../../../components/form/input/TextArea";
 import { postData } from "../../../services/sendDataService";
-import montantTTCEnLettres from "../../../utils/montantEnLettre";
 import Alert from "../../../components/ui/alert/Alert";
 
 interface livFrns {

@@ -7,53 +7,72 @@ import {
   useMemo,
   useCallback,
 } from "react";
-import { apiFetch } from "../../../services/api";
-import Button from "../../../components/ui/button/Button";
-import Pagination from "../../../components/ui/pagination/Pagination";
+import { apiFetch } from "../../services/api";
+import Button from "../../components/ui/button/Button";
+import Pagination from "../../components/ui/pagination/Pagination";
 import "react-phone-number-input/style.css";
 import { AgGridReact, CustomFilterProps, useGridFilter } from "ag-grid-react";
 import {
   ColDef,
   FilterChangedEvent,
+  RowClickedEvent,
   colorSchemeDarkBlue,
   colorSchemeLight,
   themeQuartz,
 } from "ag-grid-community";
+import { Modal } from "../../components/ui/modal";
+import { useModal } from "../../hooks/useModal";
 
 // ---- Types correspondant aux données reçues par ce composant ----
 // (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)
-
-export interface LotType {
-  lot_id: number;
-  lot_datecre: string;
-  lot_datemdf: string | null;
-  lot_usercre: string;
-  lot_usermdf: string | null;
-  lot_enabled: number;
-  lot_code: string;
-  lot_dateper: string;
-  lot_datefin: string | null;
-  lot_datedeb: string | null;
-  lot_art_code: string;
+export interface EntreeLigne {
+  entl_id: number;
+  entl_datecre: string;
+  entl_datemdf: string | null;
+  entl_usercre: string;
+  entl_usermdf: string | null;
+  entl_quantite: number;
+  entl_prixunit: string;
+  entl_ttc: string;
+  entl_art_code: string;
+  entl_pri_id: number;
+  entl_tva: string;
+  entl_ent_code: string;
+  entl_ht: string;
+  entl_fou_code: string;
+  entl_lot: string;
+  entl_dateper: string | null;
+  entl_prix: string;
+  entl_remise: string;
 }
 
-export interface EntreeType {
-  in_id: number;
-  in_code: string;
-  in_datecre: string;
-  in_usercre: string;
-  in_quantite: string;
-  in_pri_id: string;
-  in_art_code: string;
-  in_motif: string;
-  in_lot_id: string | null;
-  in_date: string;
-  in_date_per: string;
-  lot: LotType[];
+export interface Entree {
+  ent_id: number;
+  ent_code: string;
+  ent_datecre: string;
+  ent_datemdf: string | null;
+  ent_usercre: string;
+  ent_usermdf: string | null;
+  ent_fou_code: string;
+  ent_date: string;
+  ent_facture: string;
+  ent_datepay: string | null;
+  ent_modepaye: string;
+  ent_dateecheance: string | null;
+  ent_montant_ht: string;
+  ent_montant_ttc: string;
+  ent_cmf_code: string;
+  lignes: EntreeLigne[];
 }
 
 // Champs date côté backend (DateFilter / DateTimeFilter)
-const DATE_FIELDS = new Set(["out_datecre"]);
+const DATE_FIELDS = new Set([
+  "ent_datecre",
+  "ent_datemdf",
+  "ent_date",
+  "ent_datepay",
+  "ent_dateecheance",
+]);
 
 interface DateGranularityModel {
   granularity: "year" | "month" | "day";
@@ -67,9 +86,8 @@ function DateGranularityFilter({
   const doesFilterPass = () => true;
   useGridFilter({ doesFilterPass });
 
-  const [granularity, setGranularity] = useState<
-    DateGranularityModel["granularity"]
-  >(model?.granularity ?? "day");
+  const [granularity, setGranularity] = useState;
+  DateGranularityModel["granularity"] > (model?.granularity ?? "day");
   const value = model?.value ?? "";
 
   const updateGranularity = (g: DateGranularityModel["granularity"]) => {
@@ -169,9 +187,9 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
   return params;
 }
 
-export default function EntreeTable() {
-  const gridRef = useRef<AgGridReact<EntreeType>>(null);
-  const [entree, setEntree] = useState<EntreeType[]>([]);
+export default function LivFrnsTable() {
+  const gridRef = useRef<AgGridReact<Entree>>(null);
+  const [entrees, setEntrees] = useState<Entree[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [hasNext, setHasNext] = useState<boolean>(false);
@@ -182,6 +200,9 @@ export default function EntreeTable() {
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark"),
   );
+  const { closeModal, isOpen, openModal } = useModal();
+  // --- Modal : entrée sélectionnée pour afficher le détail des lignes ---
+  const [selectedEntree, setSelectedEntree] = useState<Entree | null>(null);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -214,67 +235,69 @@ export default function EntreeTable() {
   );
   const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const columnDefs = useMemo<ColDef<EntreeType>[]>(
+  const columnDefs = useMemo<ColDef<Entree>[]>(
     () => [
       {
-        field: "in_code",
+        field: "ent_code",
         headerName: "Code",
         pinned: "left",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
       },
       {
-        field: "in_quantite",
-        headerName: "Quantité",
+        field: "ent_fou_code",
+        headerName: "Fournisseur",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
       },
       {
-        field: "in_pri_id",
-        headerName: "PU",
+        field: "ent_date",
+        headerName: "Date entrée",
+        filter: DateGranularityFilter,
+        floatingFilter: false,
+      },
+      {
+        field: "ent_datepay",
+        headerName: "Date paiement",
+        filter: DateGranularityFilter,
+        floatingFilter: false,
+      },
+      {
+        field: "ent_modepaye",
+        headerName: "Mode de paiement",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
       },
       {
-        field: "in_art_code",
-        headerName: "Code Article",
+        field: "ent_facture",
+        headerName: "Facture",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
       },
       {
-        field: "in_motif",
-        headerName: "Motif",
+        field: "ent_montant_ht",
+        headerName: "Montant HT",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
       },
       {
-        field: "in_datecre",
-        headerName: "Date de création",
+        field: "ent_montant_ttc",
+        headerName: "Montant TTC",
+        filter: "agTextColumnFilter",
+        suppressHeaderFilterButton: true,
+      },
+      {
+        field: "ent_datecre",
+        headerName: "Créée le",
         filter: DateGranularityFilter,
         floatingFilter: false,
         valueFormatter: (params) => formatDate(params.value),
       },
       {
-        field: "in_usercre",
-        headerName: "Creer par",
+        field: "ent_usercre",
+        headerName: "Créé par",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
-      },
-      {
-        field: "in_date",
-        headerName: "Date de création",
-        filter: DateGranularityFilter,
-        floatingFilter: false,
-        valueFormatter: (params) => formatDate(params.value),
-      },
-      {
-        headerName: "Date de péremption",
-        valueGetter: (params) => {
-          return params.data?.lot?.[0]?.lot_dateper ?? null;
-        },
-        floatingFilter: false,
-        suppressHeaderFilterButton: true,
-        valueFormatter: (params) => formatDate(params.value),
       },
     ],
     [],
@@ -292,17 +315,17 @@ export default function EntreeTable() {
     [],
   );
 
-  const fetchSortits = useCallback(
+  const fetchEntrees = useCallback(
     async (pageNumber = page, keyword = search, filters = filterParams) => {
       try {
         const query = new URLSearchParams(filters);
         query.set("page", String(pageNumber));
         if (keyword) query.set("search", keyword);
 
-        const res = await apiFetch(`/api/in_stock/?${query.toString()}`);
+        const res = await apiFetch(`/api/entree_stock/?${query.toString()}`);
 
         if (res.status) {
-          setEntree(res.entree)
+          setEntrees(res.entree ?? res.articles); // adapte selon le nom de clé renvoyé par ton API
           setHasNext(res.next !== null);
           setHasPrevious(res.previous !== null);
           setTotalCount(res.count);
@@ -318,19 +341,19 @@ export default function EntreeTable() {
   );
 
   useEffect(() => {
-    fetchSortits(page, search, filterParams);
+    fetchEntrees(page, search, filterParams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onGridFilterChanged = (_event: FilterChangedEvent<EntreeType>) => {
+  const onGridFilterChanged = (_event: FilterChangedEvent<Entree>) => {
     const model = gridRef.current?.api.getFilterModel() ?? {};
     const params = buildFilterParams(model);
     if (filterDebounce.current) clearTimeout(filterDebounce.current);
     filterDebounce.current = setTimeout(() => {
       setFilterParams(params);
       setPage(1);
-      fetchSortits(1, search, params);
+      fetchEntrees(1, search, params);
     }, 1000);
   };
 
@@ -345,7 +368,13 @@ export default function EntreeTable() {
     setFilterParams(new URLSearchParams());
     setSearch("");
     setPage(1);
-    fetchSortits(1, "", new URLSearchParams());
+    fetchEntrees(1, "", new URLSearchParams());
+  };
+
+  // --- Ouverture du modal au clic sur une ligne ---
+  const onRowClicked = (event: RowClickedEvent<Entree>) => {
+    if (event.data) setSelectedEntree(event.data);
+    openModal();
   };
 
   if (error) return <div className="p-5 text-red-500">Erreur : {error}</div>;
@@ -389,8 +418,8 @@ export default function EntreeTable() {
               width: "100%",
             }}
           >
-            <AgGridReact<EntreeType>
-              rowData={entree}
+            <AgGridReact<Entree>
+              rowData={entrees}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               animateRows
@@ -398,6 +427,7 @@ export default function EntreeTable() {
               theme={myTheme}
               ref={gridRef}
               onFilterChanged={onGridFilterChanged}
+              onRowClicked={onRowClicked}
               rowStyle={{ cursor: "pointer" }}
             />
           </div>
@@ -413,6 +443,103 @@ export default function EntreeTable() {
           />
         </div>
       </div>
+
+      {/* Modal détail entrée */}
+      <Modal
+        showCloseButton={false}
+        className="w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
+        isOpen={selectedEntree ? true : false}
+        onClose={() => setSelectedEntree(null)}
+      >
+        {selectedEntree && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setSelectedEntree(null)}
+          >
+            <div
+              className="w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                  Entrée {selectedEntree.ent_code}
+                </h2>
+                <button
+                  onClick={() => setSelectedEntree(null)}
+                  className="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl leading-none"
+                  aria-label="Fermer"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm mb-4 text-gray-600 dark:text-gray-300">
+                <div>
+                  <span className="font-medium">Fournisseur :</span>{" "}
+                  {selectedEntree.ent_fou_code}
+                </div>
+                <div>
+                  <span className="font-medium">Date :</span>{" "}
+                  {selectedEntree.ent_date}
+                </div>
+                <div>
+                  <span className="font-medium">Mode de paiement :</span>{" "}
+                  {selectedEntree.ent_modepaye}
+                </div>
+                <div>
+                  <span className="font-medium">Facture :</span>{" "}
+                  {selectedEntree.ent_facture || "—"}
+                </div>
+                <div>
+                  <span className="font-medium">Montant HT :</span>{" "}
+                  {selectedEntree.ent_montant_ht}
+                </div>
+                <div>
+                  <span className="font-medium">Montant TTC :</span>{" "}
+                  {selectedEntree.ent_montant_ttc}
+                </div>
+              </div>
+
+              <h3 className="font-medium mb-2 text-gray-800 dark:text-white">
+                Lignes ({selectedEntree.lignes.length})
+              </h3>
+              <div className="overflow-x-auto border rounded-md dark:border-white/[0.05] dark:text-white">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-white/[0.03]">
+                    <tr>
+                      <th className="p-2 text-left">Article</th>
+                      <th className="p-2 text-left">Quantité</th>
+                      <th className="p-2 text-left">Prix unitaire</th>
+                      <th className="p-2 text-left">Remise</th>
+                      <th className="p-2 text-left">HT</th>
+                      <th className="p-2 text-left">TTC</th>
+                      <th className="p-2 text-left">Lot</th>
+                      <th className="p-2 text-left">Péremption</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedEntree.lignes.map((ligne) => (
+                      <tr
+                        key={ligne.entl_id}
+                        className="border-t dark:border-white/[0.05]"
+                      >
+                        <td className="p-2">{ligne.entl_art_code}</td>
+                        <td className="p-2">{ligne.entl_quantite}</td>
+                        <td className="p-2">{ligne.entl_prixunit}</td>
+                        <td className="p-2">{ligne.entl_remise}</td>
+                        <td className="p-2">{ligne.entl_ht}</td>
+                        <td className="p-2">{ligne.entl_ttc}</td>
+                        <td className="p-2">{ligne.entl_lot || "—"}</td>
+                        <td className="p-2">{ligne.entl_dateper ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
