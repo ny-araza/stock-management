@@ -12,6 +12,7 @@ import ExempleUtilisation from "./pages/etatStock/ExempleUtilisation";
 import SortitListeTables from "./pages/stock/sortit/listeSortieTables";
 import LivFrnsListeTables from "./pages/livFrns/listeLivFrnsTables";
 import EntreeListeTables from "./pages/stock/entree/listeEntreeTables";
+import MvtListeTables from "./pages/stock/mvtStock/listeMvtTables";
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/liv-frns" element={<LivFrnsListeTables />} />
             <Route path="/sortie" element={<SortitListeTables />} />
             <Route path="/entree" element={<EntreeListeTables />} />
+            <Route path="/mvt-stock" element={<MvtListeTables />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
         </Routes>
