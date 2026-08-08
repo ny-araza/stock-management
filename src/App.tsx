@@ -10,6 +10,7 @@ import ListFournisseurTables from "./pages/Fournisseurs/listeFournisseurTables";
 import Accueil from "./pages/Home/accueil";
 import ExempleUtilisation from "./pages/etatStock/ExempleUtilisation";
 import EntreeListeTables from "./pages/stock/entree/listeEntreeTables";
+import SortitListeTables from "./pages/stock/sortit/listeEntreeTables";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />
             <Route path="/entree" element={<EntreeListeTables />} />
+            <Route path="/sortie" element={<SortitListeTables />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
         </Routes>

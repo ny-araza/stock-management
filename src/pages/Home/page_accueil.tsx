@@ -4,6 +4,16 @@ import Entry from "./modal/newEntry";
 import { useState } from "react";
 import NewCommandFrns from "./modal/newCommandFrns";
 import Sortit from "./modal/newSortit";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBox,
+  faBoxArchive,
+  faCableCar,
+  faCaravan,
+  faCartArrowDown,
+} from "@fortawesome/free-solid-svg-icons";
+import AnimatedButton from "./animeButton";
+import NewLivFrns from "./modal/newLivFrns";
 
 type ModalType =
   | "entry"
@@ -28,53 +38,50 @@ export default function PageAccueil() {
   return (
     <>
       <div className="grid grid-cols- gap-5 sm:grid-cols-5 md:gap-6">
-        <Button
-          size="md"
-          variant="outline"
-          className="h-60"
+        <AnimatedButton
           onClick={() => open("entry")}
-          startIcon={<BoxIconLine className="size-10" />}
+          icon={<FontAwesomeIcon icon={faBox} className="text-6xl" />}
         >
           Entrée en stock
-        </Button>
+        </AnimatedButton>
         <Entry
           isOpen={openModal == "entry"}
           onClose={close}
           className="max-w-[700px] m-4"
         ></Entry>
-        <Button
+        <AnimatedButton
           onClick={() => open("sortit")}
-          size="sm"
-          variant="outline"
-          startIcon={<BoxIconLine className="size-10" />}
+          icon={<FontAwesomeIcon icon={faBoxArchive} className="text-6xl" />}
         >
           Sortit en stock
-        </Button>
+        </AnimatedButton>
         <Sortit
           isOpen={openModal == "sortit"}
           onClose={close}
           className="max-w-[700px] m-4"
         />
-        <Button
-          size="sm"
-          variant="outline"
-          startIcon={<BoxIconLine className="size-10" />}
+        <AnimatedButton
           onClick={() => open("commandeFournisseur")}
+          icon={<FontAwesomeIcon icon={faCaravan} className="text-6xl" />}
         >
-          Ajout nouvelle commande fournisseurs
-        </Button>
+          Nouvelle commande fournisseurs
+        </AnimatedButton>
         <NewCommandFrns
           isOpen={openModal == "commandeFournisseur"}
           onClose={close}
           className="max-w-[700px] m-4"
         ></NewCommandFrns>
-        <Button
-          size="sm"
-          variant="outline"
-          startIcon={<BoxIconLine className="size-10" />}
+        <AnimatedButton
+          onClick={() => open("livraison")}
+          icon={<FontAwesomeIcon icon={faCartArrowDown} className="text-6xl" />}
         >
-          Ajout nouvelle livraison fournisseurs
-        </Button>
+          Nouvelle livraison fournisseur
+        </AnimatedButton>
+        <NewLivFrns
+          isOpen={openModal == "livraison"}
+          onClose={close}
+          className="max-w-[900px] m-4"
+        />
         <Button
           size="sm"
           variant="outline"

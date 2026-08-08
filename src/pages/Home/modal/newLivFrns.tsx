@@ -14,22 +14,24 @@ import { postData } from "../../../services/sendDataService";
 import montantTTCEnLettres from "../../../utils/montantEnLettre";
 import Alert from "../../../components/ui/alert/Alert";
 
-interface cmdFrns {
+interface livFrns {
   isOpen: boolean;
   onClose: () => void;
   className?: string;
 }
 
-const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
+const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const { values, reset, setField, handleChange } = useForm({
     pieces: "",
+    codeCf: "",
+    facture: "",
     fournisseur: "",
     contact1: "",
     contact2: "",
     adresse: "",
     mail: "",
     modeCmd: "",
-    dateLiv: "",
+    datePaye: "",
     designation: "",
     code_frns: "",
   });
@@ -52,6 +54,8 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     pri_pua: "",
     pri_tva: "",
     pri_totalht: "",
+    remise: "",
+    datePeremption: "",
   };
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
   const open = () => {
@@ -130,8 +134,9 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
 
       const quantite = Number(nouvelleLigne.pri_quantite) || 0;
       const pht = Number(nouvelleLigne.pri_pua) * quantite;
-      nouvelleLigne.pri_totalht = pht.toFixed(2);
-
+      const remise = pht * (Number(nouvelleLigne.remise) / 100);
+      const pht_with_remise = pht - remise;
+      nouvelleLigne.pri_totalht = pht_with_remise.toFixed(2);
       return nouvelleLigne;
     });
   };
@@ -214,11 +219,12 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
         const pua = field === "pri_pua" ? Number(value) : Number(ligne.pri_pua);
         const qte =
           field === "pri_quantite" ? Number(value) : Number(ligne.pri_quantite);
-
+        const remise =
+          field === "remise" ? Number(value) : Number(ligne.remise);
         return {
           ...ligne,
           [field]: value,
-          pri_totalht: pua * qte,
+          pri_totalht: pua * qte - pua * qte * (remise / 100),
         };
       }),
     );
@@ -291,35 +297,43 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     e.preventDefault();
     try {
       const ligne_ok: boolean[] = [];
-      if (totalHT != 0 && totalTVA != 0) {
+      if (totalHT != 0) {
         const today = new Date().toISOString().split("T")[0];
-        const res = await postData("/api/insert-database/", "t_cmd_fournis", {
-          cmf_code: values.pieces,
-          cmf_modecmd: parseFloat(values.modeCmd),
-          cmf_dateliv: values.dateLiv,
-          cmf_montant_ht: parseInt(totalHT),
-          cmf_montant_ttc: parseInt(totalTTC),
-          cmf_islivre: false,
-          cmf_fou_code: values.code_frns,
-          cmf_date: today,
-          cmf_lettre: montantTTCEnLettres(totalTTC),
+        const res = await postData("/api/insert-database/", "t_entree", {
+          ent_code: values.pieces,
+          ent_modepaye: values.modeCmd,
+          ent_datepay: values.datePaye,
+          ent_montant_ht: parseInt(totalHT),
+          ent_montant_ttc: parseInt(totalTTC),
+          ent_fou_code: values.code_frns,
+          ent_date: today,
+          ent_facture: values.facture,
+          ent_cmf_code: values.codeCf,
         });
         if (res.status) {
           ligneArticle.map(async (value) => {
             const send = await postData(
               "/api/insert-database/",
-              "t_ligne_cmd_fournis",
+              "t_ligne_entree",
               {
-                cmfl_quantite: value.pri_quantite,
-                cmfl_pri_id: value.pri_id,
-                cmfl_cmf_code: values.pieces,
-                cmfl_prixachat: value.pri_pua,
-                cmfl_tva: value.pri_tva,
-                cmfl_totalht: value.pri_totalht,
-                cmfl_art_code: value.pri_article,
-                cmfl_fou_code: values.code_frns,
+                entl_quantite: value.pri_quantite,
+                entl_pri_id: value.pri_id,
+                entl_ent_code: values.pieces,
+                entl_prixunit: value.pri_pua,
+                entl_tva: value.pri_tva,
+                entl_ht: value.pri_totalht,
+                entl_art_code: value.pri_article,
+                entl_fou_code: values.code_frns,
+                entl_ttc: (
+                  parseInt(value.pri_totalht) +
+                  (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
+                ).toFixed(2),
+                entl_dateper: value.datePeremption,
+                entl_prix: value.pri_pua,
+                entl_remise: value.remise,
               },
             );
+            console.log(value.pri_totalht);
             if (send.status) {
               ligne_ok.push(true);
             } else ligne_ok.push(false);
@@ -334,12 +348,12 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
           return;
         }
         if (!ligne_ok.find((val) => val == false)) {
-          fetchCode("t_cmd_fournis", true);
+          fetchCode("t_entree", true);
           setAlert({
             open: true,
             variant: "success",
             title: "Opération réussie",
-            message: "Entrer enregistrer avec succès",
+            message: "Livraison fournisseur enregistrer avec succès",
           });
           reset();
           setLigneArticle([]);
@@ -366,16 +380,16 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   };
 
   useEffect(() => {
-    fetchCode("t_cmd_fournis", false);
+    fetchCode("t_entree", false);
   }, [isOpen]);
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Ajout commande fournisseurs
+              Ajout livraisons fournisseur
             </h4>
             <span className="dark:text-white/90">
               {Date().split(" ")[2]}/{Date().split(" ")[1]}/
@@ -396,13 +410,35 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                   />
                 </div>
                 <div>
-                  <Label>Date de livraison</Label>
+                  <Label>Date de paiements</Label>
                   <Input
                     type="date"
-                    value={values.dateLiv}
+                    value={values.datePaye}
                     onChange={handleChange}
-                    name="dateLiv"
+                    name="datePaye"
                     required={true}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
+                <div>
+                  <Label>Code CF</Label>
+                  <Input
+                    name="codeCf"
+                    type="text"
+                    value={values.codeCf}
+                    onChange={handleChange}
+                    placeholder="N° pièce CF"
+                  />
+                </div>
+                <div>
+                  <Label>N° Facture</Label>
+                  <Input
+                    name="facture"
+                    type="text"
+                    value={values.facture}
+                    onChange={handleChange}
+                    placeholder="N° Facture"
                   />
                 </div>
               </div>
@@ -593,11 +629,34 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                       <th className="p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
+                          name="remise"
+                          value={ligneEnCours.remise}
+                          onChange={handleLigneChange}
+                          onKeyDown={handleLigneKeyDown}
+                          placeholder="Remise %"
+                          className="w-full bg-transparent placeholder-white/70 outline-none"
+                        />
+                      </th>
+                      <th className="p-2 text-left font-medium">
+                        <input
+                          style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
                           value={ligneEnCours.pri_totalht}
                           onChange={handleLigneChange}
                           onKeyDown={handleLigneKeyDown}
                           placeholder="Prix HT"
+                          className="w-full bg-transparent placeholder-white/70 outline-none"
+                        />
+                      </th>
+                      <th className="p-2 text-left font-medium">
+                        <input
+                          style={{ borderBottom: "1px solid gray" }}
+                          name="datePeremption"
+                          type="date"
+                          value={ligneEnCours.datePeremption}
+                          onChange={handleLigneChange}
+                          onKeyDown={handleLigneKeyDown}
+                          placeholder="Date péremption"
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
@@ -617,8 +676,10 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                       <th className="p-2 w-30 text-left">Désignation</th>
                       <th className="p-2 text-left">Quantité</th>
                       <th className="p-2 text-left">P.U</th>
-                      <th className="p-2 text-left">TVA</th>
+                      <th className="p-2 text-left">TVA (%)</th>
+                      <th className="p-2 text-left">Remise (%)</th>
                       <th className="p-2 text-left">Prix HT</th>
+                      <th className="p-2 text-left">Date Péremption</th>
                       <th className="p-2"></th>
                     </tr>
                   </thead>
@@ -674,7 +735,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           </td>
                           <td className="p-2">
                             <input
-                              required
                               value={ligne.pri_designation}
                               onChange={(e) =>
                                 modifierLigne(
@@ -714,7 +774,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
 
                           <td className="p-2">
                             <input
-                              required
                               value={ligne.pri_tva}
                               onChange={(e) =>
                                 modifierLigne(index, "pri_tva", e.target.value)
@@ -722,7 +781,15 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                               className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                             />
                           </td>
-
+                          <td className="p-2">
+                            <input
+                              value={ligne.remise}
+                              onChange={(e) =>
+                                modifierLigne(index, "remise", e.target.value)
+                              }
+                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                            />
+                          </td>
                           <td className="p-2">
                             <input
                               required
@@ -732,6 +799,21 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                                 modifierLigne(
                                   index,
                                   "pri_totalht",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              required
+                              type="date"
+                              value={ligne.datePeremption}
+                              onChange={(e) =>
+                                modifierLigne(
+                                  index,
+                                  "datePeremption",
                                   e.target.value,
                                 )
                               }
@@ -756,41 +838,47 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                     <tr>
                       <td colSpan={4}></td>
 
+                      <td></td>
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         Total HT
                       </td>
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         {totalHT.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </td>
-                      <td></td>
                     </tr>
                     <tr>
                       <td colSpan={4}></td>
 
+                      <td></td>
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         Total TVA
                       </td>
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         {totalTVA.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </td>
-                      <td></td>
                     </tr>
                     <tr className="bg-brand-500 dark:text-gray-300">
                       <td colSpan={4}></td>
+                      <td></td>
+                      <td></td>
                       <td className="p-2 text-right">Total TTC</td>
+                      <td></td>
                       <td className="p-2 text-right">
                         {totalTTC.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </td>
-                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -828,4 +916,4 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   );
 };
 
-export default NewCommandFrns;
+export default NewLivFrns;

@@ -309,10 +309,10 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                   <Label>Piece N°</Label>
                   <Input
                     name="code"
-                    disabled
                     type="text"
                     value={values.code}
                     onChange={handleChange}
+                    readonly={true}
                   />
                 </div>
                 <div>

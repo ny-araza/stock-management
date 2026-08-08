@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBox, faBriefcase, faCartShopping, faHome, faUser } from "@fortawesome/free-solid-svg-icons";
 
 // Assume these icons are imported from an icon library
 import {
   ChevronDownIcon,
   HorizontaLDots,
-  ListIcon,
   PieChartIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
@@ -20,13 +21,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: <ListIcon />,
+    icon: <FontAwesomeIcon icon={faHome} />,
     name: "Accueil",
     path: "/accueil",
   },
   {
     name: "Commerciale",
-    icon: <ListIcon />,
+    icon: <FontAwesomeIcon icon={faBriefcase} />,
     subItems: [
       { name: "Ventes", path: "/ventes", pro: false },
       { name: "Bon de Commande", path: "/bc", pro: false },
@@ -37,7 +38,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Achats & Approvisionnement",
-    icon: <ListIcon />,
+    icon: <FontAwesomeIcon icon={faCartShopping} />,
     subItems: [
       { name: "Fournisseurs", path: "#", pro: false },
       { name: "Approvisionnement", path: "#", pro: false },
@@ -46,9 +47,10 @@ const navItems: NavItem[] = [
   },
   {
     name: "Stock",
-    icon: <ListIcon />,
+    icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
       { name: "Entree", path: "/entree", pro: false },
+      { name: "Sortie", path: "/sortie", pro: false },
       { name: "Etat de stock", path: "/stock", pro: false },
     ],
   },
@@ -151,7 +153,7 @@ const AppSidebar: React.FC = () => {
               }`}
             >
               <span
-                className={`menu-item-icon-size  ${
+                className={`menu-item-icon-size ${
                   openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
