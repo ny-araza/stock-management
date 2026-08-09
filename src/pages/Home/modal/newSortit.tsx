@@ -239,6 +239,27 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
     setField("justificatif", "20");
   }, [isOpen]);
 
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "delete",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: mvt.origine,
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
   //send data
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,6 +280,15 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
             out_pri_id: item.pri_id,
             out_quantite: item.pri_quantite,
             out_date: today,
+          });
+          handleCreateMvtStock({
+            code_org: values.code,
+            date: today,
+            lot_code: item.pri_lot,
+            origine: "t_out_stock",
+            pri_id: item.pri_id,
+            qte: item.pri_quantite,
+            art_code: item.pri_article,
           });
           if (res.status) {
             cpt += 1;

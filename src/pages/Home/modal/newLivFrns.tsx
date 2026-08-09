@@ -49,11 +49,11 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     pri_id: "",
     pri_article: "",
     pri_designation: "",
-    pri_quantite: "",
+    pri_quantite: 0,
     pri_pua: "",
-    pri_tva: "",
-    pri_totalht: "",
-    remise: "",
+    pri_tva: 0.0,
+    pri_totalht: 0.0,
+    remise: 0,
     datePeremption: "",
   };
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
@@ -292,6 +292,28 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
 
   const totalTTC = totalHT + totalTVA;
 
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      console.log(`mvt ${mvt}`);
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "insert",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: mvt.origine,
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -329,10 +351,20 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                 ).toFixed(2),
                 entl_dateper: value.datePeremption,
                 entl_prix: value.pri_pua,
-                entl_remise: value.remise,
+                entl_remise: value.remise ? value.remise : "0",
               },
             );
-            console.log(value.pri_totalht);
+
+            handleCreateMvtStock({
+              code_org: values.pieces,
+              date: today,
+              lot_code: value.datePeremption,
+              origine: "t_entree_stock",
+              pri_id: value.pri_id,
+              qte: value.pri_quantite,
+              art_code: value.pri_article,
+            });
+
             if (send.status) {
               ligne_ok.push(true);
             } else ligne_ok.push(false);
@@ -373,8 +405,13 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
         title: "Une erreur survenue",
         variant: "error",
       });
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      setAlert({
+        open: true,
+        message: `${error.error}`,
+        title: "Une erreur survenue",
+        variant: "error",
+      });
     }
   };
 

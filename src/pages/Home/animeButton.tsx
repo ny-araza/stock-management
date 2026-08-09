@@ -23,7 +23,6 @@ export default function AnimatedButton({
         w-full
         overflow-hidden
         rounded-xl
-        border
         transition-all
         duration-100
         ease-out

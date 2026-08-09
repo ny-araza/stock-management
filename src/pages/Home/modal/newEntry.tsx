@@ -12,6 +12,8 @@ import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 import Select from "../../../components/form/Select";
+import { createMvtStock } from "../../../services/mvtStockService";
+import { useAuth } from "../../../services/authLogin";
 
 interface newEntryProps {
   isOpen: boolean;
@@ -58,7 +60,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const articleRef = useRef<HTMLInputElement>(null);
-
+  const { user } = useAuth();
   const handleLigneChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -214,6 +216,27 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
     setShowSuggestions(false);
   };
 
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "insert",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: "t_in_stock",
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
   //ligne existante
   const choisirArticleLigne = (index: number, article: any) => {
     setLigneAticle((prev: any) =>
@@ -260,11 +283,22 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
             in_quantite: item.pri_quantite,
             in_date: today,
           });
-          if (res.status) {
-            cpt += 1;
+          handleCreateMvtStock({
+            code_org: values.code,
+            date: today,
+            lot_code: item.pri_lot,
+            origine: "t_in_stock",
+            pri_id: item.pri_id,
+            qte: item.pri_quantite,
+            art_code: item.pri_article,
+          });
+          if (!res.status) {
+            throw Error(res.error);
           }
-        } else break;
+          cpt++;
+        }
       }
+
       if (ligneArticle.length != 0 && cpt == ligneArticle.length) {
         fetchCode("t_in_stock", true);
         setAlert({
@@ -277,15 +311,13 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
         setLigneAticle([]);
         return;
       }
-
+    } catch (error: any) {
       setAlert({
         open: true,
-        message: "Vous avez laisser un champs vide",
+        message: error.error,
         title: "Une erreur survenue",
         variant: "error",
       });
-    } catch (error) {
-      console.error(error);
     }
   };
 
