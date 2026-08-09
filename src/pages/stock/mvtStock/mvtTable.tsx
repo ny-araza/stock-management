@@ -61,6 +61,50 @@ interface DateGranularityModel {
   value: string; // "2023" | "2023-03" | "2023-03-13"
 }
 
+interface BooleanFilterProps extends CustomFilterProps {
+  insertLabel: string;
+  deleteLabel: string;
+  updelLabel: string;
+}
+
+function BooleanFilter({
+  model,
+  onModelChange,
+  insertLabel,
+  deleteLabel,
+  updelLabel,
+}: BooleanFilterProps) {
+  const doesFilterPass = () => true;
+
+  useGridFilter({ doesFilterPass });
+
+  const options: { value: string | null; label: string }[] = [
+    { value: null, label: "Tous" },
+    { value: "insert", label: insertLabel },
+    { value: "delete", label: deleteLabel },
+    { value: "updel", label: updelLabel },
+  ];
+
+  return (
+    <div className="p-2 flex flex-col gap-2 min-w-[160px]">
+      {options.map((opt) => (
+        <label
+          key={opt.label}
+          className="flex items-center gap-2 cursor-pointer text-sm"
+        >
+          <input
+            type="radio"
+            name={`bool-filter-${insertLabel}`}
+            checked={model === opt.value}
+            onChange={() => onModelChange(opt.value)}
+          />
+          {opt.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function DateGranularityFilter({
   model,
   onModelChange,
@@ -140,6 +184,11 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
   Object.entries(filterModel).forEach(([field, model]) => {
     if (!model) return;
 
+    if (typeof model === "string") {
+      params.append(field, model);
+      return;
+    }
+
     if (model.filterType === "text" && model.filter) {
       params.append(field, model.filter);
       return;
@@ -197,15 +246,6 @@ export default function MvtStockTable() {
     return () => observer.disconnect();
   }, []);
 
-  const formatAction = (action: string) => {
-    if (action == "insert")
-      return "Entree"
-    if (action == "delete")
-      return "Sortie"
-    if (action == "updel")
-      return "Sortie puis mise a jour"
-  }
-  
   const myTheme = useMemo(() => {
     if (isDark) {
       return themeQuartz.withPart(colorSchemeDarkBlue).withParams({
@@ -227,17 +267,29 @@ export default function MvtStockTable() {
   const columnDefs = useMemo<ColDef<MvtStockType>[]>(
     () => [
       {
-        field: "mvt_action",
-        headerName: "Action",
-        filter: "agTextColumnFilter",
-        suppressHeaderFilterButton: true,
-        valueFormatter: (params) => formatAction(params.value),
-      },
-      {
         field: "mvt_code_org",
+        pinned: "left",
         headerName: "Code Mouv",
         filter: "agTextColumnFilter",
         suppressHeaderFilterButton: true,
+      },
+      {
+        field: "mvt_action",
+        headerName: "Action",
+        filter: BooleanFilter,
+        filterParams: {
+          insertLabel: "Entree",
+          deleteLabel: "Sortie",
+          updelLabel: "Mise à jour et sortie",
+        },
+        floatingFilter: false,
+        valueFormatter: (params) => {
+          if (params.value == "insert") {
+            return "Entree";
+          } else if (params.value == "delete") {
+            return "Sortie";
+          } else return "Mise à jour et sortie";
+        },
       },
       {
         field: "mvt_art_code",

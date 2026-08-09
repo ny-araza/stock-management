@@ -20,9 +20,6 @@ import {
   themeQuartz,
 } from "ag-grid-community";
 
-// ---- Types correspondant aux données reçues par ce composant ----
-// (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)
-
 export interface LotType {
   lot_id: number;
   lot_datecre: string;

@@ -58,7 +58,7 @@ export const fetchMvtStocks = async ({
     }
   });
 
-  const res = await apiFetch(`/api/mvt_stock/?${query.toString()}`);
+  const res = await apiFetch(`/api/mvt_stockk/?${query.toString()}`);
 
   if (!res.status) {
     throw new Error(
@@ -73,7 +73,7 @@ export const fetchMvtStocks = async ({
  * Récupérer un mouvement de stock par son ID
  */
 export const fetchMvtStockById = async (id: number): Promise<MvtStockType> => {
-  const res = await apiFetch(`/api/mvt_stock/${id}/`);
+  const res = await apiFetch(`/api/mvt_stockk/${id}/`);
 
   if (!res.status) {
     throw new Error(res.message || "Mouvement de stock introuvable");
@@ -88,7 +88,7 @@ export const fetchMvtStockById = async (id: number): Promise<MvtStockType> => {
 export const createMvtStock = async (
   data: Omit<MvtStockType, "mvt_id">,
 ): Promise<MvtStockType> => {
-  const res = await apiFetch("/api/mvt_stock/", {
+  const res = await apiFetch("/api/mvt_stockk/", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -107,7 +107,7 @@ export const updateMvtStock = async (
   id: number,
   data: Partial<Omit<MvtStockType, "mvt_id">>,
 ): Promise<MvtStockType> => {
-  const res = await apiFetch(`/api/mvt_stock/${id}/`, {
+  const res = await apiFetch(`/api/mvt_stockk/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -125,7 +125,7 @@ export const updateMvtStock = async (
  * Supprimer un mouvement de stock
  */
 export const deleteMvtStock = async (id: number): Promise<void> => {
-  const res = await apiFetch(`/api/mvt_stock/${id}/`, {
+  const res = await apiFetch(`/api/mvt_stockk/${id}/`, {
     method: "DELETE",
   });
 
