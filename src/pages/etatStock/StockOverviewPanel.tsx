@@ -1,11 +1,150 @@
-import React, { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
-import { StockArticle, getNiveauStock } from './types';
-import { ArticleStockCard } from './ArticleStockCard';
+// import React, { useMemo, useState } from "react";
+// import { Search } from "lucide-react";
+// import { StockArticle, getNiveauStock } from "./types";
+// import { ArticleStockCard } from "./ArticleStockCard";
+// import Pagination from "../../components/ui/pagination/Pagination"; // adapte le chemin si nécessaire
+
+// interface StockOverviewPanelProps {
+//   articles: StockArticle[];
+//   title?: string;
+
+//   // Pagination
+//   page: number;
+//   totalPages: number;
+//   totalCount: number;
+//   hasPrevious: boolean;
+//   hasNext: boolean;
+//   onPageChange: (page: number) => void;
+//   // Recherche
+//   search: string;
+//   onSearchChange: (search: string) => void;
+// }
+
+// const ORDRE_NIVEAU: Record<string, number> = {
+//   critique: 0,
+//   faible: 1,
+//   normal: 2,
+//   excedent: 3,
+// };
+
+// export function StockOverviewPanel({
+//   articles,
+//   title = "État du stock",
+
+//   page,
+//   totalPages,
+//   totalCount,
+//   hasPrevious,
+//   hasNext,
+//   onPageChange,
+// }: StockOverviewPanelProps) {
+//   const [recherche, setRecherche] = useState("");
+
+//   const articlesFiltres = useMemo(() => {
+//     const terme = recherche.trim().toLowerCase();
+
+//     const filtres = terme
+//       ? articles.filter(
+//           (a) =>
+//             a.article_table?.art_nom?.toLowerCase().includes(terme) ||
+//             a.stk_art_code?.toLowerCase().includes(terme),
+//         )
+//       : articles;
+
+//     return [...filtres].sort(
+//       (a, b) =>
+//         ORDRE_NIVEAU[getNiveauStock(a)] - ORDRE_NIVEAU[getNiveauStock(b)],
+//     );
+//   }, [articles, recherche]);
+
+//   const nbASurveiller = useMemo(
+//     () =>
+//       articles.filter((a) => {
+//         const niveau = getNiveauStock(a);
+
+//         return niveau === "critique" || niveau === "faible";
+//       }).length,
+//     [articles],
+//   );
+
+//   return (
+//     <div className="w-full">
+//       {/* En-tête */}
+//       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+//         <div>
+//           <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+//             {title}
+//           </h2>
+
+//           <p className="text-sm text-gray-500 dark:text-gray-400">
+//             {nbASurveiller} article
+//             {nbASurveiller > 1 ? "s" : ""} à surveiller
+//           </p>
+//         </div>
+
+//         {/* Recherche */}
+//         <div className="relative w-full sm:w-64">
+//           <Search
+//             size={17}
+//             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+//           />
+
+//           <input
+//             type="text"
+//             value={recherche}
+//             onChange={(e) => setRecherche(e.target.value)}
+//             placeholder="Rechercher un article..."
+//             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none dark:border-white/[0.05] dark:bg-white/[0.03]"
+//           />
+//         </div>
+//       </div>
+
+//       {/* Liste des articles */}
+//       <div className="flex flex-col gap-2">
+//         {articlesFiltres.length === 0 ? (
+//           <p className="py-8 text-center text-sm text-slate-400">
+//             Aucun article ne correspond à votre recherche.
+//           </p>
+//         ) : (
+//           articlesFiltres.map((article) => (
+//             <ArticleStockCard key={article.stk_id} article={article} />
+//           ))
+//         )}
+//       </div>
+
+//       {/* Pagination */}
+//       <Pagination
+//         page={page}
+//         totalPages={totalPages}
+//         totalCount={totalCount}
+//         hasPrevious={hasPrevious}
+//         hasNext={hasNext}
+//         onPageChange={onPageChange}
+//       />
+//     </div>
+//   );
+// }
+import React, { useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import { StockArticle, getNiveauStock } from "./types";
+import { ArticleStockCard } from "./ArticleStockCard";
+import Pagination from "../../components/ui/pagination/Pagination";
 
 interface StockOverviewPanelProps {
   articles: StockArticle[];
   title?: string;
+
+  // Pagination
+  page: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
+
+  // Recherche
+  search: string;
+  onSearchChange: (search: string) => void;
 }
 
 const ORDRE_NIVEAU: Record<string, number> = {
@@ -15,77 +154,86 @@ const ORDRE_NIVEAU: Record<string, number> = {
   excedent: 3,
 };
 
-/**
- * Vue d'ensemble de l'état du stock : une seule barre de recherche
- * (pas de filtres ni boutons compliqués), les articles les plus
- * critiques remontent automatiquement en haut de la liste.
- *
- * Usage :
- * <StockOverviewPanel articles={articles} />
- */
-export function StockOverviewPanel({ articles, title = 'État du stock' }: StockOverviewPanelProps) {
-  const [recherche, setRecherche] = useState('');
+export function StockOverviewPanel({
+  articles,
+  title = "État du stock",
 
-  const articlesFiltres = useMemo(() => {
-    const terme = recherche.trim().toLowerCase();
-    const filtres = terme
-      ? articles.filter(
-          (a) =>
-            a.nom.toLowerCase().includes(terme) ||
-            a.reference?.toLowerCase().includes(terme)
-        )
-      : articles;
+  page,
+  totalPages,
+  totalCount,
+  hasPrevious,
+  hasNext,
+  onPageChange,
 
-    return [...filtres].sort(
-      (a, b) => ORDRE_NIVEAU[getNiveauStock(a)] - ORDRE_NIVEAU[getNiveauStock(b)]
+  search,
+  onSearchChange,
+}: StockOverviewPanelProps) {
+  const articlesTries = useMemo(() => {
+    return [...articles].sort(
+      (a, b) =>
+        ORDRE_NIVEAU[getNiveauStock(a)] - ORDRE_NIVEAU[getNiveauStock(b)],
     );
-  }, [articles, recherche]);
+  }, [articles]);
 
   const nbASurveiller = useMemo(
     () =>
       articles.filter((a) => {
         const niveau = getNiveauStock(a);
-        return niveau === 'critique' || niveau === 'faible';
+
+        return niveau === "critique" || niveau === "faible";
       }).length,
-    [articles]
+    [articles],
   );
 
   return (
     <div className="w-full">
+      {/* En-tête */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          {nbASurveiller > 0 && (
-            <p className="text-sm text-amber-600">{nbASurveiller} article(s) à surveiller</p>
-          )}
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            {title}
+          </h2>
         </div>
 
-        <div className="relative">
+        {/* Recherche */}
+        <div className="relative w-full sm:w-64">
           <Search
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={17}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           />
+
           <input
             type="text"
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Rechercher un article..."
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none sm:w-64"
+            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none dark:border-white/[0.05] dark:bg-white/[0.03]"
           />
         </div>
       </div>
 
+      {/* Liste */}
       <div className="flex flex-col gap-2">
-        {articlesFiltres.length === 0 ? (
+        {articlesTries.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">
             Aucun article ne correspond à votre recherche.
           </p>
         ) : (
-          articlesFiltres.map((article) => (
-            <ArticleStockCard key={article.id} article={article} />
+          articlesTries.map((article) => (
+            <ArticleStockCard key={article.stk_id} article={article} />
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }

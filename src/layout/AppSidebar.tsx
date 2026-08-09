@@ -291,7 +291,7 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
-                className="hidden dark:block"
+                className="dark:block"
                 src="/images/logo-stock.png"
                 alt="Logo"
                 width={50}

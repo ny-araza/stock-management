@@ -22,19 +22,19 @@ interface StockLevelIndicatorProps {
  * rupture d'un coup d'œil, sans lire les chiffres.
  */
 export function StockLevelIndicator({ article }: StockLevelIndicatorProps) {
-  const { stockActuel, stockMin, stockMax, unite = '' } = article;
+  const { stk_quantite, stockMin, unite = 'unité(s)' } = article;
   const niveau = getNiveauStock(article);
   const style = NIVEAU_STYLES[niveau];
 
-  const plafond = Math.max(stockMax ?? stockMin * 2, stockActuel, 1);
-  const pourcentage = Math.min(100, Math.round((stockActuel / plafond) * 100));
-  const seuilPourcentage = Math.min(100, Math.round((stockMin / plafond) * 100));
+  const plafond = Math.max(100 * 2, stk_quantite, 1);
+  const pourcentage = Math.min(100, Math.round((stk_quantite / plafond) * 100));
+  const seuilPourcentage = Math.min(100, Math.round((10 / plafond) * 100));
 
   return (
     <div className="w-full">
       <div className="mb-1 flex items-baseline justify-between">
-        <span className="text-lg font-semibold text-slate-900">
-          {stockActuel} <span className="text-xs font-normal text-slate-500">{unite}</span>
+        <span className="text-lg font-semibold text-slate-900 dark:text-white">
+          {stk_quantite} <span className="text-xs font-normal text-slate-500">{unite}</span>
         </span>
         <span className={`flex items-center gap-1 text-xs font-medium ${style.text}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
@@ -42,7 +42,7 @@ export function StockLevelIndicator({ article }: StockLevelIndicatorProps) {
         </span>
       </div>
 
-      <div className="relative h-2 w-full rounded-full bg-slate-100">
+      <div className="relative h-2 w-full rounded-full bg-slate-100 dark:bg-gray-dark">
         <div
           className={`h-2 rounded-full transition-all ${style.fill}`}
           style={{ width: `${pourcentage}%` }}

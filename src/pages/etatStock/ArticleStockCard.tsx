@@ -1,7 +1,6 @@
-import React from 'react';
-import { StockArticle } from './types';
-import { MovementBadge } from './MovementBadge';
-import { StockLevelIndicator } from './StockLevelIndicator';
+import React from "react";
+import { StockArticle } from "./types";
+import { StockLevelIndicator } from "./StockLevelIndicator";
 
 interface ArticleStockCardProps {
   article: StockArticle;
@@ -13,20 +12,16 @@ interface ArticleStockCardProps {
  * de la lecture rapide de l'état du stock.
  */
 export function ArticleStockCard({ article }: ArticleStockCardProps) {
-  const { nom, reference, entree, sortie, unite } = article;
+  const { article_table, stk_art_code } = article;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-gray-dark dark:text-white">
       <div className="min-w-0 sm:w-1/3">
-        <p className="truncate font-medium text-slate-900">{nom}</p>
-        {reference && <p className="text-xs text-slate-400">Réf. {reference}</p>}
-      </div>
-
-      <div className="flex items-center gap-2 sm:w-1/4">
-        {entree > 0 && <MovementBadge type="entree" quantite={entree} unite={unite} />}
-        {sortie > 0 && <MovementBadge type="sortie" quantite={sortie} unite={unite} />}
-        {entree === 0 && sortie === 0 && (
-          <span className="text-xs text-slate-400">Aucun mouvement</span>
+        <p className="truncate font-medium text-slate-900 dark:text-white">
+          {article_table.art_nom}
+        </p>
+        {stk_art_code && (
+          <p className="text-xs text-slate-400">Réf. {stk_art_code}</p>
         )}
       </div>
 
