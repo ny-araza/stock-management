@@ -154,6 +154,62 @@ const ORDRE_NIVEAU: Record<string, number> = {
   excedent: 3,
 };
 
+function getExpirationStyle(dateExpiration: string) {
+  if (!dateExpiration) {
+    return {
+      className: "text-gray-400",
+      label: "Pas de péremption",
+    };
+  }
+
+  // Ajouter l'heure pour éviter certains problèmes de timezone
+  const expiration = new Date(`${dateExpiration}T00:00:00`);
+  const maintenant = new Date();
+
+  if (isNaN(expiration.getTime())) {
+    return {
+      className: "text-gray-400",
+      label: dateExpiration,
+    };
+  }
+
+  // Date déjà dépassée
+  if (expiration < maintenant) {
+    return {
+      className: "text-red-600 dark:text-red-400 font-semibold",
+      label: dateExpiration,
+    };
+  }
+
+  // Date dans moins d'un mois
+  const dansUnMois = new Date(maintenant);
+  dansUnMois.setMonth(dansUnMois.getMonth() + 1);
+
+  if (expiration < dansUnMois) {
+    return {
+      className: "text-yellow-600 dark:text-yellow-400 font-semibold",
+      label: dateExpiration,
+    };
+  }
+
+  // Date dans moins de 3 mois
+  const dansTroisMois = new Date(maintenant);
+  dansTroisMois.setMonth(dansTroisMois.getMonth() + 3);
+
+  if (expiration < dansTroisMois) {
+    return {
+      className: "text-green-600 dark:text-green-400 font-semibold",
+      label: dateExpiration,
+    };
+  }
+
+  // Plus de 3 mois
+  return {
+    className: "text-gray-500 dark:text-gray-400",
+    label: dateExpiration,
+  };
+}
+
 export function StockOverviewPanel({
   articles,
   title = "État du stock",
@@ -219,9 +275,32 @@ export function StockOverviewPanel({
             Aucun article ne correspond à votre recherche.
           </p>
         ) : (
-          articlesTries.map((article) => (
-            <ArticleStockCard key={article.stk_id} article={article} />
-          ))
+          // articlesTries.map((article) => (
+          //   <ArticleStockCard key={article.stk_id} article={article} />
+          // ))
+          articlesTries.map((article) => {
+            const expiration = getExpirationStyle(article.stk_lot_code);
+
+            return (
+              <div key={article.stk_id} className="flex items-center gap-3">
+                {/* Carte article */}
+                {/* Date de péremption */}
+                <div className="flex shrink-0 flex-col items-start pr-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    Péremption
+                  </span>
+
+                  <span className={`text-sm ${expiration.className}`}>
+                    {expiration.label}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <ArticleStockCard article={article} />
+                </div>
+
+              </div>
+            );
+          })
         )}
       </div>
 

@@ -4,7 +4,7 @@ export interface StockArticle {
   stk_id: string;
   stk_art_code?: string;
   stk_nom_article: string;
-  stk_lot_code: number;
+  stk_lot_code: string;
   stk_pri_id: number;
   stk_quantite: number;
   stockMin: number;
