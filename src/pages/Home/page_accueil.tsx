@@ -10,9 +10,11 @@ import {
   faBoxArchive,
   faCaravan,
   faCartArrowDown,
+  faCartShopping,
 } from "@fortawesome/free-solid-svg-icons";
 import AnimatedButton from "./animeButton";
 import NewLivFrns from "./modal/newLivFrns";
+import NewVente from "./modal/newVente";
 
 type ModalType =
   | "entry"
@@ -21,6 +23,7 @@ type ModalType =
   | "livraison"
   | "depense"
   | "sortit"
+  | "vente"
   | null;
 
 export default function PageAccueil() {
@@ -81,13 +84,17 @@ export default function PageAccueil() {
           onClose={close}
           className="max-w-[900px] m-4"
         />
-        <Button
-          size="sm"
-          variant="outline"
-          startIcon={<BoxIconLine className="size-10" />}
+        <AnimatedButton
+          onClick={() => open("vente")}
+          icon={<FontAwesomeIcon icon={faCartShopping} className="text-6xl" />}
         >
-          Nouvelle dépense
-        </Button>
+          Nouvelle vente
+        </AnimatedButton>
+        <NewVente
+          isOpen={openModal == "vente"}
+          onClose={close}
+          className="max-w-[900px] m-4"
+        />
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-5 md:gap-6">
         {/* <!-- Metric Item Start --> */}

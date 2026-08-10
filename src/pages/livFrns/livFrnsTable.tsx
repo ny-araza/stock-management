@@ -325,7 +325,7 @@ export default function LivFrnsTable() {
         const res = await apiFetch(`/api/entree_stock/?${query.toString()}`);
 
         if (res.status) {
-          setEntrees(res.entree ?? res.articles); // adapte selon le nom de clé renvoyé par ton API
+          setEntrees(res.entree); // adapte selon le nom de clé renvoyé par ton API
           setHasNext(res.next !== null);
           setHasPrevious(res.previous !== null);
           setTotalCount(res.count);
@@ -373,6 +373,7 @@ export default function LivFrnsTable() {
 
   // --- Ouverture du modal au clic sur une ligne ---
   const onRowClicked = (event: RowClickedEvent<Entree>) => {
+    console.log(event.data)
     if (event.data) setSelectedEntree(event.data);
     openModal();
   };
