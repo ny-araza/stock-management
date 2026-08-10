@@ -12,7 +12,6 @@ import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 import Select from "../../../components/form/Select";
-import { createMvtStock } from "../../../services/mvtStockService";
 import { useAuth } from "../../../services/authLogin";
 
 interface newEntryProps {
@@ -60,7 +59,12 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const articleRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
+  const [stockDisponible, setStockDisponible] = useState<{
+    [code: string]: number;
+  }>({});
+  const [ligneErreurs, setLigneErreurs] = useState<{ [cle: string]: string }>(
+    {},
+  );
   const handleLigneChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -88,18 +92,92 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
     // évite d'ajouter une ligne totalement vide
     const estVide = Object.values(ligneEnCours).every((v) => v === "");
     if (estVide) return;
+
+    if (ligneErreurs["nouvelle"]) {
+      setAlert({
+        open: true,
+        variant: "error",
+        title: `Quantité invalide ${ligneEnCours.pri_article}`,
+        message: ligneErreurs["nouvelle"],
+      });
+      return;
+    }
+
     setLigneAticle([...ligneArticle, ligneEnCours]);
     setLigneEnCours(prixArticle);
     setTimeout(() => {
       articleRef.current?.focus();
     });
   };
+
   const handleLigneKeyDown = (e: any) => {
     if (e.key === "Enter") {
       e.preventDefault();
       ajouterLigne();
     }
   };
+
+  useEffect(() => {
+    const nouvellesErreurs: { [cle: string]: string } = {};
+
+    // ligne en cours de saisie
+    if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
+      const stock = stockDisponible[ligneEnCours.pri_article];
+      const qte = Number(ligneEnCours.pri_quantite);
+      if (stock !== undefined && qte > stock) {
+        nouvellesErreurs["nouvelle"] =
+          `Stock insuffisant (disponible : ${stock})`;
+      }
+    }
+
+    // lignes déjà ajoutées dans le tableau
+    ligneArticle.forEach((ligne, index) => {
+      const stock = stockDisponible[ligne.pri_article];
+      const qte = Number(ligne.pri_quantite);
+      if (stock !== undefined && qte > stock) {
+        nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
+      }
+    });
+
+    setLigneErreurs(nouvellesErreurs);
+  }, [
+    ligneEnCours.pri_article,
+    ligneEnCours.pri_quantite,
+    ligneArticle,
+    stockDisponible,
+  ]);
+
+  const getOldStock = async (codeArticle: string) => {
+    try {
+      const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
+      console.log(res.stock);
+      const quantiteStock = res?.stock?.stk_quantite ?? 0;
+      setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
+      return quantiteStock;
+    } catch (error: any) {
+      setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
+      return 0;
+    }
+  };
+
+  const handleStock = async (stk: any) => {
+    try {
+      const quantity = stockDisponible[stk.article] + parseInt(stk.quantite);
+      const res = await postData("/api/insert-database/", "t_stock", {
+        stk_quantite: quantity,
+        stk_pri_id: stk.pri_id,
+        stk_art_code: stk.article,
+        stk_lot_code: stk.lot_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Stoké avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
   const supprimerLigne = (index: number) => {
     const nouvelleListe = ligneArticle.filter((_, i) => i !== index);
     // setField("ligneArticles", nouvelleListe);
@@ -212,6 +290,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
       pri_pu: article.prix_ht,
     }));
 
+    getOldStock(article.code);
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -251,6 +330,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
           : ligne,
       ),
     );
+    getOldStock(article.code);
     setRowSuggestions([]);
     setShowRowSuggestions(false);
     setEditingRow(null);
@@ -291,6 +371,13 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
             pri_id: item.pri_id,
             qte: item.pri_quantite,
             art_code: item.pri_article,
+          });
+          handleStock({
+            quantite: item.pri_quantite,
+            pri_id: item.pri_id,
+            date: today,
+            lot_code: item.pri_datePeremption,
+            article: item.pri_article,
           });
           if (!res.status) {
             throw Error(res.error);

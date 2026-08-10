@@ -70,6 +70,13 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const close = () => {
     setOpenModal(false);
   };
+  const [stockDisponible, setStockDisponible] = useState<{
+    [code: string]: number;
+  }>({});
+  const [ligneErreurs, setLigneErreurs] = useState<{ [cle: string]: string }>(
+    {},
+  );
+
   const rechercherFrns = useCallback(async (code: string) => {
     if (!code.trim()) {
       setSuggestionsFrns([]);
@@ -144,11 +151,53 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     // évite d'ajouter une ligne totalement vide
     const estVide = Object.values(ligneEnCours).every((v) => v === "");
     if (estVide) return;
+
+    if (ligneErreurs["nouvelle"]) {
+      setAlert({
+        open: true,
+        variant: "error",
+        title: `Quantité invalide ${ligneEnCours.pri_article}`,
+        message: ligneErreurs["nouvelle"],
+      });
+      return;
+    }
+
     setLigneArticle([...ligneArticle, ligneEnCours]);
     setLigneEnCours(prixArticle);
     setTimeout(() => {
       articleRef.current?.focus();
     });
+  };
+
+  const getOldStock = async (codeArticle: string) => {
+    try {
+      const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
+      console.log(res.stock);
+      const quantiteStock = res?.stock?.stk_quantite ?? 0;
+      setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
+      return quantiteStock;
+    } catch (error: any) {
+      setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
+      return 0;
+    }
+  };
+
+  const handleStock = async (stk: any) => {
+    try {
+      const quantity = stockDisponible[stk.article] + parseInt(stk.quantite);
+      const res = await postData("/api/insert-database/", "t_stock", {
+        stk_quantite: quantity,
+        stk_pri_id: stk.pri_id,
+        stk_art_code: stk.article,
+        stk_lot_code: stk.lot_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Stoké avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
   };
 
   const handleLigneKeyDown = (e: any) => {
@@ -166,7 +215,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
       pri_pua: article.prix_ht,
       pri_designation: article.nom_article,
     }));
-
+    getOldStock(article.code);
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -248,7 +297,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
           : ligne,
       ),
     );
-
+    getOldStock(article.code);
     setRowSuggestions([]);
     setShowRowSuggestions(false);
     setEditingRow(null);
@@ -291,6 +340,36 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   );
 
   const totalTTC = totalHT + totalTVA;
+
+  useEffect(() => {
+    const nouvellesErreurs: { [cle: string]: string } = {};
+
+    // ligne en cours de saisie
+    if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
+      const stock = stockDisponible[ligneEnCours.pri_article];
+      const qte = Number(ligneEnCours.pri_quantite);
+      if (stock !== undefined && qte > stock) {
+        nouvellesErreurs["nouvelle"] =
+          `Stock insuffisant (disponible : ${stock})`;
+      }
+    }
+
+    // lignes déjà ajoutées dans le tableau
+    ligneArticle.forEach((ligne, index) => {
+      const stock = stockDisponible[ligne.pri_article];
+      const qte = Number(ligne.pri_quantite);
+      if (stock !== undefined && qte > stock) {
+        nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
+      }
+    });
+
+    setLigneErreurs(nouvellesErreurs);
+  }, [
+    ligneEnCours.pri_article,
+    ligneEnCours.pri_quantite,
+    ligneArticle,
+    stockDisponible,
+  ]);
 
   const handleCreateMvtStock = async (mvt: any) => {
     try {
@@ -364,7 +443,13 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
               qte: value.pri_quantite,
               art_code: value.pri_article,
             });
-
+            handleStock({
+              quantite: value.pri_quantite,
+              pri_id: value.pri_id,
+              date: today,
+              lot_code: value.datePeremption,
+              article: value.pri_article,
+            });
             if (send.status) {
               ligne_ok.push(true);
             } else ligne_ok.push(false);

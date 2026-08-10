@@ -58,7 +58,6 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const articleRef = useRef<HTMLInputElement>(null);
-  const [newQuantity, setNewQuantity] = useState<number>(0);
   const [stockDisponible, setStockDisponible] = useState<{
     [code: string]: number;
   }>({});
@@ -228,7 +227,6 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
       pri_pu: article.prix_ht,
     }));
     getOldStock(article.code);
-    console.log(stockDisponible);
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -316,7 +314,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
       const quantiteStock = res?.stock?.stk_quantite ?? 0;
       setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
       return quantiteStock;
-    } catch (error) {
+    } catch (error: any) {
       setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
       return 0;
     }
