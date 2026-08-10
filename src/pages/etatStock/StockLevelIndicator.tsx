@@ -22,7 +22,7 @@ interface StockLevelIndicatorProps {
  * rupture d'un coup d'œil, sans lire les chiffres.
  */
 export function StockLevelIndicator({ article }: StockLevelIndicatorProps) {
-  const { stk_quantite, stockMin, unite = 'unité(s)' } = article;
+  const { stk_quantite, stk_stockmini, unite = 'unité(s)' } = article;
   const niveau = getNiveauStock(article);
   const style = NIVEAU_STYLES[niveau];
 
@@ -38,7 +38,6 @@ export function StockLevelIndicator({ article }: StockLevelIndicatorProps) {
         </span>
         <span className={`flex items-center gap-1 text-xs font-medium ${style.text}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-          {style.label}
         </span>
       </div>
 
@@ -47,11 +46,11 @@ export function StockLevelIndicator({ article }: StockLevelIndicatorProps) {
           className={`h-2 rounded-full transition-all ${style.fill}`}
           style={{ width: `${pourcentage}%` }}
         />
-        {stockMin > 0 && (
+        {stk_stockmini > 0 && (
           <div
             className="absolute top-0 h-2 w-px bg-slate-400"
             style={{ left: `${seuilPourcentage}%` }}
-            title={`Seuil minimum : ${stockMin} ${unite}`}
+            title={`Seuil minimum : ${stk_stockmini} ${unite}`}
           />
         )}
       </div>

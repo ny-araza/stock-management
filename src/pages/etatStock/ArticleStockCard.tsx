@@ -18,7 +18,7 @@ export function ArticleStockCard({ article }: ArticleStockCardProps) {
     <div className="flex flex-col gap-3 rounded-xl border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:bg-gray-dark dark:text-white">
       <div className="min-w-0 sm:w-1/3">
         <p className="truncate font-medium text-slate-900 dark:text-white">
-          {article_table.art_nom}
+          {article_table?.art_nom}
         </p>
         {stk_art_code && (
           <p className="text-xs text-slate-400">Réf. {stk_art_code}</p>

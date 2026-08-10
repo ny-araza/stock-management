@@ -7,10 +7,10 @@ export interface StockArticle {
   stk_lot_code: string;
   stk_pri_id: number;
   stk_quantite: number;
-  stockMin: number;
+  stk_stockmini: number;
   stockMax?: number;
   unite?: string; // ex: "pcs", "kg", "L"
-  article_table: Articles;
+  article_table?: Articles;
 }
 
 export type NiveauStock = "critique" | "faible" | "normal" | "excedent";
@@ -20,9 +20,9 @@ export type NiveauStock = "critique" | "faible" | "normal" | "excedent";
  * actuel comparé à ses seuils min/max.
  */
 export function getNiveauStock(article: StockArticle): NiveauStock {
-  const { stk_quantite, stockMin, stockMax } = article;
+  const { stk_quantite, stk_stockmini, stockMax } = article;
   if (stk_quantite <= 0) return "critique";
-  if (stk_quantite <= stockMin) return "faible";
+  if (stk_quantite <= stk_stockmini) return "faible";
   if (stockMax && stk_quantite >= stockMax) return "excedent";
   return "normal";
 }
