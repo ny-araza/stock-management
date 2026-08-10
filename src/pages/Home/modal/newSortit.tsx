@@ -98,7 +98,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
       setAlert({
         open: true,
         variant: "error",
-        title: "Quantité invalide",
+        title: `Quantité invalide ${ligneEnCours.pri_article}`,
         message: ligneErreurs["nouvelle"],
       });
       return;
@@ -324,10 +324,9 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
 
   const handleStock = async (stk: any) => {
     try {
-      // get old quantity for the article
-      console.log(`${stockDisponible} - ${stk.quantite}`);
+      const quantity = stockDisponible[stk.article] - parseInt(stk.quantite);
       const res = await postData("/api/insert-database/", "t_stock", {
-        stk_quantite: stk.quantite,
+        stk_quantite: quantity,
         stk_pri_id: stk.pri_id,
         stk_art_code: stk.article,
         stk_lot_code: stk.lot_code,
