@@ -33,6 +33,7 @@ export default function App() {
             <Route path="/sortie" element={<SortitListeTables />} />
             <Route path="/entree" element={<EntreeListeTables />} />
             <Route path="/mvt-stock" element={<MvtListeTables />} />
+            <Route path="/valideFacture" element={<MvtListeTables />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
         </Routes>

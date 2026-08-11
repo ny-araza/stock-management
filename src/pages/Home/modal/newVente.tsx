@@ -11,6 +11,7 @@ import Select from "../../../components/form/Select";
 import { Option } from "../../../components/form/Select";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
+import NewClts from "../../Clients/newClts";
 
 interface newVente {
   isOpen: boolean;
@@ -459,10 +460,9 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
           vte_livreur: values.livreur,
           vet_operateur: values.operateur,
           vte_lettremontant: "test",
-          ve_dateecheance: values.dateEcheance||today,
+          ve_dateecheance: values.dateEcheance || today,
           ve_code_bl: values.bl,
           ve_adresse_liv: values.adresse,
-          
         });
         if (res.status) {
           ligneArticle.map(async (value) => {
@@ -618,7 +618,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                         +
                       </Button>
                     </div>
-                    <NewFrns isOpen={openModal} onClose={close}></NewFrns>
+                    <NewClts isOpen={openModal} onClose={close} />
                   </div>
                   {showSuggestionClt && suggestionClt.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">

@@ -30,6 +30,7 @@ import {
   colorSchemeLight,
   themeQuartz,
 } from "ag-grid-community";
+import NewClts from "./newClts";
 
 // export default function ClientsTable()
 // Champs numeriques cote backend (django_filters.NumberFilter)
@@ -656,7 +657,7 @@ export default function ClientsTable() {
           />
         </div>
       </div>
-      <Modal
+      {/*<Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
         className="max-w-[700px] m-4"
@@ -790,7 +791,8 @@ export default function ClientsTable() {
             </div>
           </form>
         </div>
-      </Modal>
+      </Modal>*/}
+      <NewClts isOpen={isOpen} onClose={closeModal} />
     </>
   );
 }
