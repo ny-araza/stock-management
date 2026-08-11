@@ -13,6 +13,10 @@ import SortitListeTables from "./pages/stock/sortit/listeSortieTables";
 import LivFrnsListeTables from "./pages/livFrns/listeLivFrnsTables";
 import EntreeListeTables from "./pages/stock/entree/listeEntreeTables";
 import MvtListeTables from "./pages/stock/mvtStock/listeMvtTables";
+import UserManagement from "./pages/userManagement/userManagement";
+import FactureManagement from "./pages/validFacture/validFacture";
+import RetourFrnsListeTables from "./pages/rtf/listeRetourFrnsTables";
+import RetourClientListeTables from "./pages/rtc/listeRetourCltsTables";
 
 export default function App() {
   return (
@@ -33,7 +37,10 @@ export default function App() {
             <Route path="/sortie" element={<SortitListeTables />} />
             <Route path="/entree" element={<EntreeListeTables />} />
             <Route path="/mvt-stock" element={<MvtListeTables />} />
-            <Route path="/valideFacture" element={<MvtListeTables />} />
+            <Route path="/valideFacture" element={<FactureManagement />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/rtf" element={<RetourFrnsListeTables />} />
+            <Route path="/rtc" element={<RetourClientListeTables />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
         </Routes>

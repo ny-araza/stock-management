@@ -32,6 +32,8 @@ const navItems: NavItem[] = [
       { name: "Ventes", path: "/ventes", pro: false },
       { name: "Commande fournisseurs", path: "/bc", pro: false },
       { name: "Livraison fournisseurs", path: "/liv-frns", pro: false },
+      { name: "Retour fournisseur", path: "/rtf", pro: false },
+      { name: "Retour client", path: "/rtc", pro: false },
       { name: "Fournisseurs", path: "/fournisseurs", pro: false },
       { name: "Clients", path: "/clients", pro: false },
       { name: "Caisse", path: "#", pro: false },
