@@ -9,7 +9,6 @@ import Button from "../../../components/ui/button/Button";
 import NewFrns from "../../Fournisseurs/newFrns";
 import Select from "../../../components/form/Select";
 import { Option } from "../../../components/form/Select";
-import TextArea from "../../../components/form/input/TextArea";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 
@@ -24,20 +23,27 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     pieces: "",
     codeCf: "",
     facture: "",
-    fournisseur: "",
+    client: "",
     contact1: "",
     contact2: "",
     adresse: "",
     mail: "",
-    modeCmd: "",
+    modePaye: "4",
+    payeClient: "16",
+    telMoney: "",
     datePaye: "",
+    livreur: "",
+    operateur: "",
     designation: "",
-    code_frns: "",
+    code_cli: "",
+    dateEcheance: null,
+    date_vente: "",
+    bl: "",
   });
 
   const [suggestions, setSuggestions] = useState([]);
-  const [suggestionFrns, setSuggestionsFrns] = useState([]);
-  const [showSuggestionFrns, setShowSuggestionsFrns] = useState(false);
+  const [suggestionClt, setSuggestionsClt] = useState([]);
+  const [showSuggestionClt, setShowSuggestionsClt] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [rowSuggestions, setRowSuggestions] = useState([]);
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
@@ -60,6 +66,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
   const open = () => {
     setOpenModal(true);
   };
+  const [payeClt, setPayeClt] = useState<Option[]>();
+  const [payeOption, setPayeOption] = useState<Option[] | undefined>();
   const [alert, setAlert] = useState({
     open: false,
     variant: "success" as "success" | "error" | "warning" | "info",
@@ -79,49 +87,43 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
   const rechercherFrns = useCallback(async (code: string) => {
     if (!code.trim()) {
-      setSuggestionsFrns([]);
-      setShowSuggestionsFrns(false);
+      setSuggestionsClt([]);
+      setShowSuggestionsClt(false);
       return;
     }
 
     try {
       const query = new URLSearchParams();
       query.set("search", code);
-      const res = await apiFetch(`/api/fournisseurs/?${query.toString()}`);
+      const res = await apiFetch(`/api/clients/?${query.toString()}`);
       if (res.status) {
-        setSuggestionsFrns(res.fournisseur);
-        setShowSuggestionsFrns(true);
+        setSuggestionsClt(res.clients);
+        setShowSuggestionsClt(true);
       }
     } catch (err) {
       console.error(err);
     }
   }, []);
 
-  const handleFrnsChange = (
+  const handleClientChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    if (name === "fournisseur") {
+    if (name === "client") {
       rechercherFrns(value);
-      setField("fournisseur", value);
+      setField("client", value);
     }
   };
 
-  const frnsChoisit = (frns: any) => {
-    setField("fournisseur", frns.fou_nom);
-    setField("adresse", frns.fou_adresse);
-    setField("contact1", frns.fou_tel1);
-    setField("contact2", frns.fou_tel2);
-    setField("modeCmd", frns.fou_modepay);
-    setField("code_frns", frns.fou_code);
-    setShowSuggestionsFrns(false);
+  const clientChoisit = (clt: any) => {
+    setField("client", clt.cli_nom);
+    setField("adresse", clt.cli_adresse);
+    setField("contact1", clt.cli_tel1);
+    setField("contact2", clt.cli_tel2);
+    setField("payeClient", clt.cli_modepay);
+    setField("code_cli", clt.cli_code);
+    setShowSuggestionsClt(false);
   };
-
-  const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espèce", label: "Espèce" },
-  ];
 
   //function ligne
   const handleLigneChange = (
@@ -184,7 +186,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
   const handleStock = async (stk: any) => {
     try {
-      const quantity = stockDisponible[stk.article] + parseInt(stk.quantite);
+      const quantity = stockDisponible[stk.article] - parseInt(stk.quantite);
       const res = await postData("/api/insert-database/", "t_stock", {
         stk_quantite: quantity,
         stk_pri_id: stk.pri_id,
@@ -283,6 +285,47 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const fetchModePaye = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        const typeOptions: Option[] = res.nom_enumeration.map((item: any) => ({
+          ...item,
+          value: item.enu_id,
+          label: item.enu_nom,
+        }));
+        if (typeOptions) setPayeOption(typeOptions);
+      }
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+  const fetchPayeClt = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        const typeOptions: Option[] = res.nom_enumeration.map((item: any) => ({
+          ...item,
+          value: item.enu_id,
+          label: item.enu_nom,
+        }));
+        if (typeOptions) setPayeClt(typeOptions);
+      }
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+
   const choisirArticleLigne = (index: number, article: any) => {
     setLigneArticle((prev: any) =>
       prev.map((ligne: any, i: any) =>
@@ -314,7 +357,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       const query = new URLSearchParams();
       query.set("table_name", table_name);
       query.set("is_insert", isInsert ? "1" : "0");
-      console.log(query.toString());
       const res = await apiFetch(
         `/api/generate-date-code/?${query.toString()}`,
       );
@@ -373,9 +415,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
   const handleCreateMvtStock = async (mvt: any) => {
     try {
-      console.log(`mvt ${mvt}`);
       const res = await postData("/api/insert-database/", "t_mvt_stock", {
-        mvt_action: "insert",
+        mvt_action: "delete",
         mvt_code_org: mvt.code_org,
         mvt_date: mvt.date,
         mvt_lot_code: mvt.lot_code,
@@ -399,38 +440,50 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       const ligne_ok: boolean[] = [];
       if (totalHT != 0) {
         const today = new Date().toISOString().split("T")[0];
-        const res = await postData("/api/insert-database/", "t_entree", {
-          ent_code: values.pieces,
-          ent_modepaye: values.modeCmd,
-          ent_datepay: values.datePaye,
-          ent_montant_ht: parseInt(totalHT),
-          ent_montant_ttc: parseInt(totalTTC),
-          ent_fou_code: values.code_frns,
-          ent_date: today,
-          ent_facture: values.facture,
-          ent_cmf_code: values.codeCf,
+        const res = await postData("/api/insert-database/", "t_vente", {
+          vte_code: values.pieces,
+          vte_date: today,
+          vte_modepaye: values.modePaye,
+          vte_montant_ht: parseInt(totalHT),
+          vte_montant_ttc: parseInt(totalTTC),
+          vte_tva: parseInt(totalTVA),
+          vte_cli_code: values.code_cli,
+          vte_cli_nom: values.client,
+          vte_cli_contact: values.contact1,
+          vte_payeclient: values.payeClient,
+          vte_datepay: today,
+          vte_telmoney: values.telMoney,
+          vte_valide: "0",
+          vte_datevalide: today,
+          vte_paye: "0",
+          vte_livreur: values.livreur,
+          vet_operateur: values.operateur,
+          vte_lettremontant: "test",
+          ve_dateecheance: values.dateEcheance||today,
+          ve_code_bl: values.bl,
+          ve_adresse_liv: values.adresse,
+          
         });
         if (res.status) {
           ligneArticle.map(async (value) => {
             const send = await postData(
               "/api/insert-database/",
-              "t_ligne_entree",
+              "t_ligne_vente",
               {
-                entl_quantite: value.pri_quantite,
-                entl_pri_id: value.pri_id,
-                entl_ent_code: values.pieces,
-                entl_prixunit: value.pri_pua,
-                entl_tva: value.pri_tva,
-                entl_ht: value.pri_totalht,
-                entl_art_code: value.pri_article,
-                entl_fou_code: values.code_frns,
-                entl_ttc: (
+                vtel_quantite: value.pri_quantite,
+                vtel_pri_id: value.pri_id,
+                vtel_vte_code: values.pieces,
+                vtel_prixunit: value.pri_pua,
+                vtel_tva: value.pri_tva,
+                vtel_ht: value.pri_totalht,
+                vtel_art_code: value.pri_article,
+                vtel_cli_code: values.code_cli,
+                vtel_ttc: (
                   parseInt(value.pri_totalht) +
                   (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
                 ).toFixed(2),
-                entl_dateper: value.datePeremption,
-                entl_prix: value.pri_pua,
-                entl_remise: value.remise ? value.remise : "0",
+                vtel_lot_dateper: value.datePeremption,
+                vtel_remise: value.remise ? value.remise : "0",
               },
             );
 
@@ -438,7 +491,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               code_org: values.pieces,
               date: today,
               lot_code: value.datePeremption,
-              origine: "t_entree_stock",
+              origine: "t_vente",
               pri_id: value.pri_id,
               qte: value.pri_quantite,
               art_code: value.pri_article,
@@ -502,6 +555,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
   useEffect(() => {
     fetchCode("t_vente", false);
+    fetchModePaye("MODE_PAY");
+    fetchPayeClt("PAYE_CLIENT");
   }, [isOpen]);
 
   return (
@@ -531,50 +586,28 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                   />
                 </div>
                 <div>
-                  <Label>Date de paiements</Label>
+                  <Label>Date de vente</Label>
                   <Input
+                    name="date_vente"
                     type="date"
-                    value={values.datePaye}
+                    value={values.date_vente}
                     onChange={handleChange}
-                    name="datePaye"
                     required={true}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
                 <div>
-                  <Label>Code CF</Label>
-                  <Input
-                    name="codeCf"
-                    type="text"
-                    value={values.codeCf}
-                    onChange={handleChange}
-                    placeholder="N° pièce CF"
-                  />
-                </div>
-                <div>
-                  <Label>N° Facture</Label>
-                  <Input
-                    name="facture"
-                    type="text"
-                    value={values.facture}
-                    onChange={handleChange}
-                    placeholder="N° Facture"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
-                <div>
-                  <Label>Fournisseur</Label>
+                  <Label>Client</Label>
                   <div className="flex items-center w-full gap-2 flex-nowrap">
                     <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
                       <Input
-                        name="fournisseur"
+                        name="client"
                         type="text"
-                        value={values.fournisseur}
-                        onChange={handleFrnsChange}
+                        value={values.client}
+                        onChange={handleClientChange}
                         required={true}
-                        placeholder="Nom du fournisseurs"
+                        placeholder="Nom du client"
                         className="w-full bg-transparent placeholder-white/70 outline-none"
                       />
                       <Button
@@ -587,16 +620,16 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                     </div>
                     <NewFrns isOpen={openModal} onClose={close}></NewFrns>
                   </div>
-                  {showSuggestionFrns && suggestionFrns.length > 0 && (
+                  {showSuggestionClt && suggestionClt.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
-                      {suggestionFrns.map((frns: any) => (
+                      {suggestionClt.map((clt: any) => (
                         <div
-                          key={frns.fou_id}
-                          onClick={() => frnsChoisit(frns)}
+                          key={clt.cli_id}
+                          onClick={() => clientChoisit(clt)}
                           className="cursor-pointer px-3 py-2"
                         >
                           <div className="text-xs text-gray-500">
-                            {frns.fou_nom}
+                            {clt.cli_nom}
                           </div>
                         </div>
                       ))}
@@ -608,7 +641,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                   <Input
                     name="adresse"
                     type="text"
-                    placeholder="L'adrèsse du fournisseur"
+                    placeholder="L'adrèsse du client"
                     value={values.adresse}
                     onChange={handleChange}
                     className="w-full bg-transparent placeholder-white/70 outline-none"
@@ -647,29 +680,74 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                     type="text"
                     value={values.mail}
                     onChange={handleChange}
-                    placeholder="fournisseurs@gmail.com"
+                    placeholder="client@gmail.com"
                     className="w-full bg-transparent placeholder-white/70 outline-none"
                   />
                 </div>
                 <div>
-                  <Label>Mode de paiement</Label>
+                  <Label>Paiement client</Label>
                   <Select
-                    options={paiementOption}
-                    onChange={(value) => setField("modeCmd", value)}
-                    defaultValue="espèce"
-                  ></Select>
+                    options={payeClt}
+                    onChange={(value) => setField("payeClient", value)}
+                    defaultValue="16"
+                  />
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
-                <div>
-                  <Label>Designation</Label>
-                  <TextArea
-                    name="designation"
-                    placeholder="Designation"
-                    value={values.designation}
-                    onChange={(value) => setField("designation", value)}
-                    className="w-full"
-                  ></TextArea>
+              <div className="mb-4">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                  <div>
+                    <Label>Livreur</Label>
+                    <Input
+                      name="livreur"
+                      type="text"
+                      value={values.livreur}
+                      onChange={handleChange}
+                      placeholder="Nom du livreur"
+                    />
+                  </div>
+                  <div>
+                    <Label>Code BL</Label>
+                    <Input
+                      name="bl"
+                      type="text"
+                      value={values.bl}
+                      onChange={handleChange}
+                      placeholder="Numéro du bon de livraison"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mb-4">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-3">
+                  <div>
+                    <Label>Mode de paiement</Label>
+                    <Select
+                      options={payeOption}
+                      onChange={(value) => setField("modePaye", value)}
+                      defaultValue="1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Téléphone Mobile Money</Label>
+                    <Input
+                      name="telMoney"
+                      type="text"
+                      disabled={values.modePaye != "4"}
+                      value={values.telMoney}
+                      onChange={handleChange}
+                      placeholder="Numéro Mobile Money"
+                    />
+                  </div>
+                  <div>
+                    <Label>Date d'échéance</Label>
+                    <Input
+                      name="dateEcheance"
+                      type="date"
+                      disabled={parseInt(values.payeClient) < 62}
+                      value={values.dateEcheance}
+                      onChange={handleChange}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">

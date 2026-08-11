@@ -17,7 +17,7 @@ import {
   colorSchemeDarkBlue,
   colorSchemeLight,
   themeQuartz,
-  RowClickedEvent
+  RowClickedEvent,
 } from "ag-grid-community";
 import Pagination from "../../components/ui/pagination/Pagination";
 import { useModal } from "../../hooks/useModal";
@@ -518,6 +518,8 @@ export default function VentesTable() {
     }),
     [],
   );
+
+  
 
   // fetch avec search + filtres AgGrid (envoyes au backend)
   const fetchVentes = useCallback(

@@ -1,4 +1,4 @@
-import React, { useMemo} from "react";
+import React, { useMemo } from "react";
 import { Search } from "lucide-react";
 import { StockArticle, getNiveauStock } from "./types";
 import { ArticleStockCard } from "./ArticleStockCard";
@@ -127,7 +127,7 @@ export function StockOverviewPanel({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Rechercher un article..."
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none dark:border-white/[0.05] dark:bg-white/[0.03]"
+            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white"
           />
         </div>
       </div>
