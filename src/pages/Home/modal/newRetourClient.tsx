@@ -8,30 +8,29 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import Button from "../../../components/ui/button/Button";
 import NewFrns from "../../Fournisseurs/newFrns";
 import Select from "../../../components/form/Select";
+import { Option } from "../../../components/form/Select";
 import TextArea from "../../../components/form/input/TextArea";
 import { postData } from "../../../services/sendDataService";
-import montantTTCEnLettres from "../../../utils/montantEnLettre";
 import Alert from "../../../components/ui/alert/Alert";
+import NewClts from "../../Clients/newClts";
 import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
 
-interface cmdFrns {
+interface livFrns {
   isOpen: boolean;
   onClose: () => void;
   className?: string;
 }
 
-const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
+const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const { values, reset, setField, handleChange } = useForm({
     pieces: "",
-    fournisseur: "",
-    contact1: "",
-    contact2: "",
-    adresse: "",
-    mail: "",
-    modeCmd: "",
-    dateLiv: "",
+    codeVte: "",
+    cli_nom: "",
+    cli_code: "",
+    contact: "",
+    motif: "",
+    observation: "",
     designation: "",
-    code_frns: "",
   });
 
   const [suggestions, setSuggestions] = useState([]);
@@ -41,25 +40,26 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   const [rowSuggestions, setRowSuggestions] = useState([]);
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [commandeEnum, setCommandEnum] = useState<Enumeration[]>([]);
-  const enumerationCmd: EnumerationOption[] = commandeEnum.map(
+  //ligne
+  const [motif, setMotif] = useState<Enumeration[]>([]);
+  const EnumerationOptions: EnumerationOption[] = motif.map(
     (item: Enumeration) => ({
       ...item,
       value: item.enu_id.toString(),
       label: item.enu_nom,
     }),
   );
-  //ligne
   const articleRef = useRef<HTMLInputElement>(null);
   const [ligneArticle, setLigneArticle] = useState<any[]>([]);
   const prixArticle = {
     pri_id: "",
     pri_article: "",
     pri_designation: "",
-    pri_quantite: "",
+    pri_quantite: 0,
     pri_pua: "",
-    pri_tva: "",
-    pri_totalht: "",
+    pri_tva: 0.0,
+    pri_totalht: 0.0,
+    datePeremption: "",
   };
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
   const open = () => {
@@ -75,6 +75,13 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   const close = () => {
     setOpenModal(false);
   };
+  const [stockDisponible, setStockDisponible] = useState<{
+    [code: string]: number;
+  }>({});
+  const [ligneErreurs, setLigneErreurs] = useState<{ [cle: string]: string }>(
+    {},
+  );
+
   const rechercherFrns = useCallback(async (code: string) => {
     if (!code.trim()) {
       setSuggestionsFrns([]);
@@ -85,9 +92,9 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     try {
       const query = new URLSearchParams();
       query.set("search", code);
-      const res = await apiFetch(`/api/fournisseurs/?${query.toString()}`);
+      const res = await apiFetch(`/api/clients/?${query.toString()}`);
       if (res.status) {
-        setSuggestionsFrns(res.fournisseur);
+        setSuggestionsFrns(res.clients);
         setShowSuggestionsFrns(true);
       }
     } catch (err) {
@@ -99,19 +106,16 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    if (name === "fournisseur") {
+    if (name === "cli_nom") {
       rechercherFrns(value);
-      setField("fournisseur", value);
+      setField("cli_nom", value);
     }
   };
 
-  const frnsChoisit = (frns: any) => {
-    setField("fournisseur", frns.fou_nom);
-    setField("adresse", frns.fou_adresse);
-    setField("contact1", frns.fou_tel1);
-    setField("contact2", frns.fou_tel2);
-    setField("modeCmd", frns.fou_modepay);
-    setField("code_frns", frns.fou_code);
+  const frnsChoisit = (clt: any) => {
+    setField("cli_nom", clt.cli_nom);
+    setField("cli_code", clt.cli_code);
+    setField("contact", clt.cli_tel1 ? clt.cli_tel1 : clt.cli_tel2);
     setShowSuggestionsFrns(false);
   };
 
@@ -133,7 +137,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
       const quantite = Number(nouvelleLigne.pri_quantite) || 0;
       const pht = Number(nouvelleLigne.pri_pua) * quantite;
       nouvelleLigne.pri_totalht = pht.toFixed(2);
-
       return nouvelleLigne;
     });
   };
@@ -142,11 +145,53 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     // évite d'ajouter une ligne totalement vide
     const estVide = Object.values(ligneEnCours).every((v) => v === "");
     if (estVide) return;
+
+    if (ligneErreurs["nouvelle"]) {
+      setAlert({
+        open: true,
+        variant: "error",
+        title: `Quantité invalide ${ligneEnCours.pri_article}`,
+        message: ligneErreurs["nouvelle"],
+      });
+      return;
+    }
+
     setLigneArticle([...ligneArticle, ligneEnCours]);
     setLigneEnCours(prixArticle);
     setTimeout(() => {
       articleRef.current?.focus();
     });
+  };
+
+  const getOldStock = async (codeArticle: string) => {
+    try {
+      const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
+      console.log(res.stock);
+      const quantiteStock = res?.stock?.stk_quantite ?? 0;
+      setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
+      return quantiteStock;
+    } catch (error: any) {
+      setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
+      return 0;
+    }
+  };
+
+  const handleStock = async (stk: any) => {
+    try {
+      const quantity = stockDisponible[stk.article] + parseInt(stk.quantite);
+      const res = await postData("/api/insert-database/", "t_stock", {
+        stk_quantite: quantity,
+        stk_pri_id: stk.pri_id,
+        stk_art_code: stk.article,
+        stk_lot_code: stk.lot_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Stoké avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
   };
 
   const handleLigneKeyDown = (e: any) => {
@@ -164,25 +209,9 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
       pri_pua: article.prix_ht,
       pri_designation: article.nom_article,
     }));
-
+    getOldStock(article.code);
     setSuggestions([]);
     setShowSuggestions(false);
-  };
-
-  const fetchCommande = async (enu_code: string) => {
-    try {
-      const query = new URLSearchParams();
-      query.set("enu_code", enu_code);
-      const res = await apiFetch(
-        `/api/generate-enumeration/?${query.toString()}`,
-      );
-
-      if (res.success) {
-        setCommandEnum(res.nom_enumeration);
-      }
-    } catch (error: any) {
-      console.log(error);
-    }
   };
 
   const rechercherArticle = useCallback(
@@ -261,7 +290,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
           : ligne,
       ),
     );
-
+    getOldStock(article.code);
     setRowSuggestions([]);
     setShowRowSuggestions(false);
     setEditingRow(null);
@@ -291,6 +320,22 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const fetchMotif = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setMotif(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+
   const totalHT = ligneArticle.reduce(
     (total, ligne) => total + Number(ligne.pri_totalht || 0),
     0,
@@ -305,39 +350,115 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
 
   const totalTTC = totalHT + totalTVA;
 
+  useEffect(() => {
+    const nouvellesErreurs: { [cle: string]: string } = {};
+
+    // ligne en cours de saisie
+    if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
+      const stock = stockDisponible[ligneEnCours.pri_article];
+      const qte = Number(ligneEnCours.pri_quantite);
+      if (stock !== undefined && qte > stock) {
+        nouvellesErreurs["nouvelle"] =
+          `Stock insuffisant (disponible : ${stock})`;
+      }
+    }
+
+    // lignes déjà ajoutées dans le tableau
+    ligneArticle.forEach((ligne, index) => {
+      const stock = stockDisponible[ligne.pri_article];
+      const qte = Number(ligne.pri_quantite);
+      if (stock !== undefined && qte > stock) {
+        nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
+      }
+    });
+
+    setLigneErreurs(nouvellesErreurs);
+  }, [
+    ligneEnCours.pri_article,
+    ligneEnCours.pri_quantite,
+    ligneArticle,
+    stockDisponible,
+  ]);
+
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      console.log(`mvt ${mvt}`);
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "insert",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: mvt.origine,
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const ligne_ok: boolean[] = [];
-      if (totalHT != 0 && totalTVA != 0) {
+      if (totalHT != 0) {
         const today = new Date().toISOString().split("T")[0];
-        const res = await postData("/api/insert-database/", "t_cmd_fournis", {
-          cmf_code: values.pieces,
-          cmf_modecmd: parseFloat(values.modeCmd),
-          cmf_dateliv: values.dateLiv,
-          cmf_montant_ht: parseInt(totalHT),
-          cmf_montant_ttc: parseInt(totalTTC),
-          cmf_islivre: false,
-          cmf_fou_code: values.code_frns,
-          cmf_date: today,
-          cmf_lettre: montantTTCEnLettres(totalTTC),
+        const res = await postData("/api/insert-database/", "t_retour_client", {
+          rtc_code: values.pieces,
+          rtc_date: today,
+          rtc_vte_code: values.codeVte,
+          rtc_montant_ht: parseInt(totalHT),
+          rtc_montant_ttc: parseInt(totalTTC),
+          rtc_cli_code: values.cli_code,
+          rtc_cli_nom: values.cli_nom,
+          rtc_motif: values.motif,
+          rtc_observation: values.observation,
         });
         if (res.status) {
           ligneArticle.map(async (value) => {
             const send = await postData(
               "/api/insert-database/",
-              "t_ligne_cmd_fournis",
+              "t_ligne_rtc",
               {
-                cmfl_quantite: value.pri_quantite,
-                cmfl_pri_id: value.pri_id,
-                cmfl_cmf_code: values.pieces,
-                cmfl_prixachat: value.pri_pua,
-                cmfl_tva: value.pri_tva,
-                cmfl_totalht: value.pri_totalht,
-                cmfl_art_code: value.pri_article,
-                cmfl_fou_code: values.code_frns,
+                rtcl_quantite: value.pri_quantite,
+                rtcl_pri_id: value.pri_id,
+                rtcl_rtc_code: values.pieces,
+                rtcl_prixunit: value.pri_pua,
+                rtcl_tva: value.pri_tva,
+                rtcl_ht: value.pri_totalht,
+                rtcl_art_code: value.pri_article,
+                rtcl_cli_code: values.cli_code,
+                rtcl_vte_code: values.pieces,
+                rtcl_ttc: (
+                  parseInt(value.pri_totalht) +
+                  (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
+                ).toFixed(2),
+                rtcl_lot_code: value.datePeremption,
+                rtcl_lot_dateper: value.datePeremption,
               },
             );
+
+            handleCreateMvtStock({
+              code_org: values.pieces,
+              date: today,
+              lot_code: value.datePeremption,
+              origine: "t_retour_fournis",
+              pri_id: value.pri_id,
+              qte: value.pri_quantite,
+              art_code: value.pri_article,
+            });
+            handleStock({
+              quantite: value.pri_quantite,
+              pri_id: value.pri_id,
+              date: today,
+              lot_code: value.datePeremption,
+              article: value.pri_article,
+            });
             if (send.status) {
               ligne_ok.push(true);
             } else ligne_ok.push(false);
@@ -352,12 +473,12 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
           return;
         }
         if (!ligne_ok.find((val) => val == false)) {
-          fetchCode("t_cmd_fournis", true);
+          fetchCode("t_retour_client", true);
           setAlert({
             open: true,
             variant: "success",
             title: "Opération réussie",
-            message: "Entrer enregistrer avec succès",
+            message: "Livraison fournisseur enregistrer avec succès",
           });
           reset();
           setLigneArticle([]);
@@ -378,23 +499,28 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
         title: "Une erreur survenue",
         variant: "error",
       });
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      setAlert({
+        open: true,
+        message: `${error.error}`,
+        title: "Une erreur survenue",
+        variant: "error",
+      });
     }
   };
 
   useEffect(() => {
-    fetchCode("t_cmd_fournis", false);
-    fetchCommande("MODE_COM");
+    fetchCode("t_retour_client", false);
+    fetchMotif("RC_MOTIF");
   }, [isOpen]);
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Ajout commande fournisseurs
+              Ajout retour client
             </h4>
             <span className="dark:text-white/90">
               {Date().split(" ")[2]}/{Date().split(" ")[1]}/
@@ -415,28 +541,29 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                   />
                 </div>
                 <div>
-                  <Label>Date de livraison</Label>
+                  <Label>N° Pièce vente</Label>
                   <Input
-                    type="date"
-                    value={values.dateLiv}
+                    type="text"
+                    value={values.codeVte}
                     onChange={handleChange}
-                    name="dateLiv"
+                    name="codeVte"
+                    placeholder="Code bon de livraison"
                     required={true}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
                 <div>
-                  <Label>Fournisseur</Label>
+                  <Label>Client</Label>
                   <div className="flex items-center w-full gap-2 flex-nowrap">
                     <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
                       <Input
-                        name="fournisseur"
+                        name="cli_nom"
                         type="text"
-                        value={values.fournisseur}
+                        value={values.cli_nom}
                         onChange={handleFrnsChange}
                         required={true}
-                        placeholder="Nom du fournisseurs"
+                        placeholder="Nom du client"
                         className="w-full bg-transparent placeholder-white/70 outline-none"
                       />
                       <Button
@@ -447,18 +574,18 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                         +
                       </Button>
                     </div>
-                    <NewFrns isOpen={openModal} onClose={close}></NewFrns>
+                    <NewClts isOpen={openModal} onClose={close}></NewClts>
                   </div>
                   {showSuggestionFrns && suggestionFrns.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
                       {suggestionFrns.map((frns: any) => (
                         <div
-                          key={frns.fou_id}
+                          key={frns.cli_id}
                           onClick={() => frnsChoisit(frns)}
                           className="cursor-pointer px-3 py-2"
                         >
                           <div className="text-xs text-gray-500">
-                            {frns.fou_nom}
+                            {frns.cli_nom}
                           </div>
                         </div>
                       ))}
@@ -466,60 +593,34 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                   )}
                 </div>
                 <div>
-                  <Label>Adrèsse</Label>
+                  <Label>Contact</Label>
                   <Input
-                    name="adresse"
+                    name="contact"
                     type="text"
-                    placeholder="L'adrèsse du fournisseur"
-                    value={values.adresse}
+                    value={values.contact}
                     onChange={handleChange}
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
+                    placeholder="Contact client"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
                 <div>
-                  <Label>Contact 1</Label>
-                  <Input
-                    name="contact1"
-                    type="text"
-                    value={values.contact1}
-                    onChange={handleChange}
-                    placeholder="N° de tel 1"
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-                <div>
-                  <Label>Contact 2</Label>
-                  <Input
-                    name="contact2"
-                    type="text"
-                    value={values.contact2}
-                    placeholder="N° de tel 2"
-                    onChange={handleChange}
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
-                <div>
-                  <Label>Mail</Label>
-                  <Input
-                    name="mail"
-                    type="text"
-                    value={values.mail}
-                    onChange={handleChange}
-                    placeholder="fournisseurs@gmail.com"
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-                <div>
-                  <Label>Mode de commande</Label>
+                  <Label>Motif</Label>
                   <Select
-                    options={enumerationCmd}
-                    onChange={(value) => setField("modeCmd", value)}
-                    defaultValue="8"
-                  ></Select>
+                    options={EnumerationOptions}
+                    onChange={(value) => setField("motif", value)}
+                    defaultValue="35"
+                  />
+                </div>
+                <div>
+                  <Label>Observation</Label>
+                  <TextArea
+                    name="observation"
+                    placeholder="Observation"
+                    value={values.observation}
+                    onChange={(value) => setField("observation", value)}
+                    className="w-full"
+                  ></TextArea>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
@@ -620,6 +721,18 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
+                      <th className="p-2 text-left font-medium">
+                        <input
+                          style={{ borderBottom: "1px solid gray" }}
+                          name="datePeremption"
+                          type="date"
+                          value={ligneEnCours.datePeremption}
+                          onChange={handleLigneChange}
+                          onKeyDown={handleLigneKeyDown}
+                          placeholder="Date péremption"
+                          className="w-full bg-transparent placeholder-white/70 outline-none"
+                        />
+                      </th>
                       <th className="w-10 p-2 text-center">
                         <button
                           type="button"
@@ -636,8 +749,9 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                       <th className="p-2 w-30 text-left">Désignation</th>
                       <th className="p-2 text-left">Quantité</th>
                       <th className="p-2 text-left">P.U</th>
-                      <th className="p-2 text-left">TVA</th>
+                      <th className="p-2 text-left">TVA (%)</th>
                       <th className="p-2 text-left">Prix HT</th>
+                      <th className="p-2 text-left">Date Péremption</th>
                       <th className="p-2"></th>
                     </tr>
                   </thead>
@@ -693,7 +807,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           </td>
                           <td className="p-2">
                             <input
-                              required
                               value={ligne.pri_designation}
                               onChange={(e) =>
                                 modifierLigne(
@@ -733,7 +846,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
 
                           <td className="p-2">
                             <input
-                              required
                               value={ligne.pri_tva}
                               onChange={(e) =>
                                 modifierLigne(index, "pri_tva", e.target.value)
@@ -741,7 +853,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                               className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                             />
                           </td>
-
                           <td className="p-2">
                             <input
                               required
@@ -751,6 +862,21 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                                 modifierLigne(
                                   index,
                                   "pri_totalht",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              required
+                              type="date"
+                              value={ligne.datePeremption}
+                              onChange={(e) =>
+                                modifierLigne(
+                                  index,
+                                  "datePeremption",
                                   e.target.value,
                                 )
                               }
@@ -775,41 +901,44 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                     <tr>
                       <td colSpan={4}></td>
 
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         Total HT
                       </td>
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         {totalHT.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </td>
-                      <td></td>
                     </tr>
                     <tr>
                       <td colSpan={4}></td>
 
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         Total TVA
                       </td>
+                      <td></td>
                       <td className="p-2 text-right dark:text-gray-300">
                         {totalTVA.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </td>
-                      <td></td>
                     </tr>
                     <tr className="bg-brand-500 dark:text-gray-300">
                       <td colSpan={4}></td>
+                      <td></td>
                       <td className="p-2 text-right">Total TTC</td>
+                      <td></td>
                       <td className="p-2 text-right">
                         {totalTTC.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
                       </td>
-                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -847,4 +976,4 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   );
 };
 
-export default NewCommandFrns;
+export default NewRetourClient;

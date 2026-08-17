@@ -43,8 +43,6 @@ const navItems: NavItem[] = [
     name: "Achats & Approvisionnement",
     icon: <FontAwesomeIcon icon={faCartShopping} />,
     subItems: [
-      { name: "Fournisseurs", path: "#", pro: false },
-      { name: "Approvisionnement", path: "#", pro: false },
       { name: "Articles", path: "/articles", pro: false },
     ],
   },
@@ -58,6 +56,13 @@ const navItems: NavItem[] = [
       { name: "Mouvement de stock", path: "/mvt-stock", pro: false },
     ],
   },
+  {
+    name: "Caisse",
+    icon: <FontAwesomeIcon icon={faBox} />,
+    subItems: [
+      { name: "Arrêt de caisse", path: "/entree", pro: false },
+    ],
+  },
 ];
 
 const othersItems: NavItem[] = [
@@ -65,8 +70,8 @@ const othersItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Rapport",
     subItems: [
-      { name: "Statistiques", path: "/line-chart", pro: false },
-      { name: "Caisse", path: "/bar-chart", pro: false },
+      { name: "Statistiques", path: "#", pro: false },
+      { name: "Caisse", path: "#", pro: false },
     ],
   },
 ];

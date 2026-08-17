@@ -169,3 +169,4 @@ export interface FamilleOption extends BaseOption, Famille { }
 export interface SousFamilleOption extends BaseOption, SousFamille { }
 
 export interface EnumerationOption extends Option, Enumeration { }
+

@@ -12,7 +12,6 @@ import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 import Select from "../../../components/form/Select";
-import { useAuth } from "../../../services/authLogin";
 
 interface newEntryProps {
   isOpen: boolean;
@@ -65,6 +64,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
   const [ligneErreurs, setLigneErreurs] = useState<{ [cle: string]: string }>(
     {},
   );
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const handleLigneChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -117,36 +117,6 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
     }
   };
 
-  useEffect(() => {
-    const nouvellesErreurs: { [cle: string]: string } = {};
-
-    // ligne en cours de saisie
-    if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
-      const stock = stockDisponible[ligneEnCours.pri_article];
-      const qte = Number(ligneEnCours.pri_quantite);
-      if (stock !== undefined && qte > stock) {
-        nouvellesErreurs["nouvelle"] =
-          `Stock insuffisant (disponible : ${stock})`;
-      }
-    }
-
-    // lignes déjà ajoutées dans le tableau
-    ligneArticle.forEach((ligne, index) => {
-      const stock = stockDisponible[ligne.pri_article];
-      const qte = Number(ligne.pri_quantite);
-      if (stock !== undefined && qte > stock) {
-        nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
-      }
-    });
-
-    setLigneErreurs(nouvellesErreurs);
-  }, [
-    ligneEnCours.pri_article,
-    ligneEnCours.pri_quantite,
-    ligneArticle,
-    stockDisponible,
-  ]);
-
   const getOldStock = async (codeArticle: string) => {
     try {
       const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
@@ -163,6 +133,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
   const handleStock = async (stk: any) => {
     try {
       const quantity = stockDisponible[stk.article] + parseInt(stk.quantite);
+      console.log(quantity);
       const res = await postData("/api/insert-database/", "t_stock", {
         stk_quantite: quantity,
         stk_pri_id: stk.pri_id,
@@ -342,13 +313,32 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
     setField("justificatif", "29");
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   //send data
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       let cpt = 0;
       const today = new Date().toISOString().split("T")[0];
-
+      if (!values.justificatif) {
+        values.justificatif = "29";
+      }
       for (const item of ligneArticle) {
         if (item) {
           const res = await postData("/api/insert-database/", "t_in_stock", {
@@ -408,6 +398,11 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_in_stock", false);
+  };
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
@@ -456,7 +451,10 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th
+                        className="w-[220px] min-w-[220px] p-2 text-left font-medium"
+                        ref={dropdownRef}
+                      >
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -468,7 +466,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                         {showSuggestions && suggestions.length > 0 && (
-                          <div className="absolute z-100 w-full bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                          <div className="absolute z-100 w-min-[50px] bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
                             {suggestions.map((article: any) => (
                               <div
                                 key={article.id}
@@ -476,14 +474,14 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                                 className="cursor-pointer px-3 py-2"
                               >
                                 <div className="text-xs text-gray-500">
-                                  {article.code}
+                                  {article.code} - {article.nom_article}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -494,7 +492,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[140px] min-w-[140px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pu"
@@ -505,7 +503,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[140px] min-w-[140px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -516,7 +514,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[140px] min-w-[140px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_lot"
@@ -527,7 +525,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[170px] min-w-[170px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_datePeremption"
@@ -699,7 +697,9 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>

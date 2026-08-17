@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../services/api";
+import Button from "../../components/ui/button/Button";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import NewUser from "./newUser";
+import { useModal } from "../../hooks/useModal";
 
 /**
  * Correspond à la table `use_*` (utilisateurs) :
@@ -58,6 +63,7 @@ export default function UserManagement() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [confirmDisableId, setConfirmDisableId] = useState<number | null>(null);
+  const { closeModal, isOpen, openModal, toggleModal } = useModal();
 
   useEffect(() => {
     let cancelled = false;
@@ -113,7 +119,7 @@ export default function UserManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ use_acc_code: newCode }),
       });
-      if (!res.ok) throw new Error();
+      if (!res) throw new Error();
     } catch {
       setUsers(previous); // rollback
       setError("Impossible de modifier le rôle de cet utilisateur.");
@@ -135,9 +141,9 @@ export default function UserManagement() {
       const res = await apiFetch(`/api/users/${userId}/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ use_enabled: nextEnabled }),
+        body: JSON.stringify({ use_enabled: nextEnabled == true ? 1 : 0 }),
       });
-      if (!res.ok) throw new Error();
+      if (!res) throw new Error();
     } catch {
       setUsers(previous); // rollback
       setError("Impossible de changer le statut de cet utilisateur.");
@@ -156,18 +162,33 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="w-full dark:text-slate-100 text-gray-dark">
+    <div className="w-full  dark:text-slate-100 text-gray-dark">
       <div className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
         {/* En-tête */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight dark:text-white">
-              Utilisateurs
-            </h1>
-            <p className="mt-1 text-sm dark:text-slate-400">
-              {users.length} compte{users.length > 1 ? "s" : ""} enregistré
-              {users.length > 1 ? "s" : ""}
-            </p>
+          <div className="flex items-center gap-2">
+            <div>
+              <Button
+                title="Ajouter un nouvelle utilisateur"
+                onClick={() => openModal()}
+              >
+                <FontAwesomeIcon icon={faPlus} />
+              </Button>
+              <NewUser
+                isOpen={isOpen}
+                onClose={closeModal}
+                className="max-w-[900px] m-4"
+              />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight dark:text-white">
+                Utilisateurs
+              </h1>
+              <p className="mt-1 text-sm dark:text-slate-400">
+                {users.length} compte{users.length > 1 ? "s" : ""} enregistré
+                {users.length > 1 ? "s" : ""}
+              </p>
+            </div>
           </div>
           <div className="relative w-full sm:w-72">
             <svg
@@ -207,148 +228,179 @@ export default function UserManagement() {
         )}
 
         {/* Contenu */}
-        <div className="overflow-hidden rounded-xl border dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900/60">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
               <span className="text-sm">Chargement des utilisateurs...</span>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-500">
+            <div className="py-16 px-4 text-center text-sm text-slate-500">
               Aucun utilisateur ne correspond à cette recherche.
             </div>
           ) : (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b dark:border-slate-800 text-xs uppercase tracking-wide dark:text-slate-500">
-                  <th className="px-4 py-3 font-medium">Identifiant</th>
-                  <th className="px-4 py-3 font-medium">Rôle</th>
-                  <th className="px-4 py-3 font-medium">Statut</th>
-                  <th className="px-4 py-3 font-medium">Créé le</th>
-                  <th className="px-4 py-3 font-medium">Modifié le</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => {
-                  const isSaving = savingId === user.use_id;
-                  const isEditingRole = editingRoleId === user.use_id;
-                  const isConfirmingDisable = confirmDisableId === user.use_id;
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[850px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-xs uppercase tracking-wide dark:border-slate-800 dark:text-slate-500">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                      Identifiant
+                    </th>
 
-                  return (
-                    <tr
-                      key={user.use_id}
-                      className="border-b border-slate-800/60 last:border-0 dark:hover:bg-slate-800/30 hover:bg-gray-300/20"
-                    >
-                      <td className="px-4 py-3 font-medium dark:text-slate-100">
-                        {user.use_login}
-                      </td>
+                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                      Rôle
+                    </th>
 
-                      <td className="px-4 py-3">
-                        {isEditingRole ? (
-                          <select
-                            autoFocus
-                            defaultValue={user.use_acc_code}
-                            disabled={isSaving}
-                            onChange={(e) =>
-                              updateAccCode(user.use_id, e.target.value)
-                            }
-                            onBlur={() => setEditingRoleId(null)}
-                            className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100 outline-none focus:border-teal-500"
-                          >
-                            {ACC_CODES.map((code) => (
-                              <option key={code} value={code}>
-                                {code}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <button
-                            onClick={() => setEditingRoleId(user.use_id)}
-                            disabled={isSaving}
-                            className={`rounded-md border px-2 py-1 text-xs font-medium transition hover:opacity-80 disabled:opacity-50 ${
-                              accCodeStyles[user.use_acc_code] ??
-                              "bg-slate-700/30 text-slate-300 border-slate-600"
-                            }`}
-                            title="Cliquer pour modifier le rôle"
-                          >
-                            {user.use_acc_code}
-                          </button>
-                        )}
-                      </td>
+                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                      Statut
+                    </th>
 
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ${
-                            user.use_enabled
-                              ? "dark:bg-emerald-500/15 bg-emerald-500/10 dark:text-emerald-300 text-emerald-500"
-                              : "dark:bg-slate-600/20 bg-slate-600/10  text-slate-400"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              user.use_enabled
-                                ? "bg-emerald-400"
-                                : "bg-slate-500"
-                            }`}
-                          />
-                          {user.use_enabled ? "Actif" : "Désactivé"}
-                        </span>
-                      </td>
+                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                      Créé le
+                    </th>
 
-                      <td className="px-4 py-3 text-slate-400">
-                        {formatDate(user.use_datecre)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-400">
-                        {formatDate(user.use_datemdf)}
-                      </td>
+                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                      Modifié le
+                    </th>
 
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          {isConfirmingDisable ? (
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="text-slate-400">
-                                Désactiver ce compte ?
-                              </span>
-                              <button
-                                onClick={() =>
-                                  toggleEnabled(user.use_id, false)
-                                }
-                                className="rounded-md bg-rose-500/20 px-2 py-1 font-medium text-rose-300 hover:bg-rose-500/30"
-                              >
-                                Confirmer
-                              </button>
-                              <button
-                                onClick={() => setConfirmDisableId(null)}
-                                className="rounded-md px-2 py-1 text-slate-400 hover:text-slate-200"
-                              >
-                                Annuler
-                              </button>
-                            </div>
+                    <th className="whitespace-nowrap px-3 py-3 text-right font-medium sm:px-4">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredUsers.map((user) => {
+                    const isSaving = savingId === user.use_id;
+                    const isEditingRole = editingRoleId === user.use_id;
+                    const isConfirmingDisable =
+                      confirmDisableId === user.use_id;
+
+                    return (
+                      <tr
+                        key={user.use_id}
+                        className="border-b border-slate-800/60 last:border-0 hover:bg-gray-300/20 dark:hover:bg-slate-800/30"
+                      >
+                        {/* Identifiant */}
+                        <td className="whitespace-nowrap px-3 py-3 font-medium dark:text-slate-100 sm:px-4">
+                          {user.use_login}
+                        </td>
+
+                        {/* Rôle */}
+                        <td className="px-3 py-3 sm:px-4">
+                          {isEditingRole ? (
+                            <select
+                              autoFocus
+                              defaultValue={user.use_acc_code}
+                              disabled={isSaving}
+                              onChange={(e) =>
+                                updateAccCode(user.use_id, e.target.value)
+                              }
+                              onBlur={() => setEditingRoleId(null)}
+                              className="w-full min-w-[100px] rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100 outline-none focus:border-teal-500"
+                            >
+                              {ACC_CODES.map((code) => (
+                                <option key={code} value={code}>
+                                  {code}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
                             <button
-                              onClick={() => requestDisableToggle(user)}
+                              onClick={() => setEditingRoleId(user.use_id)}
                               disabled={isSaving}
-                              className={`rounded-md border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
-                                user.use_enabled
-                                  ? "dark:border-rose-500/30 border-rose-500/10 dark:text-rose-300 text-rose-400 hover:bg-rose-500/10"
-                                  : "dark:border-emerald-500/30 border-emerald-500/10 dark:text-emerald-300 text-emerald-400 hover:bg-emerald-500/10"
+                              className={`whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium transition hover:opacity-80 disabled:opacity-50 ${
+                                accCodeStyles[user.use_acc_code] ??
+                                "border-slate-600 bg-slate-700/30 text-slate-300"
                               }`}
+                              title="Cliquer pour modifier le rôle"
                             >
-                              {isSaving
-                                ? "..."
-                                : user.use_enabled
-                                  ? "Désactiver"
-                                  : "Activer"}
+                              {user.use_acc_code}
                             </button>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+
+                        {/* Statut */}
+                        <td className="px-3 py-3 sm:px-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${
+                              user.use_enabled
+                                ? "bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-300"
+                                : "bg-slate-600/10 text-slate-400 dark:bg-slate-600/20"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                user.use_enabled
+                                  ? "bg-emerald-400"
+                                  : "bg-slate-500"
+                              }`}
+                            />
+
+                            {user.use_enabled ? "Actif" : "Désactivé"}
+                          </span>
+                        </td>
+
+                        {/* Date création */}
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-400 sm:px-4">
+                          {formatDate(user.use_datecre)}
+                        </td>
+
+                        {/* Date modification */}
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-400 sm:px-4">
+                          {formatDate(user.use_datemdf)}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-3 py-3 sm:px-4">
+                          <div className="flex min-w-[170px] items-center justify-end gap-2">
+                            {isConfirmingDisable ? (
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="whitespace-nowrap text-slate-400">
+                                  Désactiver ce compte ?
+                                </span>
+
+                                <button
+                                  onClick={() =>
+                                    toggleEnabled(user.use_id, false)
+                                  }
+                                  className="whitespace-nowrap rounded-md bg-rose-500/20 px-2 py-1 font-medium text-rose-300 hover:bg-rose-500/30"
+                                >
+                                  Confirmer
+                                </button>
+
+                                <button
+                                  onClick={() => setConfirmDisableId(null)}
+                                  className="whitespace-nowrap rounded-md px-2 py-1 text-slate-400 hover:text-slate-200"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => requestDisableToggle(user)}
+                                disabled={isSaving}
+                                className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                                  user.use_enabled
+                                    ? "border-rose-500/10 text-rose-400 hover:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300"
+                                    : "border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300"
+                                }`}
+                              >
+                                {isSaving
+                                  ? "..."
+                                  : user.use_enabled
+                                    ? "Désactiver"
+                                    : "Activer"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

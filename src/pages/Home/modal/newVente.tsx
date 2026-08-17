@@ -215,7 +215,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       ...prev,
       pri_article: article.code,
       pri_id: article.id,
-      pri_pua: article.prix_ht,
+      pri_pua: article.prix_vte,
       pri_designation: article.nom_article,
     }));
     getOldStock(article.code);
@@ -335,7 +335,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               ...ligne,
               pri_article: article.code,
               pri_id: article.id,
-              pri_pua: article.prix_ht,
+              pri_pua: article.prix_vte,
               pri_designation: article.nom_article,
             }
           : ligne,

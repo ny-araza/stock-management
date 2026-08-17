@@ -1,4 +1,6 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Button from "../button/Button";
+import { faArrowAltCircleLeft, faArrowCircleRight } from "@fortawesome/free-solid-svg-icons";
 
 interface PaginationProps {
     page: number;
@@ -58,7 +60,7 @@ export default function Pagination({
                     onClick={() => onPageChange(page - 1)}
                     disabled={!hasPrevious}
                 >
-                    Précédent
+                    <FontAwesomeIcon icon={faArrowAltCircleLeft} />
                 </Button>
 
                 {getVisiblePages().map((item, index) =>
@@ -89,7 +91,7 @@ export default function Pagination({
                     onClick={() => onPageChange(page + 1)}
                     disabled={!hasNext}
                 >
-                    Suivant
+                    <FontAwesomeIcon icon={faArrowCircleRight}/>
                 </Button>
             </div>
         </div>

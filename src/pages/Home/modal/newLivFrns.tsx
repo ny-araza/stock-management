@@ -469,7 +469,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
             open: true,
             variant: "success",
             title: "Opération réussie",
-            message: "Livraison fournisseur enregistrer avec succès",
+            message: "Retour fournisseur enregistrer avec succès",
           });
           reset();
           setLigneArticle([]);
