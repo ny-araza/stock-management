@@ -1,5 +1,3 @@
-import { BoxIconLine } from "../../icons";
-import Button from "../../components/ui/button/Button";
 import Entry from "./modal/newEntry";
 import { useState } from "react";
 import NewCommandFrns from "./modal/newCommandFrns";
@@ -13,7 +11,6 @@ import {
   faCartArrowDown,
   faCartShopping,
   faFileAlt,
-  faTruck,
   faTruckArrowRight,
 } from "@fortawesome/free-solid-svg-icons";
 import AnimatedButton from "./animeButton";
@@ -97,7 +94,7 @@ export default function PageAccueil() {
           onClick={() => open("vente")}
           icon={<FontAwesomeIcon icon={faCartShopping} className="text-6xl" />}
         >
-          Nouvelle vente
+          Nouvelle commande client
         </AnimatedButton>
         <NewVente
           isOpen={openModal == "vente"}
@@ -138,12 +135,7 @@ export default function PageAccueil() {
         />
         <AnimatedButton
           onClick={() => open("facture_comptant")}
-          icon={
-            <FontAwesomeIcon
-              icon={faFileAlt}
-              className="text-6xl"
-            />
-          }
+          icon={<FontAwesomeIcon icon={faFileAlt} className="text-6xl" />}
         >
           Facture
         </AnimatedButton>

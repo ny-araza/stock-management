@@ -9,7 +9,6 @@ import Button from "../../../components/ui/button/Button";
 import NewFrns from "../../Fournisseurs/newFrns";
 import Select from "../../../components/form/Select";
 import { Option } from "../../../components/form/Select";
-import TextArea from "../../../components/form/input/TextArea";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 
@@ -41,6 +40,8 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [rowSuggestions, setRowSuggestions] = useState([]);
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
+  const [showCFSuggestions, setShowCFSuggestions] = useState(false);
+  const [CFSuggestions, setCFSuggestions] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   //ligne
   const articleRef = useRef<HTMLInputElement>(null);
@@ -97,6 +98,29 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     }
   }, []);
 
+  const rechercherCF = useCallback(async (code: string) => {
+    if (!code.trim()) {
+      setCFSuggestions([]);
+      setShowCFSuggestions(false);
+      return;
+    }
+
+    try {
+      const query = new URLSearchParams();
+      query.set("search", code);
+      const res = await apiFetch(
+        `/api/cmf-fournis-autocomplete/?${query.toString()}`,
+      );
+      if (res.status) {
+        console.log(res.cmf_fournis);
+        setCFSuggestions(res.cmf_fournis);
+        setShowCFSuggestions(true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   const handleFrnsChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -104,6 +128,16 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     if (name === "fournisseur") {
       rechercherFrns(value);
       setField("fournisseur", value);
+    }
+  };
+
+  const handleCfChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    if (name === "codeCf") {
+      rechercherCF(value);
+      setField("codeCf", value);
     }
   };
 
@@ -115,6 +149,24 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     setField("modeCmd", frns.fou_modepay);
     setField("code_frns", frns.fou_code);
     setShowSuggestionsFrns(false);
+  };
+
+  const cfChoisit = (cmf: any) => {
+    setField("codeCf", cmf.cmf_code);
+
+    const lignes = (cmf.ligne || []).map((ligne: any) => ({
+      pri_id: "",
+      pri_article: ligne.cmfl_Art_Code || "",
+      pri_designation: ligne.art_nom || "",
+      pri_quantite: ligne.cmfl_Quantite || 0,
+      pri_pua: ligne.cmfl_PrixAchat ?? "",
+      pri_tva: ligne.cmfl_Tva ?? 0.0,
+      pri_totalht: ligne.cmfl_TotalHT ?? 0.0,
+    }));
+
+    setLigneArticle(lignes);
+
+    setShowCFSuggestions(false);
   };
 
   const paiementOption: Option[] = [
@@ -544,13 +596,34 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
                 <div>
                   <Label>Code CF</Label>
-                  <Input
-                    name="codeCf"
-                    type="text"
-                    value={values.codeCf}
-                    onChange={handleChange}
-                    placeholder="N° pièce CF"
-                  />
+                  <div className="flex items-center w-full gap-2 flex-nowrap">
+                    <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
+                      <Input
+                        name="codeCf"
+                        type="text"
+                        value={values.codeCf}
+                        onChange={handleCfChange}
+                        required={true}
+                        placeholder="Code Commande fournisseur"
+                        className="w-full bg-transparent placeholder-white/70 outline-none"
+                      />
+                    </div>
+                  </div>
+                  {showCFSuggestions && CFSuggestions.length > 0 && (
+                    <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                      {CFSuggestions.map((cf: any) => (
+                        <div
+                          key={cf.cmf_id}
+                          onClick={() => cfChoisit(cf)}
+                          className="cursor-pointer px-3 py-2"
+                        >
+                          <div className="text-xs text-gray-500">
+                            {cf.cmf_code}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>N° Facture</Label>

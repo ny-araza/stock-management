@@ -375,7 +375,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
             open: true,
             variant: "success",
             title: "Opération réussie",
-            message: "Entrer enregistrer avec succès",
+            message: "Commande enregistrer avec succès",
           });
           reset();
           setLigneArticle([]);
@@ -412,7 +412,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
       pri_totalht: "",
       pri_tva: "",
       pri_id: "",
-      pri_pu: "",
       pri_quantite: "",
     });
   };
