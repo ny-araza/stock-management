@@ -47,11 +47,13 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
     }),
   );
 
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { values, handleChange, reset, setField } = useForm({
     code: "",
     justificatif: "",
     designation: "",
   });
+
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [rowSuggestions, setRowSuggestions] = useState([]);
@@ -338,13 +340,32 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   //send data
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       let cpt = 0;
       const today = new Date().toISOString().split("T")[0];
-
+      if (!values.justificatif) {
+        values.justificatif = "20";
+      }
       for (const item of ligneArticle) {
         if (item) {
           const res = await postData("/api/insert-database/", "t_out_stock", {
@@ -404,10 +425,25 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_out_stock", false);
+    setLigneAticle([]);
+    setLigneEnCours({
+      pri_article: "",
+      pri_datePeremption: "",
+      pri_id: "",
+      pri_lot: "",
+      pri_pht: "",
+      pri_pu: "",
+      pri_quantite: "",
+    });
+  };
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
               Sortit en stock
@@ -435,24 +471,18 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                   <Select
                     options={EnumerationOptions}
                     onChange={(value) => setField("justificatif", value)}
-                    defaultValue="29"
+                    defaultValue="20"
                   ></Select>
                 </div>
-              </div>
-              <div className="mt-5">
-                <Label>Designation</Label>
-                <TextArea
-                  name="designation"
-                  placeholder="Designation"
-                  value={values.designation}
-                  onChange={(value) => setField("designation", value)}
-                ></TextArea>
               </div>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th
+                        className="w-[220px] min-w-[220px] p-2 text-left font-medium"
+                        ref={dropdownRef}
+                      >
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -464,7 +494,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                         {showSuggestions && suggestions.length > 0 && (
-                          <div className="absolute z-100 w-full bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                          <div className="absolute z-100 w-min-[50px] bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
                             {suggestions.map((article: any) => (
                               <div
                                 key={article.id}
@@ -472,14 +502,14 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                                 className="cursor-pointer px-3 py-2"
                               >
                                 <div className="text-xs text-gray-500">
-                                  {article.code}
+                                  {article.code} - {article.nom_article}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -490,7 +520,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[140px] min-w-[140px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pu"
@@ -501,7 +531,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[140px] min-w-[140px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -512,7 +542,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[140px] min-w-[140px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_lot"
@@ -523,7 +553,7 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[170px] min-w-[170px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_datePeremption"
@@ -695,7 +725,9 @@ const Sortit: React.FC<newSortitProps> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>

@@ -660,18 +660,6 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                   ></Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
-                <div>
-                  <Label>Designation</Label>
-                  <TextArea
-                    name="designation"
-                    placeholder="Designation"
-                    value={values.designation}
-                    onChange={(value) => setField("designation", value)}
-                    className="w-full"
-                  ></TextArea>
-                </div>
-              </div>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
                 <table className="w-full text-sm">
                   <thead>

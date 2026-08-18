@@ -3,7 +3,6 @@
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import { Modal } from "../../../components/ui/modal";
-import TextArea from "../../../components/form/input/TextArea";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../../components/ui/button/Button";
 import { apiFetch } from "../../../services/api";
@@ -400,13 +399,23 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
 
   const clear = () => {
     reset();
-    fetchCode("t_in_stock", false);
+    fetchCode("t_out_stock", false);
+    setLigneAticle([]);
+    setLigneEnCours({
+      pri_article: "",
+      pri_datePeremption: "",
+      pri_id: "",
+      pri_lot: "",
+      pri_pht: "",
+      pri_pu: "",
+      pri_quantite: "",
+    });
   };
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
               Entrée en stock
@@ -437,15 +446,6 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                     defaultValue="29"
                   ></Select>
                 </div>
-              </div>
-              <div className="mt-5">
-                <Label>Designation</Label>
-                <TextArea
-                  name="designation"
-                  placeholder="Designation"
-                  value={values.designation}
-                  onChange={(value) => setField("designation", value)}
-                ></TextArea>
               </div>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
                 <table className="w-full text-sm">

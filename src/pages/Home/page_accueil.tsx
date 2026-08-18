@@ -58,7 +58,7 @@ export default function PageAccueil() {
         <Entry
           isOpen={openModal == "entry"}
           onClose={close}
-          className="max-w-[700px] m-4"
+          className="max-w-[900px] m-4"
         ></Entry>
         <AnimatedButton
           onClick={() => open("sortit")}
@@ -69,7 +69,7 @@ export default function PageAccueil() {
         <Sortit
           isOpen={openModal == "sortit"}
           onClose={close}
-          className="max-w-[700px] m-4"
+          className="max-w-[900px] m-4"
         />
         <AnimatedButton
           onClick={() => open("commandeFournisseur")}
@@ -80,7 +80,7 @@ export default function PageAccueil() {
         <NewCommandFrns
           isOpen={openModal == "commandeFournisseur"}
           onClose={close}
-          className="max-w-[700px] m-4"
+          className="max-w-[900px] m-4"
         ></NewCommandFrns>
         <AnimatedButton
           onClick={() => open("livraison")}

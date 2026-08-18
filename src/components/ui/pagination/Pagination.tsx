@@ -92,7 +92,7 @@ export default function Pagination({
                     disabled={!hasNext}
                 >
                     <FontAwesomeIcon icon={faArrowCircleRight}/>
-                </Button>
+          </Button>
             </div>
         </div>
     );

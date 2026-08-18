@@ -8,7 +8,9 @@ import PhoneInput from "react-phone-number-input";
 import Select from "../../components/form/Select";
 import Button from "../../components/ui/button/Button";
 import { Option } from "../../components/form/Select";
-import { generateReference } from "../../services/codeService";
+import Alert from "../../components/ui/alert/Alert";
+import { apiFetch } from "../../services/api";
+import { Enumeration } from "../../interfaces/interfaces";
 
 interface newFrnsProps {
   isOpen: boolean;
@@ -18,9 +20,8 @@ interface newFrnsProps {
 
 const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
   const [onSubmitClick, setOnSubmutCliked] = useState(0);
-  const [reference, setReference] = useState("");
-  const { values, handleChange, setField } = useForm({
-    code: reference,
+  const { values, handleChange, setField, reset } = useForm({
+    code: "",
     denomination: "",
     contact1: undefined as string | undefined,
     contact2: undefined as string | undefined,
@@ -29,12 +30,25 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
     commercial: "",
     paiement: "",
   });
-
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
   const paiementOption: Option[] = [
     { value: "mobile_money", label: "Mobile Money" },
     { value: "virements", label: "Virements" },
     { value: "espece", label: "Espèce" },
   ];
+  const [enumeration, setEnumeration] = useState<Enumeration[]>([]);
+  const EnumerationOptions: EnumerationOption[] = enumeration.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
 
   const isFormEmpty = (
     data: Record<string, unknown>,
@@ -49,6 +63,22 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
 
   const [sendError, setSendError] = useState<string | null>(null);
 
+  const fetchEnumeration = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setEnumeration(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setOnSubmutCliked(onSubmitClick + 1);
@@ -57,11 +87,19 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
         !values.denomination &&
         isFormEmpty(values, ["code", "denomination"])
       ) {
-        setSendError("Veuiller au moins remplir le champs denomination");
+        setAlert({
+          open: true,
+          variant: "error",
+          title: `Une erreur est survenue`,
+          message: "Le champs denomination doit être au moins remplis",
+        });
         return;
       }
+      if (!values.paiement) {
+        values.paiement = "1";
+      }
       const res = await postData("/api/insert-database/", "t_fournis", {
-        fou_code: reference,
+        fou_code: values.code,
         fou_nom: values.denomination,
         fou_tel1: values.contact1,
         fou_tel2: values.contact2,
@@ -71,32 +109,53 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
         fou_commercial: values.commercial,
       });
       if (res.status) {
-        alert("Fournisseur enregistré");
+        setAlert({
+          open: true,
+          variant: "success",
+          title: `Notification`,
+          message: `Fournisseur ${values.denomination} enrigistrer avec succès`,
+        });
+        clear();
       } else {
-        setSendError(res.error);
+        setAlert({
+          open: true,
+          variant: "error",
+          title: `Une erreur est survenue`,
+          message: `${res.message}`,
+        });
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const loadReference = async () => {
+  const fetchCode = async (table_name: string, isInsert: boolean) => {
     try {
-      const ref = await generateReference("t_fournis", "fou_code");
-      setReference(ref);
-    } catch (err) {
-      console.error(err);
+      const query = new URLSearchParams();
+      query.set("table_name", table_name);
+      query.set("is_insert", isInsert ? "1" : "0");
+      console.log(query.toString());
+      const res = await apiFetch(
+        `/api/generate-date-code/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setField("code", res.code);
+      }
+    } catch (error: any) {
+      console.log(error);
     }
   };
 
-  useEffect(() => {
-    loadReference();
-  }, [isOpen, onSubmitClick]);
+  const clear = () => {
+    reset();
+    fetchCode("t_fournis", false);
+  };
 
   useEffect(() => {
-    setField("code", reference);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reference]);
+    fetchCode("t_fournis", false);
+    fetchEnumeration("MODE_PAY");
+  }, [isOpen]);
 
   return (
     <>
@@ -133,7 +192,7 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
                         defaultCountry="MG"
                         value={values.contact1}
                         onChange={(value) => setField("contact1", value)}
-                        className="rounded-lg text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
+                        className="rounded-lg dark:text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
                       />
                     </div>
                     <div>
@@ -143,7 +202,7 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
                         defaultCountry="MG"
                         value={values.contact2}
                         onChange={(value) => setField("contact2", value)}
-                        className="rounded-lg text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
+                        className="rounded-lg  dark:text-gray-300 border border-gray-300 dark:border-gray-700 px-3 py-2"
                       />
                     </div>
                   </div>
@@ -173,24 +232,24 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
                   <div className="lg:col-span-1">
                     <Label>Paiment</Label>
                     <Select
-                      options={paiementOption}
+                      options={EnumerationOptions}
                       onChange={(value) => setField("paiement", value)}
-                      defaultValue="mobile_money"
+                      defaultValue="1"
                     />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-between">
+            <div className="flex justify-center items-center gap-3 px-2 mt-6 lg:justify-between">
               <span className="text-red-600">{sendError}</span>
               <div>
                 <Button
                   size="sm"
                   variant="outline"
                   className="mr-5"
-                  onClick={onClose}
+                  onClick={clear}
                 >
-                  Fermer
+                  Effacer tout
                 </Button>
                 <Button size="sm" type="submit">
                   Sauvegarder
@@ -199,6 +258,21 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
             </div>
           </form>
         </div>
+        <Alert
+          open={alert.open}
+          variant={alert.variant}
+          title={alert.title}
+          message={alert.message}
+          showLink={false}
+          onClose={() =>
+            setAlert({
+              open: false,
+              variant: alert.variant,
+              message: alert.message,
+              title: alert.title,
+            })
+          }
+        />
       </Modal>
     </>
   );

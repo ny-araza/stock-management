@@ -8,7 +8,6 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import Button from "../../../components/ui/button/Button";
 import NewFrns from "../../Fournisseurs/newFrns";
 import Select from "../../../components/form/Select";
-import TextArea from "../../../components/form/input/TextArea";
 import { postData } from "../../../services/sendDataService";
 import montantTTCEnLettres from "../../../utils/montantEnLettre";
 import Alert from "../../../components/ui/alert/Alert";
@@ -65,6 +64,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   const open = () => {
     setOpenModal(true);
   };
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [alert, setAlert] = useState({
     open: false,
     variant: "success" as "success" | "error" | "warning" | "info",
@@ -112,6 +112,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     setField("contact2", frns.fou_tel2);
     setField("modeCmd", frns.fou_modepay);
     setField("code_frns", frns.fou_code);
+    setField("mail", frns.fou_mail);
     setShowSuggestionsFrns(false);
   };
 
@@ -305,6 +306,23 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
 
   const totalTTC = totalHT + totalTVA;
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -383,6 +401,22 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_cmd_fournis", false);
+    setLigneArticle([]);
+    setLigneEnCours({
+      pri_article: "",
+      pri_designation: "",
+      pri_pua: "",
+      pri_totalht: "",
+      pri_tva: "",
+      pri_id: "",
+      pri_pu: "",
+      pri_quantite: "",
+    });
+  };
+
   useEffect(() => {
     fetchCode("t_cmd_fournis", false);
     fetchCommande("MODE_COM");
@@ -391,7 +425,8 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <NewFrns isOpen={openModal} onClose={close}></NewFrns>
+        <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
               Ajout commande fournisseurs
@@ -447,7 +482,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                         +
                       </Button>
                     </div>
-                    <NewFrns isOpen={openModal} onClose={close}></NewFrns>
                   </div>
                   {showSuggestionFrns && suggestionFrns.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
@@ -458,7 +492,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="cursor-pointer px-3 py-2"
                         >
                           <div className="text-xs text-gray-500">
-                            {frns.fou_nom}
+                            { frns.fou_code} - {frns.fou_nom}
                           </div>
                         </div>
                       ))}
@@ -522,23 +556,15 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                   ></Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
-                <div>
-                  <Label>Designation</Label>
-                  <TextArea
-                    name="designation"
-                    placeholder="Designation"
-                    value={values.designation}
-                    onChange={(value) => setField("designation", value)}
-                    className="w-full"
-                  ></TextArea>
-                </div>
-              </div>
+
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th
+                        className="w-[120px] min-w-[120px] p-2 text-left font-medium relative"
+                        ref={dropdownRef}
+                      >
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -550,7 +576,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                         {showSuggestions && suggestions.length > 0 && (
-                          <div className="absolute z-100 w-full bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                          <div className="absolute z-100 w-min-[50px] bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
                             {suggestions.map((article: any) => (
                               <div
                                 key={article.id}
@@ -558,14 +584,14 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                                 className="cursor-pointer px-3 py-2"
                               >
                                 <div className="text-xs text-gray-500">
-                                  {article.code}
+                                  {article.code} - {article.nom_article}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[220px] min-w-[220px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_designation"
@@ -576,7 +602,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -587,7 +613,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pua"
@@ -598,7 +624,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_tva"
@@ -609,7 +635,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -684,7 +710,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                                       className="cursor-pointer px-3 py-2"
                                     >
                                       <div className="text-xs text-gray-500">
-                                        {article.code}
+                                        {article.code} - {article.nom_article}
                                       </div>
                                     </div>
                                   ))}
@@ -823,7 +849,9 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>
