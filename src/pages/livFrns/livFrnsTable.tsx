@@ -476,6 +476,10 @@ export default function LivFrnsTable() {
 
               <div className="grid grid-cols-2 gap-2 text-sm mb-4 text-gray-600 dark:text-gray-300">
                 <div>
+                  <span className="font-medium">Code CF :</span>{" "}
+                  {selectedEntree.ent_cmf_code}
+                </div>
+                <div>
                   <span className="font-medium">Fournisseur :</span>{" "}
                   {selectedEntree.ent_fou_code}
                 </div>

@@ -36,11 +36,7 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
     title: "",
     message: "",
   });
-  const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espece", label: "Espèce" },
-  ];
+
   const [enumeration, setEnumeration] = useState<Enumeration[]>([]);
   const EnumerationOptions: EnumerationOption[] = enumeration.map(
     (item: Enumeration) => ({

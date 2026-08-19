@@ -23,7 +23,6 @@ interface newCltProps {
 const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
   const [onSubmitClick, setOnSubmutCliked] = useState(0);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [reference, setReference] = useState("");
   const [typeCLient, setTypeClient] = useState<Option[]>([]);
   const [modepay, setModePay] = useState<Option[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -71,15 +70,6 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
       );
   };
 
-  const loadReference = async () => {
-    try {
-      const ref = await generateReference("t_client", "cli_code");
-      setReference(ref);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // get load enumeration (type client)
   const fetchTypeClient = async (enu_code: string) => {
     try {
@@ -94,6 +84,24 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
       }
     } catch (error: any) {
       setError(error.error);
+    }
+  };
+
+  const fetchCode = async (table_name: string, isInsert: boolean) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("table_name", table_name);
+      query.set("is_insert", isInsert ? "1" : "0");
+      console.log(query.toString());
+      const res = await apiFetch(
+        `/api/generate-date-code/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setField("code", res.code);
+      }
+    } catch (error: any) {
+      console.log(error);
     }
   };
 
@@ -125,7 +133,7 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
         return;
       }
       const res = await postData("/api/insert-database/", "t_client", {
-        cli_code: reference,
+        cli_code: values.code,
         cli_nom: values.denomination,
         cli_tel1: values.contact1,
         cli_tel2: values.contact2,
@@ -138,6 +146,7 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
         cli_type: values.type_client,
       });
       if (res.status) {
+        fetchCode("t_client", true);
         alert("Client enregistré");
         reset();
       } else {
@@ -149,10 +158,10 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
   };
 
   useEffect(() => {
-    loadReference();
+    fetchCode("t_client", false);
     fetchTypeClient("TYPE_CLT");
     fetchModePay("MODE_PAY");
-  }, [isOpen, onSubmitClick]);
+  }, [isOpen]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[700px] m-4">

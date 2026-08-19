@@ -557,11 +557,15 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     fetchCode("t_vente", false);
     fetchModePaye("MODE_PAY");
     fetchPayeClt("PAYE_CLIENT");
+    setField("payeClient", "16");
+    setField("modePaye", "1");
   }, [isOpen]);
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
+        <NewClts isOpen={openModal} onClose={close} />
+
         <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
@@ -618,7 +622,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                         +
                       </Button>
                     </div>
-                    <NewClts isOpen={openModal} onClose={close} />
                   </div>
                   {showSuggestionClt && suggestionClt.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
@@ -695,16 +698,18 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               </div>
               <div className="mb-4">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div>
-                    <Label>Livreur</Label>
-                    <Input
-                      name="livreur"
-                      type="text"
-                      value={values.livreur}
-                      onChange={handleChange}
-                      placeholder="Nom du livreur"
-                    />
-                  </div>
+                  {values.payeClient != "16" && (
+                    <div>
+                      <Label>Livreur</Label>
+                      <Input
+                        name="livreur"
+                        type="text"
+                        value={values.livreur}
+                        onChange={handleChange}
+                        placeholder="Nom du livreur"
+                      />
+                    </div>
+                  )}
                   <div>
                     <Label>Code BL</Label>
                     <Input
@@ -727,34 +732,36 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                       defaultValue="1"
                     />
                   </div>
-                  <div>
-                    <Label>Téléphone Mobile Money</Label>
-                    <Input
-                      name="telMoney"
-                      type="text"
-                      disabled={values.modePaye != "4"}
-                      value={values.telMoney}
-                      onChange={handleChange}
-                      placeholder="Numéro Mobile Money"
-                    />
-                  </div>
-                  <div>
-                    <Label>Date d'échéance</Label>
-                    <Input
-                      name="dateEcheance"
-                      type="date"
-                      disabled={parseInt(values.payeClient) < 62}
-                      value={values.dateEcheance}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  {values.modePaye == "4" && (
+                    <div>
+                      <Label>Téléphone Mobile Money</Label>
+                      <Input
+                        name="telMoney"
+                        type="text"
+                        value={values.telMoney}
+                        onChange={handleChange}
+                        placeholder="Numéro Mobile Money"
+                      />
+                    </div>
+                  )}
+                  {parseInt(values.payeClient) > 61 && (
+                    <div>
+                      <Label>Date d'échéance</Label>
+                      <Input
+                        name="dateEcheance"
+                        type="date"
+                        value={values.dateEcheance}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium relative">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -766,7 +773,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                         {showSuggestions && suggestions.length > 0 && (
-                          <div className="absolute z-100 w-full bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                          <div className="absolute z-100 w-min-[50px] bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
                             {suggestions.map((article: any) => (
                               <div
                                 key={article.id}
@@ -774,14 +781,14 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                                 className="cursor-pointer px-3 py-2"
                               >
                                 <div className="text-xs text-gray-500">
-                                  {article.code}
+                                  {article.code} - {article.nom_article}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[220px] min-w-[220px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_designation"
@@ -792,7 +799,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -803,7 +810,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pua"
@@ -814,7 +821,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_tva"
@@ -825,7 +832,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="remise"
@@ -836,7 +843,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -847,7 +854,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="datePeremption"
@@ -925,7 +932,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                                       className="cursor-pointer px-3 py-2"
                                     >
                                       <div className="text-xs text-gray-500">
-                                        {article.code}
+                                        {article.code} - {article.nom_article}
                                       </div>
                                     </div>
                                   ))}

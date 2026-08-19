@@ -11,6 +11,7 @@ import Select from "../../../components/form/Select";
 import { Option } from "../../../components/form/Select";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
+import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
 
 interface livFrns {
   isOpen: boolean;
@@ -45,7 +46,6 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const [openModal, setOpenModal] = useState(false);
   //ligne
   const articleRef = useRef<HTMLInputElement>(null);
-  const [ligneArticle, setLigneArticle] = useState<any[]>([]);
   const prixArticle = {
     pri_id: "",
     pri_article: "",
@@ -57,10 +57,19 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     remise: 0,
     datePeremption: "",
   };
+  const [ligneArticle, setLigneArticle] = useState<any[]>([]);
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
   const open = () => {
     setOpenModal(true);
   };
+  const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
+  const enumerationPaye: EnumerationOption[] = payementEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
   const [alert, setAlert] = useState({
     open: false,
     variant: "success" as "success" | "error" | "warning" | "info",
@@ -77,7 +86,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const [ligneErreurs, setLigneErreurs] = useState<{ [cle: string]: string }>(
     {},
   );
-
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const rechercherFrns = useCallback(async (code: string) => {
     if (!code.trim()) {
       setSuggestionsFrns([]);
@@ -97,6 +106,22 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
       console.error(err);
     }
   }, []);
+
+  const fetchPaye = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setpayementEnum(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
 
   const rechercherCF = useCallback(async (code: string) => {
     if (!code.trim()) {
@@ -155,25 +180,25 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     setField("codeCf", cmf.cmf_code);
 
     const lignes = (cmf.ligne || []).map((ligne: any) => ({
-      pri_id: "",
       pri_article: ligne.cmfl_Art_Code || "",
       pri_designation: ligne.art_nom || "",
       pri_quantite: ligne.cmfl_Quantite || 0,
       pri_pua: ligne.cmfl_PrixAchat ?? "",
       pri_tva: ligne.cmfl_Tva ?? 0.0,
       pri_totalht: ligne.cmfl_TotalHT ?? 0.0,
+      pri_id: ligne.cmfl_pri_id,
+      datePeremption: "",
     }));
-
+    setField("fournisseur", cmf.fournisseur.fou_nom);
+    setField("adresse", cmf.fournisseur.fou_adresse);
+    setField("contact1", cmf.fournisseur.fou_tel1);
+    setField("contact2", cmf.fournisseur.fou_tel2);
+    setField("modeCmd", cmf.fournisseur.fou_modepay);
+    setField("code_frns", cmf.fournisseur.fou_code);
     setLigneArticle(lignes);
 
     setShowCFSuggestions(false);
   };
-
-  const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espèce", label: "Espèce" },
-  ];
 
   //function ligne
   const handleLigneChange = (
@@ -312,20 +337,22 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     field: keyof (typeof ligneArticle)[number],
     value: string,
   ) => {
-    setLigneArticle((prev: any) =>
-      prev.map((ligne: any, i: any) => {
+    setLigneArticle((prev) =>
+      prev.map((ligne, i) => {
         if (i !== index) return ligne;
 
-        const pua = field === "pri_pua" ? Number(value) : Number(ligne.pri_pua);
-        const qte =
-          field === "pri_quantite" ? Number(value) : Number(ligne.pri_quantite);
-        const remise =
-          field === "remise" ? Number(value) : Number(ligne.remise);
-        return {
+        const nouvelleLigne = {
           ...ligne,
           [field]: value,
-          pri_totalht: pua * qte - pua * qte * (remise / 100),
         };
+
+        const pua = Number(nouvelleLigne.pri_pua) || 0;
+        const qte = Number(nouvelleLigne.pri_quantite) || 0;
+        const remise = Number(nouvelleLigne.remise) || 0;
+
+        nouvelleLigne.pri_totalht = pua * qte - (pua * qte * remise) / 100;
+
+        return nouvelleLigne;
       }),
     );
 
@@ -449,6 +476,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     e.preventDefault();
     try {
       const ligne_ok: boolean[] = [];
+      if (!values.modeCmd) values.modeCmd = "1";
       if (totalHT != 0) {
         const today = new Date().toISOString().split("T")[0];
         const res = await postData("/api/insert-database/", "t_entree", {
@@ -521,7 +549,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
             open: true,
             variant: "success",
             title: "Opération réussie",
-            message: "Retour fournisseur enregistrer avec succès",
+            message: "Livraison enregistrer avec succès",
           });
           reset();
           setLigneArticle([]);
@@ -552,8 +580,26 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_entree", false);
+    setLigneArticle([]);
+    setLigneEnCours({
+      pri_article: "",
+      pri_designation: "",
+      pri_pua: "",
+      pri_id: "",
+      datePeremption: "",
+      pri_quantite: 0,
+      pri_totalht: 0,
+      pri_tva: 0.0,
+      remise: 0,
+    });
+  };
+
   useEffect(() => {
     fetchCode("t_entree", false);
+    fetchPaye("MODE_PAY");
   }, [isOpen]);
 
   return (
@@ -727,7 +773,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                 <div>
                   <Label>Mode de paiement</Label>
                   <Select
-                    options={paiementOption}
+                    options={enumerationPaye}
                     onChange={(value) => setField("modeCmd", value)}
                     defaultValue="espèce"
                   ></Select>
@@ -737,7 +783,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium relative">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -749,7 +795,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                         {showSuggestions && suggestions.length > 0 && (
-                          <div className="absolute z-100 w-full bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                          <div className="absolute z-100 w-min-[50px] bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
                             {suggestions.map((article: any) => (
                               <div
                                 key={article.id}
@@ -757,14 +803,14 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                                 className="cursor-pointer px-3 py-2"
                               >
                                 <div className="text-xs text-gray-500">
-                                  {article.code}
+                                  {article.code} - {article.nom_article}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[220px] min-w-[220px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_designation"
@@ -775,7 +821,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[220px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -786,7 +832,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[220px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pua"
@@ -797,7 +843,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_tva"
@@ -808,7 +854,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="remise"
@@ -819,7 +865,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -830,7 +876,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="datePeremption"
@@ -1074,7 +1120,9 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>
