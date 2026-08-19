@@ -39,6 +39,8 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const [rowSuggestions, setRowSuggestions] = useState([]);
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [showBLSuggestions, setShowBLSuggestions] = useState(false);
+  const [BLSuggestions, setBLSuggestions] = useState([]);
   //ligne
   const [motif, setMotif] = useState<Option[]>();
   const articleRef = useRef<HTMLInputElement>(null);
@@ -107,19 +109,9 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
 
   const frnsChoisit = (frns: any) => {
     setField("fournisseur", frns.fou_nom);
-    setField("adresse", frns.fou_adresse);
-    setField("contact1", frns.fou_tel1);
-    setField("contact2", frns.fou_tel2);
-    setField("modeCmd", frns.fou_modepay);
     setField("code_frns", frns.fou_code);
     setShowSuggestionsFrns(false);
   };
-
-  const paiementOption: Option[] = [
-    { value: "mobile_money", label: "Mobile Money" },
-    { value: "virements", label: "Virements" },
-    { value: "espèce", label: "Espèce" },
-  ];
 
   //function ligne
   const handleLigneChange = (
@@ -252,6 +244,37 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     },
     [],
   );
+
+  const rechercherBL = useCallback(async (code: string) => {
+    if (!code.trim()) {
+      setBLSuggestions([]);
+      setShowBLSuggestions(false);
+      return;
+    }
+
+    try {
+      const query = new URLSearchParams();
+      query.set("search", code);
+      const res = await apiFetch(`/api/bl-autocomplete/?${query.toString()}`);
+      if (res.status) {
+        console.log(res.t_entree);
+        setBLSuggestions(res.t_entree);
+        setShowBLSuggestions(true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleBlChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    if (name === "codeBl") {
+      rechercherBL(value);
+      setField("codeBl", value);
+    }
+  };
 
   const modifierLigne = (
     index: number,
@@ -412,6 +435,28 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const BLChoisit = (bl: any) => {
+    setField("codeBl", bl.ent_code);
+
+    const lignes = (bl.ligne || []).map((ligne: any) => ({
+      pri_article: ligne.entl_Art_Code || "",
+      pri_designation: ligne.art_nom || "",
+      pri_quantite: ligne.entl_Quantite || 0,
+      pri_pua: ligne.entl_PrixAchat ?? "",
+      pri_tva: ligne.entl_Tva ?? 0.0,
+      pri_totalht: ligne.entl_TotalHT ?? 0.0,
+      pri_id: ligne.entl_pri_id,
+      remise: 0,
+      datePeremption: ligne.entl_dateper || "",
+    }));
+    setField("fournisseur", bl.fournisseur.fou_nom);
+    setField("code_frns", bl.fournisseur.fou_code);
+    setField("codeCf", bl.ent_cmf_code);
+    setLigneArticle(lignes);
+
+    setShowBLSuggestions(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -523,14 +568,33 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_retour_fournis", false);
+    setLigneArticle([]);
+    setLigneEnCours({
+      pri_article: "",
+      pri_designation: "",
+      pri_pua: "",
+      pri_id: "",
+      datePeremption: "",
+      pri_quantite: 0,
+      pri_totalht: 0,
+      pri_tva: 0.0,
+      remise: 0,
+    });
+  };
+
   useEffect(() => {
     fetchCode("t_retour_fournis", false);
     fetchMotif("RF_MOTIF");
+    setField("motif", "42");
   }, [isOpen]);
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
+        <NewFrns isOpen={openModal} onClose={close}></NewFrns>
         <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
@@ -555,15 +619,37 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                   />
                 </div>
                 <div>
-                  <Label>Code BL</Label>
-                  <Input
-                    type="text"
-                    value={values.codeBl}
-                    onChange={handleChange}
-                    name="codeBl"
-                    placeholder="Code bon de livraison"
-                    required={true}
-                  />
+                  <div>
+                    <Label>Code BL</Label>
+                    <div className="flex items-center w-full gap-2 flex-nowrap">
+                      <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
+                        <Input
+                          name="codeBl"
+                          type="text"
+                          value={values.codeBl}
+                          onChange={handleBlChange}
+                          required={true}
+                          placeholder="Code Bon de livraison"
+                          className="w-full bg-transparent placeholder-white/70 outline-none"
+                        />
+                      </div>
+                    </div>
+                    {showBLSuggestions && BLSuggestions.length > 0 && (
+                      <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                        {BLSuggestions.map((bl: any) => (
+                          <div
+                            key={bl.ent_id}
+                            onClick={() => BLChoisit(bl)}
+                            className="cursor-pointer px-3 py-2"
+                          >
+                            <div className="text-xs text-gray-500">
+                              {bl.ent_code}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label>Code CF</Label>
@@ -598,7 +684,6 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                         +
                       </Button>
                     </div>
-                    <NewFrns isOpen={openModal} onClose={close}></NewFrns>
                   </div>
                   {showSuggestionFrns && suggestionFrns.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
@@ -645,18 +730,6 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                     placeholder="Observation"
                     value={values.observation}
                     onChange={(value) => setField("observation", value)}
-                    className="w-full"
-                  ></TextArea>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
-                <div>
-                  <Label>Designation</Label>
-                  <TextArea
-                    name="designation"
-                    placeholder="Designation"
-                    value={values.designation}
-                    onChange={(value) => setField("designation", value)}
                     className="w-full"
                   ></TextArea>
                 </div>
@@ -1002,7 +1075,9 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>

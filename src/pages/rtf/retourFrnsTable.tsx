@@ -488,7 +488,7 @@ export default function RetourFrnsTable() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                  Entrée {selectedEntree.rtf_code}
+                  Retour fournisseur {selectedEntree.rtf_code}
                 </h2>
                 <button
                   onClick={() => setSelectedEntree(null)}

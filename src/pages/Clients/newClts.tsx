@@ -12,7 +12,7 @@ import { CSSProperties } from "react";
 import { Option } from "../../components/form/Select";
 import { useEffect } from "react";
 import { apiFetch } from "../../services/api";
-import { generateReference } from "../../services/codeService";
+import Alert from "../../components/ui/alert/Alert";
 
 interface newCltProps {
   isOpen: boolean;
@@ -26,6 +26,12 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
   const [typeCLient, setTypeClient] = useState<Option[]>([]);
   const [modepay, setModePay] = useState<Option[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
   const { values, handleChange, setField, reset } = useForm({
     code: "",
     denomination: "",
@@ -126,10 +132,14 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
     setOnSubmutCliked(onSubmitClick + 1);
     try {
       if (
-        !values.denomination &&
-        isFormEmpty(values, ["code", "denomination"])
+        !values.denomination
       ) {
-        setSendError("Veuiller au moins remplir le champs denomination");
+        setAlert({
+          open: true,
+          variant: "error",
+          title: `Une erreur est survenue`,
+          message: "Le champs denomination doit être au moins remplis",
+        });
         return;
       }
       const res = await postData("/api/insert-database/", "t_client", {
@@ -147,20 +157,37 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
       });
       if (res.status) {
         fetchCode("t_client", true);
-        alert("Client enregistré");
+        setAlert({
+          open: true,
+          variant: "success",
+          title: `Notification`,
+          message: `Client ${values.denomination} enrigistrer avec succès`,
+        });
         reset();
       } else {
-        setSendError(res.error);
+        setAlert({
+          open: true,
+          variant: "error",
+          title: `Une erreur est survenue`,
+          message: `${res.message}`,
+        });
       }
     } catch (err) {
       console.error(err);
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_client", false);
+  };
+
   useEffect(() => {
     fetchCode("t_client", false);
     fetchTypeClient("TYPE_CLT");
     fetchModePay("MODE_PAY");
+    setField("paiement", "1");
+    setField("type_client", "85");
   }, [isOpen]);
 
   return (
@@ -264,7 +291,7 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
                   />
                 </div>
                 <div style={styleForm}>
-                  <div className="col-span-2 w-100">
+                  <div className="col-span-2 w-full lg:col-span-1">
                     <Label>Type de client</Label>
                     <Select
                       options={typeOptions}
@@ -272,7 +299,7 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
                       defaultValue="29"
                     />
                   </div>
-                  <div className="col-span-2 w-100">
+                  <div className="col-span-2 w-full lg:col-span-1">
                     <Label>Paiments</Label>
                     <Select
                       options={modePayOptions}
@@ -286,14 +313,38 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
           </div>
           <div className="flex items-center gap-3 px-2 mt-6 lg:justify-between">
             <span className="text-red-600">{sendError}</span>
-            <div>
-              <Button size="sm" type="submit">
+            <div className="flex justify-center w-full">
+              <Button size="sm" type="submit" className="mr-2">
                 Sauvegarder
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                type="submit"
+                className="ml-2"
+                onClick={clear}
+              >
+                Tout effacer
               </Button>
             </div>
           </div>
         </form>
       </div>
+      <Alert
+        open={alert.open}
+        variant={alert.variant}
+        title={alert.title}
+        message={alert.message}
+        showLink={false}
+        onClose={() =>
+          setAlert({
+            open: false,
+            variant: alert.variant,
+            message: alert.message,
+            title: alert.title,
+          })
+        }
+      />
     </Modal>
   );
 };

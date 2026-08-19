@@ -7,7 +7,6 @@ import Input from "../../components/form/input/InputField";
 import PhoneInput from "react-phone-number-input";
 import Select from "../../components/form/Select";
 import Button from "../../components/ui/button/Button";
-import { Option } from "../../components/form/Select";
 import Alert from "../../components/ui/alert/Alert";
 import { apiFetch } from "../../services/api";
 import { Enumeration } from "../../interfaces/interfaces";

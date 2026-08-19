@@ -37,7 +37,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     operateur: "",
     designation: "",
     code_cli: "",
-    dateEcheance: null,
+    dateEcheance: "",
     date_vente: "",
     bl: "",
   });
@@ -553,12 +553,49 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const getDateEcheance = (value: string) => {
+    if (!value) return;
+    setField("payeClient", value);
+    const echeance = payeClt?.find((item) => item.value == value)?.label;
+    const len_date = echeance?.split(" ");
+    if (len_date) {
+      try {
+        const jour = parseInt(len_date[1]);
+        const date = new Date();
+        date.setDate(date.getDate() + jour);
+        setField("dateEcheance", date.toISOString().split("T")[0]);
+      } catch (error: any) {
+        console.log(`${error}`);
+      }
+    }
+  };
+
+  const clear = () => {
+    reset();
+    setField("modePaye", "1");
+    setField("payeClient", "16");
+    setLigneArticle([]);
+    setLigneEnCours({
+      datePeremption: "",
+      pri_article: "",
+      pri_designation: "",
+      pri_id: "",
+      pri_pua: "",
+      pri_quantite: 0,
+      pri_totalht: 0,
+      pri_tva: 0,
+      remise: 0,
+    });
+    fetchCode("t_vente", false);
+  };
+
   useEffect(() => {
     fetchCode("t_vente", false);
     fetchModePaye("MODE_PAY");
     fetchPayeClt("PAYE_CLIENT");
     setField("payeClient", "16");
     setField("modePaye", "1");
+    setField("dateEcheance", "12-05-2026");
   }, [isOpen]);
 
   return (
@@ -691,7 +728,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                   <Label>Paiement client</Label>
                   <Select
                     options={payeClt}
-                    onChange={(value) => setField("payeClient", value)}
+                    onChange={(value) => getDateEcheance(value)}
                     defaultValue="16"
                   />
                 </div>
@@ -1098,7 +1135,9 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>

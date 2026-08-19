@@ -21,7 +21,7 @@ const Alert: React.FC<AlertProps> = ({
   linkHref = "#",
   linkText = "Learn more",
   open = true,
-  duration = 4000,
+  duration = 2000,
   onClose,
 }) => {
   // Tailwind classes for each variant

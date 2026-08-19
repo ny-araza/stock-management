@@ -8,7 +8,6 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import Button from "../../../components/ui/button/Button";
 import NewFrns from "../../Fournisseurs/newFrns";
 import Select from "../../../components/form/Select";
-import { Option } from "../../../components/form/Select";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
