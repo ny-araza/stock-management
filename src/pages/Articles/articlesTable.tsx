@@ -36,10 +36,8 @@ import {
 } from "ag-grid-community";
 import { SelectField } from "../../components/form/form-elements/inputSearch";
 import { Dropdown } from "../../components/ui/dropdown/Dropdown";
+import Alert from "../../components/ui/alert/Alert";
 
-// export default function articlesTable()
-// Champs numeriques cote backend (django_filters.NumberFilter)
-// -> on evite d'ajouter "icontains", on envoie la valeur brute.
 const NUMBER_FIELDS = new Set(["art_enabled", "art_stockable"]);
 
 // Champs date cote backend (DateFilter / DateTimeFilter)
@@ -194,94 +192,7 @@ function buildFilterParams(filterModel: Record<string, any>): URLSearchParams {
       model &&
       typeof model === "object" &&
       "granularity" in model
-    ) {// import React, { useMemo, useState } from "react";
-    // import { Search } from "lucide-react";
-    // import { StockArticle, getNiveauStock } from "./types";
-    // import { ArticleStockCard } from "./ArticleStockCard";
-    
-    // interface StockOverviewPanelProps {
-    //   articles: StockArticle[];
-    //   title?: string;
-    // }
-    
-    // const ORDRE_NIVEAU: Record<string, number> = {
-    //   critique: 0,
-    //   faible: 1,
-    //   normal: 2,
-    //   excedent: 3,
-    // };
-    
-    // /**
-    //  * Vue d'ensemble de l'état du stock : une seule barre de recherche
-    //  * (pas de filtres ni boutons compliqués), les articles les plus
-    //  * critiques remontent automatiquement en haut de la liste.
-    //  *
-    //  * Usage :
-    //  * <StockOverviewPanel articles={articles} />
-    //  */
-    // export function StockOverviewPanel({
-    //   articles,
-    //   title = "État du stock",
-    // }: StockOverviewPanelProps) {
-    //   const [recherche, setRecherche] = useState("");
-    
-    //   const articlesFiltres = useMemo(() => {
-    //     const terme = recherche.trim().toLowerCase();
-    //     const filtres = terme
-    //       ? articles.filter(
-    //           (a) =>
-    //             a.article_table.art_nom.toLowerCase().includes(terme) ||
-    //             a.stk_art_code?.toLowerCase().includes(terme),
-    //         )
-    //       : articles;
-    
-    //     return [...filtres].sort(
-    //       (a, b) =>
-    //         ORDRE_NIVEAU[getNiveauStock(a)] - ORDRE_NIVEAU[getNiveauStock(b)],
-    //     );
-    //   }, [articles, recherche]);
-    
-    //   const nbASurveiller = useMemo(
-    //     () =>
-    //       articles.filter((a) => {
-    //         const niveau = getNiveauStock(a);
-    //         return niveau === "critique" || niveau === "faible";
-    //       }).length,
-    //     [articles],
-    //   );
-    
-    //   return (
-    //     <div className="w-full">
-    //       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    //         <div className="relative">
-    //           <Search
-    //             size={16}
-    //             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-    //           />
-    //           <input
-    //             type="text"
-    //             value={recherche}
-    //             onChange={(e) => setRecherche(e.target.value)}
-    //             placeholder="Rechercher un article..."
-    //             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none sm:w-64"
-    //           />
-    //         </div>
-    //       </div>
-    
-    //       <div className="flex flex-col gap-2">
-    //         {articlesFiltres.length === 0 ? (
-    //           <p className="py-8 text-center text-sm text-slate-400">
-    //             Aucun article ne correspond à votre recherche.
-    //           </p>
-    //         ) : (
-    //           articlesFiltres.map((article) => (
-    //             <ArticleStockCard key={article.stk_id} article={article} />
-    //           ))
-    //         )}
-    //       </div>
-    //     </div>
-    //   );
-    // }
+    ) {
       const { granularity, value } = model as DateGranularityModel;
       if (!value) return;
 
@@ -316,6 +227,7 @@ export default function ArticleTable() {
   const [isDark, setIsDark] = useState(
     document.documentElement.classList.contains("dark"),
   );
+
   interface Enumeration {
     enu_id: number;
     enu_nom: string;
@@ -331,7 +243,12 @@ export default function ArticleTable() {
     useState<SousFamilleOption | null>(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
   function toggleDropdown() {
     setIsDropdownOpen(!isDropdownOpen);
   }
@@ -404,15 +321,11 @@ export default function ArticleTable() {
     pri_marge: "",
     pri_vte: "",
     pri_tva: "",
-    pri_nbcolis: "",
+    pri_nbcolis: "1",
   };
   const [ligneArticle, setLigneAticle] = useState<any[]>([]);
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
 
-  // const handleLigneChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setLigneEnCours((prev) => ({ ...prev, [name]: value }));
-  // };
   const handleLigneChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -767,7 +680,6 @@ export default function ArticleTable() {
     e.preventDefault();
     setOnSubmutCliked(onSubmitClick + 1);
     try {
-      console.log(ligneArticle);
       if (
         !values.code ||
         !values.designation ||
@@ -775,9 +687,13 @@ export default function ArticleTable() {
         !selectedSousFamille ||
         !values.stockMini
       ) {
-        setSendError(
-          "Les champs suivant sont requis: Code, designation, famille/sousfamille, stockmini",
-        );
+        setAlert({
+          open: true,
+          message:
+            "Les champs suivant sont requis: Code, designation, famille/sousfamille, stockmini",
+          title: "Une erreur s'est produit",
+          variant: "error",
+        });
         return;
       }
 
@@ -797,7 +713,7 @@ export default function ArticleTable() {
       });
 
       ligneArticle.map((value) => {
-        postData("/api/create-client-fournis/", "t_prix", {
+        postData("/api/insert-database/", "t_prix", {
           pri_enabled: 1,
           pri_vte: value.pri_vte,
           pri_achat: value.pri_achat,
@@ -805,13 +721,18 @@ export default function ArticleTable() {
           pri_marge: value.pri_marge,
           pri_tauxmarge: value.pri_tauxmarge,
           pri_tva: value.pri_tva,
-          pri_unitevente: value.pri_unitevente,
-          pri_nbcolis: value.pri_nbcolis,
+          pri_unitevente: value.pri_unitevente ? value.pri_unitevente : "Pièce",
+          pri_nbcolis: value.pri_nbcolis || "1",
         });
       });
 
       if (res.status) {
-        alert("Client enregistré");
+        setAlert({
+          open: true,
+          title: "Notification",
+          message: `Article ${values.code} enregistrer`,
+          variant: "success",
+        });
         reset();
         setSelectedFamille(null);
         setSelectedSousFamille(null);
@@ -819,7 +740,12 @@ export default function ArticleTable() {
           supprimerLigne(key);
         });
       } else {
-        setSendError(res.error);
+        setAlert({
+          open: true,
+          title: "Une erreur s'est produit",
+          message: `${res.message}`,
+          variant: "error",
+        });
       }
     } catch (err) {
       console.error(err);
@@ -836,9 +762,19 @@ export default function ArticleTable() {
         fam_enabled: 1,
       });
       if (res.status) {
-        alert("Famille enregistré");
+        setAlert({
+          open: true,
+          title: "Notification",
+          message: "Article enregistrer avec succès",
+          variant: "success",
+        });
       } else {
-        setSendError(res.error);
+        setAlert({
+          open: true,
+          message: res.error,
+          title: "Une erreur survenue",
+          variant: "error",
+        });
       }
     } catch (error) {
       console.error(error);
@@ -863,9 +799,19 @@ export default function ArticleTable() {
         },
       );
       if (res.status) {
-        alert("SousFamille enregistré");
+        setAlert({
+          open: true,
+          title: "Notification",
+          message: `${res.error}`,
+          variant: "success",
+        });
       } else {
-        setSendError(res.error);
+        setAlert({
+          open: true,
+          message: res.error,
+          title: "Une erreur survenue",
+          variant: "error",
+        });
       }
     } catch (error) {
       console.error(error);
@@ -1070,7 +1016,7 @@ export default function ArticleTable() {
                               code: e.target.value,
                             }))
                           }
-                          className="mb-3 w-full rounded border px-3 py-2"
+                          className="mb-3 w-full rounded border px-3 py-2 dark:text-white"
                         />
                         <input
                           type="text"
@@ -1082,7 +1028,7 @@ export default function ArticleTable() {
                               nom: e.target.value,
                             }))
                           }
-                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800"
+                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800 dark:text-white"
                         />
                         <Button
                           title="ajouter nouveau famille"
@@ -1130,7 +1076,7 @@ export default function ArticleTable() {
                               code: e.target.value,
                             }))
                           }
-                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800"
+                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800 dark:text-white"
                         />
                         <input
                           type="text"
@@ -1142,7 +1088,7 @@ export default function ArticleTable() {
                               nom: e.target.value,
                             }))
                           }
-                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800"
+                          className="mb-3 w-full rounded border px-3 py-2 dark:bg-gray-800 dark:text-white"
                         />
                         <Button
                           title="ajouter nouveau sous famille"
@@ -1179,7 +1125,7 @@ export default function ArticleTable() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-brand-500 text-white">
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                             <select
                               name="pri_unitevente"
                               value={ligneEnCours.pri_unitevente}
@@ -1196,7 +1142,7 @@ export default function ArticleTable() {
                               ))}
                             </select>
                           </th>
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                             <input
                               name="pri_achat"
 
@@ -1207,7 +1153,7 @@ export default function ArticleTable() {
                               className="w-full bg-transparent placeholder-white/70 outline-none"
                             />
                           </th>
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                             <input
                               name="pri_tauxmarge"
 
@@ -1218,7 +1164,7 @@ export default function ArticleTable() {
                               className="w-full bg-transparent placeholder-white/70 outline-none"
                             />
                           </th>
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                             <input
                               name="pri_marge"
 
@@ -1229,7 +1175,7 @@ export default function ArticleTable() {
                               className="w-full bg-transparent placeholder-white/70 outline-none"
                             />
                           </th>
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                             <input
                               name="pri_vte"
 
@@ -1240,7 +1186,7 @@ export default function ArticleTable() {
                               className="w-full bg-transparent placeholder-white/70 outline-none"
                             />
                           </th>
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                             <input
                               name="pri_tva"
                               placeholder="TVA"
@@ -1250,7 +1196,7 @@ export default function ArticleTable() {
                               className="w-full bg-transparent placeholder-white/70 outline-none"
                             />
                           </th>
-                          <th className="p-2 text-left font-medium">
+                          <th className="w-[30px] min-w-[30px] p-2 text-left font-medium">
                             <input
                               name="pri_nbcolis"
 
@@ -1288,7 +1234,7 @@ export default function ArticleTable() {
                           <tr>
                             <td
                               colSpan={8}
-                              className="p-4 text-center text-gray-500 dark:text-gray-400"
+                              className="p-4 text-center text-gray-500 dark:text-white"
                             >
                               Aucun contenu dans la table
                             </td>
@@ -1297,7 +1243,7 @@ export default function ArticleTable() {
                           ligneArticle.map((ligne, index) => (
                             <tr
                               key={index}
-                              className="border-t border-gray-100 dark:border-gray-800"
+                              className="border-t border-gray-100 dark:border-gray-800 dark:text-white"
                             >
                               <td className="p-2">
                                 <select
@@ -1309,7 +1255,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 >
                                   {enumeration.map((item) => (
                                     <option
@@ -1332,7 +1278,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
                               </td>
 
@@ -1346,7 +1292,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
                               </td>
 
@@ -1360,7 +1306,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
                               </td>
 
@@ -1374,7 +1320,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
                               </td>
 
@@ -1388,7 +1334,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
                               </td>
 
@@ -1402,7 +1348,7 @@ export default function ArticleTable() {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                                  className="w-full rounded border border-gray-300 dark:text-white dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                                 />
                               </td>
                               <td className="p-2 text-center">
@@ -1426,14 +1372,32 @@ export default function ArticleTable() {
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-between">
               <span className="text-red-600">{sendError}</span>
-              <div>
-                <Button size="sm" type="submit">
+              <div className="flex justify-center w-full">
+                <Button className="mr-2" size="sm" type="submit">
                   Sauvegarder
+                </Button>
+                <Button variant="outline" size="sm" type="submit">
+                  Tout effacer
                 </Button>
               </div>
             </div>
           </form>
         </div>
+        <Alert
+          open={alert.open}
+          variant={alert.variant}
+          title={alert.title}
+          message={alert.message}
+          showLink={false}
+          onClose={() =>
+            setAlert({
+              open: false,
+              variant: alert.variant,
+              message: alert.message,
+              title: alert.title,
+            })
+          }
+        />
       </Modal>
     </>
   );

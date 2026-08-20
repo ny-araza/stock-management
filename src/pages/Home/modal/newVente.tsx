@@ -168,8 +168,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     // évite d'ajouter une ligne totalement vide
     const estVide = Object.values(ligneEnCours).every((v) => v === "");
     if (estVide) return;
-
-    if (ligneErreurs["nouvelle"]) {
+    if (ligneEnCours.pri_quantite <= 0 || ligneErreurs["nouvelle"]) {
       setAlert({
         open: true,
         variant: "error",
@@ -253,7 +252,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
         (total: number, lot: any) => total + Number(lot.lot_qte || 0),
         0,
       );
-
+      console.log(quantiteStock);
       setStockDisponible((prev) => ({
         ...prev,
         [codeArticle]: quantiteStock,
@@ -295,22 +294,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
-  // const choisirArticle = async (article: any) => {
-  //   const oldStock = await getOldStock(article.code);
-
-  //   setLigneEnCours((prev: any) => ({
-  //     ...prev,
-  //     pri_article: article.code,
-  //     pri_id: article.id,
-  //     pri_pua: article.prix_vte,
-  //     pri_designation: article.nom_article,
-  //     datePeremption: article.lots?.lot_dateper || "",
-  //     lot_code: article.lots?.lot_code || "",
-  //   }));
-
-  //   setSuggestions([]);
-  //   setShowSuggestions(false);
-  // };
 
   const choisirArticle = async (article: any) => {
     const oldStock = await getOldStock(article.code);
@@ -507,36 +490,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
   const totalTTC = totalHT + totalTVA;
 
-  // useEffect(() => {
-  //   const nouvellesErreurs: { [cle: string]: string } = {};
-
-  //   // ligne en cours de saisie
-  //   if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
-  //     const stock = stockDisponible[ligneEnCours.pri_article];
-  //     const qte = Number(ligneEnCours.pri_quantite);
-  //     if (stock !== undefined && qte > stock) {
-  //       nouvellesErreurs["nouvelle"] =
-  //         `Stock insuffisant (disponible : ${stock})`;
-  //     }
-  //   }
-
-  //   // lignes déjà ajoutées dans le tableau
-  //   ligneArticle.forEach((ligne, index) => {
-  //     const stock = stockDisponible[ligne.pri_article];
-  //     const qte = Number(ligne.pri_quantite);
-  //     if (stock !== undefined && qte > stock) {
-  //       nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
-  //     }
-  //   });
-
-  //   setLigneErreurs(nouvellesErreurs);
-  // }, [
-  //   ligneEnCours.pri_article,
-  //   ligneEnCours.pri_quantite,
-  //   ligneArticle,
-  //   stockDisponible,
-  // ]);
-
   useEffect(() => {
     const nouvellesErreurs: { [cle: string]: string } = {};
 
@@ -722,8 +675,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               await postData("/api/insert-database/", "t_stock", {
                 stk_quantite:
                   Number(
-                    lots.find((l) => l.lot_code === alloc.lot_code)
-                      ?.lot_qte ?? 0,
+                    lots.find((l) => l.lot_code === alloc.lot_code)?.lot_qte ??
+                      0,
                   ) - alloc.quantitePrise,
                 stk_pri_id: value.pri_id,
                 stk_art_code: value.pri_article,
@@ -1170,6 +1123,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
+                          required
                           value={ligneEnCours.pri_quantite}
                           onChange={handleLigneChange}
                           onKeyDown={handleLigneKeyDown}

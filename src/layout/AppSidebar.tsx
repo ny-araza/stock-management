@@ -1,22 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faBox, faBriefcase, faCartShopping, faHandshakeSimple, faHome, faUser } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowLeft,
+  faBox,
+  faBriefcase,
+  faHandshakeSimple,
+  faHome,
+} from "@fortawesome/free-solid-svg-icons";
 
 // Assume these icons are imported from an icon library
-import {
-  ChevronDownIcon,
-  HorizontaLDots,
-  PieChartIcon,
-} from "../icons";
+import { ChevronDownIcon, HorizontaLDots, PieChartIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
+import { useAuth } from "../services/authLogin";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  subItems?: {
+    code: number;
+    name: string;
+    path: string;
+    pro?: boolean;
+    new?: boolean;
+  }[];
 };
 
 const navItems: NavItem[] = [
@@ -29,43 +38,48 @@ const navItems: NavItem[] = [
     name: "Commerciale",
     icon: <FontAwesomeIcon icon={faBriefcase} />,
     subItems: [
-      { name: "Ventes", path: "/ventes", pro: false },
-      { name: "Commande fournisseurs", path: "/bc", pro: false },
-      { name: "Livraison fournisseurs", path: "/liv-frns", pro: false },
+      { code: 200, name: "Ventes", path: "/ventes", pro: false },
+      { code: 201, name: "Commande fournisseurs", path: "/bc", pro: false },
+      {
+        code: 202,
+        name: "Livraison fournisseurs",
+        path: "/liv-frns",
+        pro: false,
+      },
     ],
   },
   {
     name: "Retour",
     icon: <FontAwesomeIcon icon={faArrowLeft} />,
     subItems: [
-      { name: "Retour fournisseur", path: "/rtf", pro: false },
-      { name: "Retour client", path: "/rtc", pro: false },
+      { code: 203, name: "Retour fournisseur", path: "/rtf", pro: false },
+      { code: 204, name: "Retour client", path: "/rtc", pro: false },
     ],
   },
   {
     name: "Tiers",
     icon: <FontAwesomeIcon icon={faHandshakeSimple} />,
     subItems: [
-      { name: "Fournisseurs", path: "/fournisseurs", pro: false },
-      { name: "Clients", path: "/clients", pro: false },
+      { code: 205, name: "Fournisseurs", path: "/fournisseurs", pro: false },
+      { code: 206, name: "Clients", path: "/clients", pro: false },
     ],
   },
   {
     name: "Stock",
     icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
-      { name: "Articles", path: "/articles", pro: false },
-      { name: "Entree en stock", path: "/entree", pro: false },
-      { name: "Sortie en stock", path: "/sortie", pro: false },
-      { name: "Etat de stock", path: "/stock", pro: false },
-      { name: "Mouvement de stock", path: "/mvt-stock", pro: false },
+      { code: 207, name: "Articles", path: "/articles", pro: false },
+      { code: 208, name: "Entree en stock", path: "/entree", pro: false },
+      { code: 209, name: "Sortie en stock", path: "/sortie", pro: false },
+      { code: 210, name: "Etat de stock", path: "/stock", pro: false },
+      { code: 211, name: "Mouvement de stock", path: "/mvt-stock", pro: false },
     ],
   },
   {
     name: "Caisse",
     icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
-      { name: "Arrêt de caisse", path: "/entree", pro: false },
+      { code: 212, name: "Arrêt de caisse", path: "/entree", pro: false },
     ],
   },
 ];
@@ -75,8 +89,8 @@ const othersItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Rapport",
     subItems: [
-      { name: "Statistiques", path: "#", pro: false },
-      { name: "Caisse", path: "#", pro: false },
+      { code: 213, name: "Statistiques", path: "#", pro: false },
+      { code: 214, name: "Caisse", path: "#", pro: false },
     ],
   },
 ];
@@ -99,6 +113,7 @@ const AppSidebar: React.FC = () => {
     (path: string) => location.pathname === path,
     [location.pathname],
   );
+  const { user, authorisation } = useAuth();
 
   useEffect(() => {
     let submenuMatched = false;
@@ -135,6 +150,12 @@ const AppSidebar: React.FC = () => {
       }
     }
   }, [openSubmenu]);
+
+  useEffect(() => {
+    if (isExpanded) {
+      console.log("User :", authorisation);
+    }
+  }, [isExpanded, user]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setOpenSubmenu((prevOpenSubmenu) => {
