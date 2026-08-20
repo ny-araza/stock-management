@@ -15,6 +15,7 @@ import ValidationChoiceModal from "./utils/ValidationChoiceModal";
 import { generateDocumentPDF, DocumentData } from "./utils/generateDocumentPDF";
 import { ValueService } from "ag-grid-community";
 import { montantEnLettres } from "./utils/numberToWords";
+import { getStockSortable, LotStock } from "./utils/stockUtils";
 
 interface newVente {
   isOpen: boolean;
@@ -57,7 +58,9 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
   const [showValidationChoice, setShowValidationChoice] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [proCode, setProCode] = useState("");
-  //ligne
+  const [lotsParArticle, setLotsParArticle] = useState<{
+    [code: string]: LotStock[];
+  }>({});
   const articleRef = useRef<HTMLInputElement>(null);
   const [ligneArticle, setLigneArticle] = useState<any[]>([]);
   const prixArticle = {
@@ -182,6 +185,18 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     });
   };
 
+  const estPerime = (datePeremption: string) => {
+    if (!datePeremption) return false;
+
+    const aujourdHui = new Date();
+    aujourdHui.setHours(0, 0, 0, 0);
+
+    const datePeremptionObj = new Date(datePeremption);
+    datePeremptionObj.setHours(0, 0, 0, 0);
+
+    return datePeremptionObj < aujourdHui;
+  };
+
   const getOldStock = async (codeArticle: string) => {
     try {
       const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
@@ -194,6 +209,29 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       return 0;
     }
   };
+
+  // const getOldStock = async (codeArticle: string) => {
+  //   try {
+  //     const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
+  //     const lots: LotStock[] = res?.lots ?? [];
+
+  //     setLotsParArticle((prev) => ({ ...prev, [codeArticle]: lots }));
+
+  //     // Stock "sortable" = uniquement les lots avec >= 7 jours avant péremption
+  //     const quantiteSortable = getStockSortable(lots, 7);
+
+  //     setStockDisponible((prev) => ({
+  //       ...prev,
+  //       [codeArticle]: quantiteSortable,
+  //     }));
+
+  //     return quantiteSortable;
+  //   } catch (error: any) {
+  //     console.error(error);
+  //     setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
+  //     return 0;
+  //   }
+  // };
 
   const handleStock = async (stk: any) => {
     try {
@@ -318,6 +356,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       console.error(error);
     }
   };
+
   const fetchPayeClt = async (enu_code: string) => {
     try {
       const query = new URLSearchParams();
@@ -447,123 +486,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   try {
-  //     const ligne_ok: boolean[] = [];
-  //     if (totalHT != 0) {
-  //       const today = new Date().toISOString().split("T")[0];
-  //       const res = await postData("/api/insert-database/", "t_vente", {
-  //         vte_code: values.pieces,
-  //         vte_date: today,
-  //         vte_modepaye: values.modePaye,
-  //         vte_montant_ht: parseInt(totalHT),
-  //         vte_montant_ttc: parseInt(totalTTC),
-  //         vte_tva: parseInt(totalTVA),
-  //         vte_cli_code: values.code_cli,
-  //         vte_cli_nom: values.client,
-  //         vte_cli_contact: values.contact1,
-  //         vte_payeclient: values.payeClient,
-  //         vte_datepay: today,
-  //         vte_telmoney: values.telMoney,
-  //         vte_valide: "0",
-  //         vte_datevalide: today,
-  //         vte_paye: "0",
-  //         vte_livreur: values.livreur,
-  //         vet_operateur: values.operateur,
-  //         vte_lettremontant: "test",
-  //         ve_dateecheance: values.dateEcheance || today,
-  //         ve_code_bl: values.bl,
-  //         ve_adresse_liv: values.adresse,
-  //       });
-  //       if (res.status) {
-  //         ligneArticle.map(async (value) => {
-  //           const send = await postData(
-  //             "/api/insert-database/",
-  //             "t_ligne_vente",
-  //             {
-  //               vtel_quantite: value.pri_quantite,
-  //               vtel_pri_id: value.pri_id,
-  //               vtel_vte_code: values.pieces,
-  //               vtel_prixunit: value.pri_pua,
-  //               vtel_tva: value.pri_tva,
-  //               vtel_ht: value.pri_totalht,
-  //               vtel_art_code: value.pri_article,
-  //               vtel_cli_code: values.code_cli,
-  //               vtel_ttc: (
-  //                 parseInt(value.pri_totalht) +
-  //                 (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
-  //               ).toFixed(2),
-  //               vtel_lot_dateper: value.datePeremption,
-  //               vtel_remise: value.remise ? value.remise : "0",
-  //             },
-  //           );
-
-  //           handleCreateMvtStock({
-  //             code_org: values.pieces,
-  //             date: today,
-  //             lot_code: value.datePeremption,
-  //             origine: "t_vente",
-  //             pri_id: value.pri_id,
-  //             qte: value.pri_quantite,
-  //             art_code: value.pri_article,
-  //           });
-  //           handleStock({
-  //             quantite: value.pri_quantite,
-  //             pri_id: value.pri_id,
-  //             date: today,
-  //             lot_code: value.datePeremption,
-  //             article: value.pri_article,
-  //           });
-  //           if (send.status) {
-  //             ligne_ok.push(true);
-  //           } else ligne_ok.push(false);
-  //         });
-  //       } else {
-  //         setAlert({
-  //           open: true,
-  //           message: res.error,
-  //           title: "Une erreur survenue",
-  //           variant: "error",
-  //         });
-  //         return;
-  //       }
-  //       if (!ligne_ok.find((val) => val == false)) {
-  //         fetchCode("t_vente", true);
-  //         setAlert({
-  //           open: true,
-  //           variant: "success",
-  //           title: "Opération réussie",
-  //           message: "Livraison fournisseur enregistrer avec succès",
-  //         });
-  //         reset();
-  //         setLigneArticle([]);
-  //         return;
-  //       } else {
-  //         setAlert({
-  //           open: true,
-  //           variant: "error",
-  //           title: "Une erreur est survenue",
-  //           message: "Erreur lors de l'enregistrement dans la base de donnée",
-  //         });
-  //       }
-  //     }
-
-  //     setAlert({
-  //       open: true,
-  //       message: "Vous avez laisser un (des) champ(s) vide(s)",
-  //       title: "Une erreur survenue",
-  //       variant: "error",
-  //     });
-  //   } catch (error: any) {
-  //     setAlert({
-  //       open: true,
-  //       message: `${error.error}`,
-  //       title: "Une erreur survenue",
-  //       variant: "error",
-  //     });
-  //   }
-  // };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (totalHT === 0) {
@@ -639,6 +561,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               qte: value.pri_quantite,
               art_code: value.pri_article,
             });
+
             handleStock({
               quantite: value.pri_quantite,
               pri_id: value.pri_id,
@@ -646,6 +569,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               lot_code: value.datePeremption,
               article: value.pri_article,
             });
+
             if (send.status) {
               ligne_ok.push(true);
             } else ligne_ok.push(false);
@@ -1328,11 +1252,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                               type="text"
                               value={ligne.lot_code}
                               onChange={(e) =>
-                                modifierLigne(
-                                  index,
-                                  "lot_code",
-                                  e.target.value,
-                                )
+                                modifierLigne(index, "lot_code", e.target.value)
                               }
                               className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                             />

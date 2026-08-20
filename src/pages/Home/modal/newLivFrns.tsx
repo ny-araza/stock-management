@@ -54,7 +54,9 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     pri_tva: 0.0,
     pri_totalht: 0.0,
     remise: 0,
+    lot_code: "",
     datePeremption: "",
+    old_stock: "",
   };
   const [ligneArticle, setLigneArticle] = useState<any[]>([]);
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
@@ -175,25 +177,36 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     setShowSuggestionsFrns(false);
   };
 
-  const cfChoisit = (cmf: any) => {
+  const cfChoisit = async (cmf: any) => {
     setField("codeCf", cmf.cmf_code);
 
-    const lignes = (cmf.ligne || []).map((ligne: any) => ({
-      pri_article: ligne.cmfl_Art_Code || "",
-      pri_designation: ligne.art_nom || "",
-      pri_quantite: ligne.cmfl_Quantite || 0,
-      pri_pua: ligne.cmfl_PrixAchat ?? "",
-      pri_tva: ligne.cmfl_Tva ?? 0.0,
-      pri_totalht: ligne.cmfl_TotalHT ?? 0.0,
-      pri_id: ligne.cmfl_pri_id,
-      datePeremption: "",
-    }));
-    setField("fournisseur", cmf.fournisseur.fou_nom);
-    setField("adresse", cmf.fournisseur.fou_adresse);
-    setField("contact1", cmf.fournisseur.fou_tel1);
-    setField("contact2", cmf.fournisseur.fou_tel2);
-    setField("modeCmd", cmf.fournisseur.fou_modepay);
-    setField("code_frns", cmf.fournisseur.fou_code);
+    const lignes = await Promise.all(
+      (cmf.ligne || []).map(async (ligne: any) => {
+        const oldStock = await getOldStock(ligne.cmfl_Art_Code);
+
+        return {
+          pri_article: ligne.cmfl_Art_Code || "",
+          pri_designation: ligne.art_nom || "",
+          pri_quantite: ligne.cmfl_Quantite || 0,
+          pri_pua: ligne.cmfl_PrixAchat ?? "",
+          pri_tva: ligne.cmfl_Tva ?? 0.0,
+          pri_totalht: ligne.cmfl_TotalHT ?? 0.0,
+          pri_id: ligne.cmfl_pri_id,
+          datePeremption: "",
+
+          // Ancien stock récupéré
+          oldStock: oldStock,
+        };
+      }),
+    );
+
+    setField("fournisseur", cmf.fournisseur?.fou_nom || "");
+    setField("adresse", cmf.fournisseur?.fou_adresse || "");
+    setField("contact1", cmf.fournisseur?.fou_tel1 || "");
+    setField("contact2", cmf.fournisseur?.fou_tel2 || "");
+    setField("modeCmd", cmf.fournisseur?.fou_modepay || "");
+    setField("code_frns", cmf.fournisseur?.fou_code || "");
+
     setLigneArticle(lignes);
 
     setShowCFSuggestions(false);
@@ -260,7 +273,10 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
 
   const handleStock = async (stk: any) => {
     try {
-      const quantity = stockDisponible[stk.article] + parseInt(stk.quantite);
+      const quantity = stockDisponible[stk.article]
+        ? stockDisponible[stk.article]
+        : stk.old_stock + parseInt(stk.quantite);
+
       const res = await postData("/api/insert-database/", "t_stock", {
         stk_quantite: quantity,
         stk_pri_id: stk.pri_id,
@@ -470,7 +486,16 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
       throw new Error(`${err.error}`);
     }
   };
-
+  const stockLot = async (data: any) => {
+    const res = await postData("/api/insert-database/", "t_lot", {
+      lot_enabled: true,
+      lot_code: data.pri_lot,
+      lot_dateper: data.pri_datePeremption,
+      lot_art_quantite: data.pri_quantite,
+      lot_art_code: data.pri_article,
+    });
+    return res.id;
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -491,6 +516,12 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
         });
         if (res.status) {
           ligneArticle.map(async (value) => {
+            const lot_id = await stockLot({
+              pri_lot: value.lot_code,
+              pri_datePeremption: value.datePeremption,
+              pri_quantite: value.pri_quantite,
+              pri_article: value.pri_article,
+            });
             const send = await postData(
               "/api/insert-database/",
               "t_ligne_entree",
@@ -510,13 +541,14 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                 entl_dateper: value.datePeremption,
                 entl_prix: value.pri_pua,
                 entl_remise: value.remise ? value.remise : "0",
+                entl_lot: lot_id,
               },
             );
 
             handleCreateMvtStock({
               code_org: values.pieces,
               date: today,
-              lot_code: value.datePeremption,
+              lot_code: lot_id,
               origine: "t_entree_stock",
               pri_id: value.pri_id,
               qte: value.pri_quantite,
@@ -526,8 +558,9 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
               quantite: value.pri_quantite,
               pri_id: value.pri_id,
               date: today,
-              lot_code: value.datePeremption,
+              lot_code: lot_id,
               article: value.pri_article,
+              old_stock: value.oldStock,
             });
             if (send.status) {
               ligne_ok.push(true);
@@ -593,6 +626,8 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
       pri_totalht: 0,
       pri_tva: 0.0,
       remise: 0,
+      lot_code: "",
+      old_stock: "",
     });
   };
 
@@ -887,6 +922,18 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
+                        <input
+                          style={{ borderBottom: "1px solid gray" }}
+                          name="lot_code"
+                          type="text"
+                          value={ligneEnCours.lot_code}
+                          onChange={handleLigneChange}
+                          onKeyDown={handleLigneKeyDown}
+                          placeholder="lot code"
+                          className="w-full bg-transparent placeholder-white/70 outline-none"
+                        />
+                      </th>
                       <th className="w-10 p-2 text-center">
                         <button
                           type="button"
@@ -907,6 +954,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                       <th className="p-2 text-left">Remise (%)</th>
                       <th className="p-2 text-left">Prix HT</th>
                       <th className="p-2 text-left">Date Péremption</th>
+                      <th className="p-2 text-left">Lot code</th>
                       <th className="p-2"></th>
                     </tr>
                   </thead>
@@ -1047,6 +1095,16 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                               className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                             />
                           </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={ligne.lot_code}
+                              onChange={(e) =>
+                                modifierLigne(index, "lot_code", e.target.value)
+                              }
+                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                            />
+                          </td>
                           <td className="p-2 text-center">
                             <button
                               type="button"
@@ -1077,6 +1135,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           maximumFractionDigits: 2,
                         })}
                       </td>
+                      <td></td>
                     </tr>
                     <tr>
                       <td colSpan={4}></td>
@@ -1093,6 +1152,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           maximumFractionDigits: 2,
                         })}
                       </td>
+                      <td></td>
                     </tr>
                     <tr className="bg-brand-500 dark:text-gray-300">
                       <td colSpan={4}></td>
@@ -1106,6 +1166,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           maximumFractionDigits: 2,
                         })}
                       </td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>

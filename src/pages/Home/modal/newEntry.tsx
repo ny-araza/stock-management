@@ -258,8 +258,6 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
       pri_article: article.code,
       pri_id: article.id,
       pri_pu: article.prix_ht,
-      pri_datePeremption: article.lot.lot_date_per || "",
-      pri_lot: article.lot.lot_code || "",
     }));
 
     getOldStock(article.code);
@@ -342,14 +340,20 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
       }
       for (const item of ligneArticle) {
         if (item) {
+          //stocker le lot
+          const lot_id = await stockLot({
+            pri_lot: item.pri_lot,
+            pri_datePeremption: item.pri_datePeremption,
+            pri_quantite: item.pri_quantite,
+            pri_article: item.pri_article,
+          });
           const res = await postData("/api/insert-database/", "t_in_stock", {
             in_code: values.code,
             in_motif: EnumerationOptions.find(
               (opt) => opt.enu_id == parseInt(values.justificatif),
             )?.label,
             in_art_code: item.pri_article,
-            in_lot_id: item.pri_lot,
-            in_lot_code: item.pri_datePeremption,
+            in_lot_id: lot_id,
             in_pri_id: item.pri_id,
             in_quantite: item.pri_quantite,
             in_date: today,
@@ -357,7 +361,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
           handleCreateMvtStock({
             code_org: values.code,
             date: today,
-            lot_code: item.pri_lot,
+            lot_code: lot_id,
             origine: "t_in_stock",
             pri_id: item.pri_id,
             qte: item.pri_quantite,
@@ -367,7 +371,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
             quantite: item.pri_quantite,
             pri_id: item.pri_id,
             date: today,
-            lot_code: item.pri_datePeremption,
+            lot_code: lot_id,
             article: item.pri_article,
           });
           if (!res.status) {
@@ -397,6 +401,17 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
         variant: "error",
       });
     }
+  };
+
+  const stockLot = async (data: any) => {
+    const res = await postData("/api/insert-database/", "t_lot", {
+      lot_enabled: true,
+      lot_code: data.pri_lot,
+      lot_dateper: data.pri_datePeremption,
+      lot_art_quantite: data.pri_quantite,
+      lot_art_code: data.pri_article
+    });
+    return res.id
   };
 
   const clear = () => {

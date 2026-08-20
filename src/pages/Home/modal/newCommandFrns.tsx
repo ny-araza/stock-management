@@ -718,7 +718,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
                           </td>
                           <td className="p-2">
                             <input
-                              required
                               value={ligne.pri_designation}
                               onChange={(e) =>
                                 modifierLigne(
