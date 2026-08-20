@@ -16,6 +16,7 @@ import { generateDocumentPDF, DocumentData } from "./utils/generateDocumentPDF";
 import { ValueService } from "ag-grid-community";
 import { montantEnLettres } from "./utils/numberToWords";
 import { getStockSortable, LotStock } from "./utils/stockUtils";
+import { allouerLotsFEFO } from "./utils/stockUtils";
 
 interface newVente {
   isOpen: boolean;
@@ -197,18 +198,18 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     return datePeremptionObj < aujourdHui;
   };
 
-  const getOldStock = async (codeArticle: string) => {
-    try {
-      const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
-      console.log(res.stock);
-      const quantiteStock = res?.stock?.stk_quantite ?? 0;
-      setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
-      return quantiteStock;
-    } catch (error: any) {
-      setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
-      return 0;
-    }
-  };
+  // const getOldStock = async (codeArticle: string) => {
+  //   try {
+  //     const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
+  //     console.log(res.stock);
+  //     const quantiteStock = res?.stock?.stk_quantite ?? 0;
+  //     setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
+  //     return quantiteStock;
+  //   } catch (error: any) {
+  //     setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
+  //     return 0;
+  //   }
+  // };
 
   // const getOldStock = async (codeArticle: string) => {
   //   try {
@@ -232,6 +233,42 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
   //     return 0;
   //   }
   // };
+  const getOldStock = async (codeArticle: string) => {
+    try {
+      const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
+      const lots = res?.stock?.lots || [];
+      console.log(lots);
+
+      const aujourdHui = new Date();
+      aujourdHui.setHours(0, 0, 0, 0);
+
+      const lotsValides = lots.filter((lot: any) => {
+        const date = new Date(lot.lot_dateper);
+        date.setHours(0, 0, 0, 0);
+
+        return Number(lot.lot_qte) > 0 && date >= aujourdHui;
+      });
+
+      const quantiteStock = lotsValides.reduce(
+        (total: number, lot: any) => total + Number(lot.lot_qte || 0),
+        0,
+      );
+
+      setStockDisponible((prev) => ({
+        ...prev,
+        [codeArticle]: quantiteStock,
+      }));
+
+      return lotsValides;
+    } catch (error) {
+      setStockDisponible((prev) => ({
+        ...prev,
+        [codeArticle]: 0,
+      }));
+
+      return [];
+    }
+  };
 
   const handleStock = async (stk: any) => {
     try {
@@ -258,17 +295,52 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
-  const choisirArticle = (article: any) => {
+  // const choisirArticle = async (article: any) => {
+  //   const oldStock = await getOldStock(article.code);
+
+  //   setLigneEnCours((prev: any) => ({
+  //     ...prev,
+  //     pri_article: article.code,
+  //     pri_id: article.id,
+  //     pri_pua: article.prix_vte,
+  //     pri_designation: article.nom_article,
+  //     datePeremption: article.lots?.lot_dateper || "",
+  //     lot_code: article.lots?.lot_code || "",
+  //   }));
+
+  //   setSuggestions([]);
+  //   setShowSuggestions(false);
+  // };
+
+  const choisirArticle = async (article: any) => {
+    const oldStock = await getOldStock(article.code);
+
+    // Récupérer les lots
+    const lots = oldStock;
+
+    const lotsDisponibles = lots
+      .filter(
+        (lot: any) => Number(lot.lot_qte) > 0 && !estPerime(lot.lot_dateper),
+      )
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.lot_dateper).getTime() - new Date(b.lot_dateper).getTime(),
+      );
+
+    // Le premier est celui qui expire le plus tôt
+    const premierLot = lotsDisponibles[0];
+
     setLigneEnCours((prev: any) => ({
       ...prev,
       pri_article: article.code,
       pri_id: article.id,
       pri_pua: article.prix_vte,
       pri_designation: article.nom_article,
-      datePeremption: article.lot.lot_date_per || "",
-      lot_code: article.lot.lot_code || "",
+
+      datePeremption: premierLot?.lot_dateper || "",
+      lot_code: premierLot?.lot_id || "",
     }));
-    getOldStock(article.code);
+
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -435,27 +507,88 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
   const totalTTC = totalHT + totalTVA;
 
+  // useEffect(() => {
+  //   const nouvellesErreurs: { [cle: string]: string } = {};
+
+  //   // ligne en cours de saisie
+  //   if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
+  //     const stock = stockDisponible[ligneEnCours.pri_article];
+  //     const qte = Number(ligneEnCours.pri_quantite);
+  //     if (stock !== undefined && qte > stock) {
+  //       nouvellesErreurs["nouvelle"] =
+  //         `Stock insuffisant (disponible : ${stock})`;
+  //     }
+  //   }
+
+  //   // lignes déjà ajoutées dans le tableau
+  //   ligneArticle.forEach((ligne, index) => {
+  //     const stock = stockDisponible[ligne.pri_article];
+  //     const qte = Number(ligne.pri_quantite);
+  //     if (stock !== undefined && qte > stock) {
+  //       nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
+  //     }
+  //   });
+
+  //   setLigneErreurs(nouvellesErreurs);
+  // }, [
+  //   ligneEnCours.pri_article,
+  //   ligneEnCours.pri_quantite,
+  //   ligneArticle,
+  //   stockDisponible,
+  // ]);
+
   useEffect(() => {
     const nouvellesErreurs: { [cle: string]: string } = {};
 
-    // ligne en cours de saisie
-    if (ligneEnCours.pri_article && ligneEnCours.pri_quantite) {
-      const stock = stockDisponible[ligneEnCours.pri_article];
-      const qte = Number(ligneEnCours.pri_quantite);
-      if (stock !== undefined && qte > stock) {
-        nouvellesErreurs["nouvelle"] =
-          `Stock insuffisant (disponible : ${stock})`;
-      }
+    // Quantité totale demandée par article
+    const quantitesParArticle: {
+      [code: string]: number;
+    } = {};
+
+    // Lignes déjà ajoutées
+    ligneArticle.forEach((ligne) => {
+      const code = ligne.pri_article;
+
+      if (!code) return;
+
+      const qte = Number(ligne.pri_quantite) || 0;
+
+      quantitesParArticle[code] = (quantitesParArticle[code] || 0) + qte;
+    });
+
+    // Ajouter la ligne actuellement en cours
+    if (ligneEnCours.pri_article) {
+      const code = ligneEnCours.pri_article;
+      const qte = Number(ligneEnCours.pri_quantite) || 0;
+
+      quantitesParArticle[code] = (quantitesParArticle[code] || 0) + qte;
     }
 
-    // lignes déjà ajoutées dans le tableau
+    // Vérification de toutes les lignes déjà ajoutées
     ligneArticle.forEach((ligne, index) => {
-      const stock = stockDisponible[ligne.pri_article];
-      const qte = Number(ligne.pri_quantite);
-      if (stock !== undefined && qte > stock) {
-        nouvellesErreurs[index] = `Stock insuffisant (disponible : ${stock})`;
+      const code = ligne.pri_article;
+
+      const stock = stockDisponible[code];
+      const quantiteDemandee = quantitesParArticle[code] || 0;
+
+      if (stock !== undefined && quantiteDemandee > stock) {
+        nouvellesErreurs[index] =
+          `Stock insuffisant. Disponible : ${stock}, demandé : ${quantiteDemandee}`;
       }
     });
+
+    // Vérification de la ligne en cours
+    if (ligneEnCours.pri_article) {
+      const code = ligneEnCours.pri_article;
+
+      const stock = stockDisponible[code];
+      const quantiteDemandee = quantitesParArticle[code] || 0;
+
+      if (stock !== undefined && quantiteDemandee > stock) {
+        nouvellesErreurs["nouvelle"] =
+          `Stock insuffisant. Disponible : ${stock}, demandé : ${quantiteDemandee}`;
+      }
+    }
 
     setLigneErreurs(nouvellesErreurs);
   }, [
@@ -497,6 +630,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       });
       return;
     }
+    enregistrerFacture();
     setShowValidationChoice(true);
   };
 
@@ -530,50 +664,75 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
           ve_adresse_liv: values.adresse,
         });
         if (res.status) {
-          ligneArticle.map(async (value) => {
-            const send = await postData(
-              "/api/insert-database/",
-              "t_ligne_vente",
-              {
-                vtel_quantite: value.pri_quantite,
-                vtel_pri_id: value.pri_id,
-                vtel_vte_code: values.pieces,
-                vtel_prixunit: value.pri_pua,
-                vtel_tva: value.pri_tva,
-                vtel_ht: value.pri_totalht,
-                vtel_art_code: value.pri_article,
-                vtel_cli_code: values.code_cli,
-                vtel_ttc: (
-                  parseInt(value.pri_totalht) +
-                  (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
-                ).toFixed(2),
-                vtel_lot_dateper: value.datePeremption,
-                vtel_remise: value.remise ? value.remise : "0",
-              },
-            );
+          for (const value of ligneArticle) {
+            const lots = lotsParArticle[value.pri_article] || [];
+            const quantiteDemandee = Number(value.pri_quantite);
 
-            handleCreateMvtStock({
-              code_org: values.pieces,
-              date: today,
-              lot_code: value.datePeremption,
-              origine: "t_vente",
-              pri_id: value.pri_id,
-              qte: value.pri_quantite,
-              art_code: value.pri_article,
-            });
+            let allocations;
+            try {
+              allocations = allouerLotsFEFO(lots, quantiteDemandee, 7);
+            } catch (err: any) {
+              setAlert({
+                open: true,
+                variant: "error",
+                title: `Stock insuffisant pour ${value.pri_article}`,
+                message: err.message,
+              });
+              setActionLoading(false);
+              return; // on bloque toute la vente si un article ne peut pas être livré
+            }
 
-            handleStock({
-              quantite: value.pri_quantite,
-              pri_id: value.pri_id,
-              date: today,
-              lot_code: value.datePeremption,
-              article: value.pri_article,
-            });
+            // Répartit la ligne saisie en plusieurs lignes t_ligne_vente, une par lot alloué
+            for (const alloc of allocations) {
+              const proportionHT =
+                (alloc.quantitePrise / quantiteDemandee) *
+                Number(value.pri_totalht);
+              const ttcLigne =
+                proportionHT + (proportionHT * Number(value.pri_tva)) / 100;
 
-            if (send.status) {
-              ligne_ok.push(true);
-            } else ligne_ok.push(false);
-          });
+              const send = await postData(
+                "/api/insert-database/",
+                "t_ligne_vente",
+                {
+                  vtel_quantite: alloc.quantitePrise,
+                  vtel_pri_id: value.pri_id,
+                  vtel_vte_code: values.pieces,
+                  vtel_prixunit: value.pri_pua,
+                  vtel_tva: value.pri_tva,
+                  vtel_ht: proportionHT.toFixed(2),
+                  vtel_art_code: value.pri_article,
+                  vtel_cli_code: values.code_cli,
+                  vtel_ttc: ttcLigne.toFixed(2),
+                  vtel_lot_dateper: alloc.datePeremption,
+                  vtel_remise: value.remise ? value.remise : "0",
+                },
+              );
+
+              await handleCreateMvtStock({
+                code_org: values.pieces,
+                date: today,
+                lot_code: alloc.lot_code,
+                origine: "t_vente",
+                pri_id: value.pri_id,
+                qte: alloc.quantitePrise,
+                art_code: value.pri_article,
+              });
+
+              // handleStock doit décrémenter le lot précis, pas juste stockDisponible[article]
+              await postData("/api/insert-database/", "t_stock", {
+                stk_quantite:
+                  Number(
+                    lots.find((l) => l.lot_code === alloc.lot_code)
+                      ?.lot_qte ?? 0,
+                  ) - alloc.quantitePrise,
+                stk_pri_id: value.pri_id,
+                stk_art_code: value.pri_article,
+                stk_lot_code: alloc.lot_code,
+              });
+
+              ligne_ok.push(!!send.status);
+            }
+          }
         } else {
           setAlert({
             open: true,

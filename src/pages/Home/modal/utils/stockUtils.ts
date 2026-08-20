@@ -1,7 +1,7 @@
 export interface LotStock {
   lot_code: string;
-  lot_quantite: number;
-  lot_datePeremption: string; // ISO date string
+  lot_qte: number;
+  lot_dateper: string; // ISO date string
 }
 
 export interface AllocationLot {
@@ -43,8 +43,8 @@ export function getStockSortable(
   joursMinimum: number = 7,
 ): number {
   return lots
-    .filter((lot) => estSortable(lot.lot_datePeremption, joursMinimum))
-    .reduce((total, lot) => total + Number(lot.lot_quantite || 0), 0);
+    .filter((lot) => estSortable(lot.lot_dateper, joursMinimum))
+    .reduce((total, lot) => total + Number(lot.lot_qte || 0), 0);
 }
 
 /**
@@ -61,15 +61,14 @@ export function allouerLotsFEFO(
   joursMinimum: number = 7,
 ): AllocationLot[] {
   const lotsSortables = lots
-    .filter((lot) => estSortable(lot.lot_datePeremption, joursMinimum))
+    .filter((lot) => estSortable(lot.lot_dateper, joursMinimum))
     .sort(
       (a, b) =>
-        new Date(a.lot_datePeremption).getTime() -
-        new Date(b.lot_datePeremption).getTime(),
+        new Date(a.lot_dateper).getTime() - new Date(b.lot_dateper).getTime(),
     );
 
   const stockTotal = lotsSortables.reduce(
-    (t, l) => t + Number(l.lot_quantite || 0),
+    (t, l) => t + Number(l.lot_qte || 0),
     0,
   );
 
@@ -84,11 +83,11 @@ export function allouerLotsFEFO(
 
   for (const lot of lotsSortables) {
     if (reste <= 0) break;
-    const qteDuLot = Math.min(Number(lot.lot_quantite), reste);
+    const qteDuLot = Math.min(Number(lot.lot_qte), reste);
     if (qteDuLot > 0) {
       allocations.push({
         lot_code: lot.lot_code,
-        datePeremption: lot.lot_datePeremption,
+        datePeremption: lot.lot_dateper,
         quantitePrise: qteDuLot,
       });
       reste -= qteDuLot;
