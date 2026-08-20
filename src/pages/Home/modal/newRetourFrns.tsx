@@ -738,7 +738,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium relative">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -765,7 +765,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_designation"
@@ -776,7 +776,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -787,7 +787,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pua"
@@ -798,7 +798,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_tva"
@@ -809,7 +809,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="remise"
@@ -820,7 +820,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -831,7 +831,7 @@ const NewRetourFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="datePeremption"

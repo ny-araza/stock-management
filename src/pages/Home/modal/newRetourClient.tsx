@@ -49,6 +49,8 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
       label: item.enu_nom,
     }),
   );
+  const [showFaSuggestions, setShowFaSuggestions] = useState(false);
+  const [FaSuggestions, setFaSuggestions] = useState([]);
   const articleRef = useRef<HTMLInputElement>(null);
   const [ligneArticle, setLigneArticle] = useState<any[]>([]);
   const prixArticle = {
@@ -402,6 +404,61 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const rechercherBL = useCallback(async (code: string) => {
+    if (!code.trim()) {
+      setFaSuggestions([]);
+      setShowFaSuggestions(false);
+      return;
+    }
+
+    try {
+      const query = new URLSearchParams();
+      query.set("search", code);
+      const res = await apiFetch(`/api/fa-autocomplete/?${query.toString()}`);
+      if (res.status) {
+        console.log(res.t_vente);
+        setFaSuggestions(res.t_vente);
+        setShowFaSuggestions(true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleBlChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    if (name === "codeVte") {
+      rechercherBL(value);
+      setField("codeVte", value);
+    }
+  };
+
+  const faChoisit = (bl: any) => {
+    setField("codeVte", bl.vte_code);
+
+    const lignes = (bl.ligne || []).map((ligne: any) => ({
+      pri_article: ligne.vtel_Art_Code || "",
+      pri_designation: ligne.art_nom || "",
+      pri_quantite: ligne.vtel_Quantite || 0,
+      pri_pua: ligne.vtel_pri_unit ?? "",
+      pri_tva: ligne.vtel_Tva ?? 0.0,
+      pri_totalht: ligne.vtel_TotalHT ?? 0.0,
+      pri_id: ligne.vtel_pri_id,
+      remise: 0,
+      datePeremption: ligne.vtel_lot_code || ligne.vtel_lot_dateper || "",
+    }));
+    setLigneArticle(lignes);
+    setField(
+      "contact",
+      bl.client.tel1 ? bl.client.cli_tel1 : bl.client.cli_tel2,
+    );
+    setField("cli_code", bl.client.cli_code);
+    setField("cli_nom", bl.client.cli_nom);
+    setShowFaSuggestions(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -416,7 +473,9 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
           rtc_montant_ttc: parseInt(totalTTC),
           rtc_cli_code: values.cli_code,
           rtc_cli_nom: values.cli_nom,
-          rtc_motif: values.motif,
+          rtc_motif: EnumerationOptions.find(
+            (opt) => opt.enu_id == parseInt(values.motif),
+          )?.label,
           rtc_observation: values.observation,
         });
         if (res.status) {
@@ -512,6 +571,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   useEffect(() => {
     fetchCode("t_retour_client", false);
     fetchMotif("RC_MOTIF");
+    setField("motif", "35");
   }, [isOpen]);
 
   return (
@@ -541,15 +601,35 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                   />
                 </div>
                 <div>
-                  <Label>N° Pièce vente</Label>
-                  <Input
-                    type="text"
-                    value={values.codeVte}
-                    onChange={handleChange}
-                    name="codeVte"
-                    placeholder="Code bon de livraison"
-                    required={true}
-                  />
+                  <Label>N° Piece vente</Label>
+                  <div className="flex items-center w-full gap-2 flex-nowrap">
+                    <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
+                      <Input
+                        name="codeVte"
+                        type="text"
+                        value={values.codeVte}
+                        onChange={handleBlChange}
+                        required={true}
+                        placeholder="Code Facture"
+                        className="w-full bg-transparent placeholder-white/70 outline-none"
+                      />
+                    </div>
+                  </div>
+                  {showFaSuggestions && FaSuggestions.length > 0 && (
+                    <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
+                      {FaSuggestions.map((fa: any) => (
+                        <div
+                          key={fa.vte_id}
+                          onClick={() => faChoisit(fa)}
+                          className="cursor-pointer px-3 py-2"
+                        >
+                          <div className="text-xs text-gray-500">
+                            {fa.vte_code}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
@@ -619,18 +699,6 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                     placeholder="Observation"
                     value={values.observation}
                     onChange={(value) => setField("observation", value)}
-                    className="w-full"
-                  ></TextArea>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 mb-4">
-                <div>
-                  <Label>Designation</Label>
-                  <TextArea
-                    name="designation"
-                    placeholder="Designation"
-                    value={values.designation}
-                    onChange={(value) => setField("designation", value)}
                     className="w-full"
                   ></TextArea>
                 </div>
