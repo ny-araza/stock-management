@@ -568,6 +568,23 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
     }
   };
 
+  const clear = () => {
+    reset();
+    fetchCode("t_retour_client", false);
+    setLigneArticle([]);
+    setLigneEnCours({
+      pri_article: "",
+      pri_designation: "",
+      pri_pua: "",
+      pri_id: "",
+      datePeremption: "",
+      pri_quantite: 0,
+      pri_totalht: 0,
+      pri_tva: 0.0,
+      remise: 0,
+    });
+  };
+
   useEffect(() => {
     fetchCode("t_retour_client", false);
     fetchMotif("RC_MOTIF");
@@ -577,6 +594,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className={className}>
+        <NewClts isOpen={openModal} onClose={close}></NewClts>
         <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
@@ -654,7 +672,6 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                         +
                       </Button>
                     </div>
-                    <NewClts isOpen={openModal} onClose={close}></NewClts>
                   </div>
                   {showSuggestionFrns && suggestionFrns.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
@@ -707,7 +724,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">
-                      <th className="p-2 text-left font-medium relative">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium relative">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_article"
@@ -734,7 +751,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           </div>
                         )}
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_designation"
@@ -745,7 +762,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_quantite"
@@ -756,7 +773,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pua"
@@ -767,7 +784,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_tva"
@@ -778,7 +795,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="pri_pht"
@@ -789,7 +806,7 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
-                      <th className="p-2 text-left font-medium">
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
                         <input
                           style={{ borderBottom: "1px solid gray" }}
                           name="datePeremption"
@@ -1020,7 +1037,9 @@ const NewRetourClient: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
               >
                 Valider
               </Button>
-              <Button variant="outline">Effacer tout</Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
             </div>
           </form>
         </div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBox, faBriefcase, faCartShopping, faHome, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faBox, faBriefcase, faCartShopping, faHandshakeSimple, faHome, faUser } from "@fortawesome/free-solid-svg-icons";
 
 // Assume these icons are imported from an icon library
 import {
@@ -32,24 +32,29 @@ const navItems: NavItem[] = [
       { name: "Ventes", path: "/ventes", pro: false },
       { name: "Commande fournisseurs", path: "/bc", pro: false },
       { name: "Livraison fournisseurs", path: "/liv-frns", pro: false },
-      { name: "Retour fournisseur", path: "/rtf", pro: false },
-      { name: "Retour client", path: "/rtc", pro: false },
-      { name: "Fournisseurs", path: "/fournisseurs", pro: false },
-      { name: "Clients", path: "/clients", pro: false },
-      { name: "Caisse", path: "#", pro: false },
     ],
   },
   {
-    name: "Achats & Approvisionnement",
-    icon: <FontAwesomeIcon icon={faCartShopping} />,
+    name: "Retour",
+    icon: <FontAwesomeIcon icon={faArrowLeft} />,
     subItems: [
-      { name: "Articles", path: "/articles", pro: false },
+      { name: "Retour fournisseur", path: "/rtf", pro: false },
+      { name: "Retour client", path: "/rtc", pro: false },
+    ],
+  },
+  {
+    name: "Tiers",
+    icon: <FontAwesomeIcon icon={faHandshakeSimple} />,
+    subItems: [
+      { name: "Fournisseurs", path: "/fournisseurs", pro: false },
+      { name: "Clients", path: "/clients", pro: false },
     ],
   },
   {
     name: "Stock",
     icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
+      { name: "Articles", path: "/articles", pro: false },
       { name: "Entree en stock", path: "/entree", pro: false },
       { name: "Sortie en stock", path: "/sortie", pro: false },
       { name: "Etat de stock", path: "/stock", pro: false },

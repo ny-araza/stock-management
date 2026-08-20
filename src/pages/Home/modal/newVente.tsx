@@ -6,12 +6,15 @@ import { useForm } from "../../../hooks/useForm";
 import { apiFetch } from "../../../services/api";
 import { useCallback, useState, useRef, useEffect } from "react";
 import Button from "../../../components/ui/button/Button";
-import NewFrns from "../../Fournisseurs/newFrns";
 import Select from "../../../components/form/Select";
 import { Option } from "../../../components/form/Select";
 import { postData } from "../../../services/sendDataService";
 import Alert from "../../../components/ui/alert/Alert";
 import NewClts from "../../Clients/newClts";
+import ValidationChoiceModal from "./utils/ValidationChoiceModal";
+import { generateDocumentPDF, DocumentData } from "./utils/generateDocumentPDF";
+import { ValueService } from "ag-grid-community";
+import { montantEnLettres } from "./utils/numberToWords";
 
 interface newVente {
   isOpen: boolean;
@@ -28,6 +31,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     contact1: "",
     contact2: "",
     adresse: "",
+    client_nif: "",
+    client_stat: "",
     mail: "",
     modePaye: "4",
     payeClient: "16",
@@ -49,6 +54,9 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
   const [rowSuggestions, setRowSuggestions] = useState([]);
   const [showRowSuggestions, setShowRowSuggestions] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [showValidationChoice, setShowValidationChoice] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [proCode, setProCode] = useState("");
   //ligne
   const articleRef = useRef<HTMLInputElement>(null);
   const [ligneArticle, setLigneArticle] = useState<any[]>([]);
@@ -62,6 +70,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     pri_totalht: 0.0,
     remise: 0,
     datePeremption: "",
+    lot_code: "",
   };
   const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
   const open = () => {
@@ -121,8 +130,9 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     setField("adresse", clt.cli_adresse);
     setField("contact1", clt.cli_tel1);
     setField("contact2", clt.cli_tel2);
-    setField("payeClient", clt.cli_modepay);
     setField("code_cli", clt.cli_code);
+    setField("client_nif", clt.cli_nif);
+    setField("client_stat", clt.cli_stat);
     setShowSuggestionsClt(false);
   };
 
@@ -217,6 +227,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       pri_id: article.id,
       pri_pua: article.prix_vte,
       pri_designation: article.nom_article,
+      datePeremption: article.lot.lot_date_per || "",
+      lot_code: article.lot.lot_code || "",
     }));
     getOldStock(article.code);
     setSuggestions([]);
@@ -435,11 +447,142 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   try {
+  //     const ligne_ok: boolean[] = [];
+  //     if (totalHT != 0) {
+  //       const today = new Date().toISOString().split("T")[0];
+  //       const res = await postData("/api/insert-database/", "t_vente", {
+  //         vte_code: values.pieces,
+  //         vte_date: today,
+  //         vte_modepaye: values.modePaye,
+  //         vte_montant_ht: parseInt(totalHT),
+  //         vte_montant_ttc: parseInt(totalTTC),
+  //         vte_tva: parseInt(totalTVA),
+  //         vte_cli_code: values.code_cli,
+  //         vte_cli_nom: values.client,
+  //         vte_cli_contact: values.contact1,
+  //         vte_payeclient: values.payeClient,
+  //         vte_datepay: today,
+  //         vte_telmoney: values.telMoney,
+  //         vte_valide: "0",
+  //         vte_datevalide: today,
+  //         vte_paye: "0",
+  //         vte_livreur: values.livreur,
+  //         vet_operateur: values.operateur,
+  //         vte_lettremontant: "test",
+  //         ve_dateecheance: values.dateEcheance || today,
+  //         ve_code_bl: values.bl,
+  //         ve_adresse_liv: values.adresse,
+  //       });
+  //       if (res.status) {
+  //         ligneArticle.map(async (value) => {
+  //           const send = await postData(
+  //             "/api/insert-database/",
+  //             "t_ligne_vente",
+  //             {
+  //               vtel_quantite: value.pri_quantite,
+  //               vtel_pri_id: value.pri_id,
+  //               vtel_vte_code: values.pieces,
+  //               vtel_prixunit: value.pri_pua,
+  //               vtel_tva: value.pri_tva,
+  //               vtel_ht: value.pri_totalht,
+  //               vtel_art_code: value.pri_article,
+  //               vtel_cli_code: values.code_cli,
+  //               vtel_ttc: (
+  //                 parseInt(value.pri_totalht) +
+  //                 (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
+  //               ).toFixed(2),
+  //               vtel_lot_dateper: value.datePeremption,
+  //               vtel_remise: value.remise ? value.remise : "0",
+  //             },
+  //           );
+
+  //           handleCreateMvtStock({
+  //             code_org: values.pieces,
+  //             date: today,
+  //             lot_code: value.datePeremption,
+  //             origine: "t_vente",
+  //             pri_id: value.pri_id,
+  //             qte: value.pri_quantite,
+  //             art_code: value.pri_article,
+  //           });
+  //           handleStock({
+  //             quantite: value.pri_quantite,
+  //             pri_id: value.pri_id,
+  //             date: today,
+  //             lot_code: value.datePeremption,
+  //             article: value.pri_article,
+  //           });
+  //           if (send.status) {
+  //             ligne_ok.push(true);
+  //           } else ligne_ok.push(false);
+  //         });
+  //       } else {
+  //         setAlert({
+  //           open: true,
+  //           message: res.error,
+  //           title: "Une erreur survenue",
+  //           variant: "error",
+  //         });
+  //         return;
+  //       }
+  //       if (!ligne_ok.find((val) => val == false)) {
+  //         fetchCode("t_vente", true);
+  //         setAlert({
+  //           open: true,
+  //           variant: "success",
+  //           title: "Opération réussie",
+  //           message: "Livraison fournisseur enregistrer avec succès",
+  //         });
+  //         reset();
+  //         setLigneArticle([]);
+  //         return;
+  //       } else {
+  //         setAlert({
+  //           open: true,
+  //           variant: "error",
+  //           title: "Une erreur est survenue",
+  //           message: "Erreur lors de l'enregistrement dans la base de donnée",
+  //         });
+  //       }
+  //     }
+
+  //     setAlert({
+  //       open: true,
+  //       message: "Vous avez laisser un (des) champ(s) vide(s)",
+  //       title: "Une erreur survenue",
+  //       variant: "error",
+  //     });
+  //   } catch (error: any) {
+  //     setAlert({
+  //       open: true,
+  //       message: `${error.error}`,
+  //       title: "Une erreur survenue",
+  //       variant: "error",
+  //     });
+  //   }
+  // };
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (totalHT === 0) {
+      setAlert({
+        open: true,
+        message: "Vous avez laisser un (des) champ(s) vide(s)",
+        title: "Une erreur survenue",
+        variant: "error",
+      });
+      return;
+    }
+    setShowValidationChoice(true);
+  };
+
+  const enregistrerFacture = async () => {
+    setActionLoading(true);
     try {
-      const ligne_ok: boolean[] = [];
-      if (totalHT != 0) {
+      try {
+        const ligne_ok: boolean[] = [];
         const today = new Date().toISOString().split("T")[0];
         const res = await postData("/api/insert-database/", "t_vente", {
           vte_code: values.pieces,
@@ -535,14 +678,21 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
             message: "Erreur lors de l'enregistrement dans la base de donnée",
           });
         }
-      }
 
-      setAlert({
-        open: true,
-        message: "Vous avez laisser un (des) champ(s) vide(s)",
-        title: "Une erreur survenue",
-        variant: "error",
-      });
+        setAlert({
+          open: true,
+          message: "Vous avez laisser un (des) champ(s) vide(s)",
+          title: "Une erreur survenue",
+          variant: "error",
+        });
+      } catch (error: any) {
+        setAlert({
+          open: true,
+          message: `${error.error}`,
+          title: "Une erreur survenue",
+          variant: "error",
+        });
+      }
     } catch (error: any) {
       setAlert({
         open: true,
@@ -550,6 +700,100 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
         title: "Une erreur survenue",
         variant: "error",
       });
+    } finally {
+      setActionLoading(false);
+      setShowValidationChoice(false);
+    }
+  };
+
+  const enregistrerProforma = async () => {
+    setActionLoading(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+
+      const res = await postData("/api/insert-database/", "t_proforma", {
+        pro_code: proCode,
+        pro_date: values.date_vente || today,
+        pro_modecmd: values.modePaye,
+        pro_dateliv: today,
+        pro_montant_ht: totalHT.toFixed(2),
+        pro_montant_ttc: totalTTC.toFixed(2),
+        pro_cli_code: values.code_cli,
+        pro_tva: totalTVA.toFixed(2),
+        pro_remise: 0,
+        pro_lettre: montantEnLettres(totalTTC),
+      });
+
+      if (!res.status) {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur survenue",
+          message: res.error,
+        });
+        return;
+      }
+
+      const documentData: DocumentData = {
+        type: "PROFORMA",
+        code: proCode,
+        date: values.date_vente || today,
+        clientNom: values.client,
+        clientAdresse: values.adresse,
+        clientNif: values.client_nif,
+        clientStat: values.client_stat,
+        modePaiementLabel:
+          payeClt?.find((o) => o.value == values.payeClient)?.label || "",
+        lignes: ligneArticle.map((l) => ({
+          designation: l.pri_designation,
+          quantite: Number(l.pri_quantite),
+          datePeremption: l.datePeremption,
+          prixUnitaire: Number(l.pri_pua),
+          remise: Number(l.remise),
+          tva: Number(l.pri_tva),
+          montantTtc:
+            Number(l.pri_totalht) +
+            (Number(l.pri_totalht) * Number(l.pri_tva)) / 100,
+        })),
+        montantHt: totalHT,
+        remise: 0,
+        tva: totalTVA,
+        montantTtc: totalTTC,
+      };
+      generateDocumentPDF(documentData);
+      fetchProCode("t_proforma", true); // recharge le prochain code DE pour la prochaine ouverture
+
+      setAlert({
+        open: true,
+        variant: "success",
+        title: "Proforma généré",
+        message: "Le proforma a été enregistré et le PDF généré avec succès",
+      });
+    } catch (error: any) {
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Une erreur survenue",
+        message: `${error.error || error.message}`,
+      });
+    } finally {
+      setActionLoading(false);
+      setShowValidationChoice(false);
+    }
+  };
+
+  const fetchProCode = async (table_name: string, is_insert: boolean) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("table_name", table_name);
+      query.set("is_insert", is_insert ? "1" : "0");
+      const res = await apiFetch(
+        `/api/generate-date-code/?${query.toString()}`,
+      );
+      if (res.success) setProCode(res.code);
+      console.log(res.code);
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -585,15 +829,18 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       pri_totalht: 0,
       pri_tva: 0,
       remise: 0,
+      lot_code: "",
     });
     fetchCode("t_vente", false);
   };
 
   useEffect(() => {
     fetchCode("t_vente", false);
+    fetchProCode("t_proforma", false);
     fetchModePaye("MODE_PAY");
     fetchPayeClt("PAYE_CLIENT");
     setField("payeClient", "16");
+    console.log(values.payeClient);
     setField("modePaye", "1");
     setField("dateEcheance", "12-05-2026");
   }, [isOpen]);
@@ -903,6 +1150,18 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           className="w-full bg-transparent placeholder-white/70 outline-none"
                         />
                       </th>
+                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
+                        <input
+                          style={{ borderBottom: "1px solid gray" }}
+                          name="lot_code"
+                          type="text"
+                          value={ligneEnCours.lot_code}
+                          onChange={handleLigneChange}
+                          onKeyDown={handleLigneKeyDown}
+                          placeholder="lot code"
+                          className="w-full bg-transparent placeholder-white/70 outline-none"
+                        />
+                      </th>
                       <th className="w-10 p-2 text-center">
                         <button
                           type="button"
@@ -923,6 +1182,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                       <th className="p-2 text-left">Remise (%)</th>
                       <th className="p-2 text-left">Prix HT</th>
                       <th className="p-2 text-left">Date Péremption</th>
+                      <th className="p-2 text-left">Lot code</th>
                       <th className="p-2"></th>
                     </tr>
                   </thead>
@@ -1063,6 +1323,20 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                               className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
                             />
                           </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={ligne.lot_code}
+                              onChange={(e) =>
+                                modifierLigne(
+                                  index,
+                                  "lot_code",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
+                            />
+                          </td>
                           <td className="p-2 text-center">
                             <button
                               type="button"
@@ -1093,6 +1367,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           maximumFractionDigits: 2,
                         })}
                       </td>
+                      <td></td>
                     </tr>
                     <tr>
                       <td colSpan={4}></td>
@@ -1109,6 +1384,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           maximumFractionDigits: 2,
                         })}
                       </td>
+                      <td></td>
                     </tr>
                     <tr className="bg-brand-500 dark:text-gray-300">
                       <td colSpan={4}></td>
@@ -1122,6 +1398,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           maximumFractionDigits: 2,
                         })}
                       </td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -1155,6 +1432,14 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
               title: alert.title,
             })
           }
+        />
+        <ValidationChoiceModal
+          isOpen={showValidationChoice}
+          onClose={() => setShowValidationChoice(false)}
+          onRetour={() => setShowValidationChoice(false)}
+          onGenererProforma={enregistrerProforma}
+          onGenererFacture={enregistrerFacture}
+          loading={actionLoading}
         />
       </Modal>
     </>

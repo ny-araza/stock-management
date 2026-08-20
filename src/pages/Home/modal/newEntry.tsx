@@ -258,6 +258,8 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
       pri_article: article.code,
       pri_id: article.id,
       pri_pu: article.prix_ht,
+      pri_datePeremption: article.lot.lot_date_per || "",
+      pri_lot: article.lot.lot_code || "",
     }));
 
     getOldStock(article.code);
