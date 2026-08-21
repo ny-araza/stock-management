@@ -15,7 +15,7 @@ export interface LoginPayload {
 export interface Authorization {
   aut_acc_code: string;
   aut_men_code: number;
-  aut_acces: boolean;
+  aut_acces: number;
 }
 
 export interface User {
@@ -31,7 +31,7 @@ export interface UserAuthType {
 }
 
 interface AUthContextType {
-  user: UserAuthType | null;
+  user: User | null;
   loading: boolean;
   login: (
     use_login: string,
@@ -48,20 +48,40 @@ interface AuthProviderProps {
 const AuthContext = createContext<AUthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<UserAuthType | null>(null);
-  const [authorisation, setAutorisation] = useState<Authorization[] | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authorisation, setAutorisation] = useState<Authorization[] | null>(
+    null,
+  );
   const [loading, setLoading] = useState<boolean>(true);
 
   //verifier la session au demarage (f5)
+  // useEffect(() => {
+  //   const checkAuthStatus = async () => {
+  //     try {
+  //       const data = await apiFetch("/api/me/");
+  //       if (data.status) {
+  //         setUser(data.user);
+  //         setAutorisation(data.authorizations);
+  //       }
+  //       // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //     } catch (error) {
+  //       setUser(null);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   checkAuthStatus();
+  // }, []);
+
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
+        await apiFetch("/api/csrf/"); // dépose le cookie csrftoken
         const data = await apiFetch("/api/me/");
         if (data.status) {
           setUser(data.user);
-          setAutorisation(data.authorizations)
+          setAutorisation(data.authorizations);
         }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         setUser(null);
       } finally {
@@ -70,7 +90,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     checkAuthStatus();
   }, []);
-
   //connexion
   const login = async (use_login: string, use_pwd: string) => {
     try {
@@ -110,7 +129,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, authorisation }}>
+    <AuthContext.Provider
+      value={{ user, login, logout, loading, authorisation }}
+    >
       {children}
     </AuthContext.Provider>
   );

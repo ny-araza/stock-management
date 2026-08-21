@@ -28,6 +28,7 @@ export default function SignInForm() {
     setLoading(true)
     try {
       const result = await login(id, password)
+      console.log(result)
       if (!result.success){
         setError("Identifiant ou mot de passe incorrecte")
         return ;

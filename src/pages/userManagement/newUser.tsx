@@ -5,9 +5,9 @@ import { useState } from "react";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { useForm } from "../../hooks/useForm";
-import { postData } from "../../services/sendDataService";
 import { EyeIcon, EyeCloseIcon } from "../../icons";
 import Button from "../../components/ui/button/Button";
+import { apiFetch } from "../../services/api";
 
 interface newUserProps {
   isOpen: boolean;
@@ -28,14 +28,34 @@ const NewUser: React.FC<newUserProps> = ({ isOpen, onClose, className }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
 
+  const createUser = async (
+    login: string,
+    pwd: string,
+    accCode: string,
+    enabled: boolean,
+  ) => {
+    const res = await apiFetch("/api/user/create/", {
+      method: "POST",
+      body: JSON.stringify({
+        use_login: login,
+        use_pwd: pwd,
+        use_acc_code: accCode,
+        use_enabled: enabled ? 1 : 0,
+      }),
+    });
+    return res;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (values.nom_user && values.mdp_user) {
-        const res = await postData(`/api/insert-database/`, "t_users", {
-          use_login: values.nom_user,
-          use_pwd: values.mdp_user,
-        });
+        const res = await createUser(
+          values.nom_user,
+          values.mdp_user,
+          "",
+          true,
+        );
         if (res.status) {
           setAlert({
             open: true,
