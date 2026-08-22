@@ -23,6 +23,7 @@ export const apiFetch = async (
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
+    
   };
 
   if (isUnsafe) {

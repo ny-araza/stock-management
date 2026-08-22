@@ -54,40 +54,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
   const [loading, setLoading] = useState<boolean>(true);
 
-  //verifier la session au demarage (f5)
-  // useEffect(() => {
-  //   const checkAuthStatus = async () => {
-  //     try {
-  //       const data = await apiFetch("/api/me/");
-  //       if (data.status) {
-  //         setUser(data.user);
-  //         setAutorisation(data.authorizations);
-  //       }
-  //       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //     } catch (error) {
-  //       setUser(null);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   checkAuthStatus();
-  // }, []);
+  const checkAuthStatus = async () => {
+    try {
+      const data = await apiFetch("/api/me/");
 
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        await apiFetch("/api/csrf/"); // dépose le cookie csrftoken
-        const data = await apiFetch("/api/me/");
-        if (data.status) {
-          setUser(data.user);
-          setAutorisation(data.authorizations);
-        }
-      } catch (error) {
-        setUser(null);
-      } finally {
-        setLoading(false);
+      if (data.status) {
+        setUser(data.user);
+        setAutorisation(data.authorizations);
+        return true;
       }
-    };
+
+      return false;
+    } catch {
+      // Pas connecté : comportement normal
+      setUser(null);
+      setAutorisation(null);
+      return false;
+    }
+  };
+  useEffect(() => {
     checkAuthStatus();
   }, []);
   //connexion
@@ -102,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (res.status) {
-        setUser(res.user);
+        await checkAuthStatus();
         return { success: true, message: "Athentification réussie" };
       }
 

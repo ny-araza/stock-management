@@ -39,9 +39,9 @@ const navItems: NavItem[] = [
     icon: <FontAwesomeIcon icon={faBriefcase} />,
     subItems: [
       { code: 100, name: "Ventes", path: "/ventes", pro: false },
-      { code: 101, name: "Commande fournisseurs", path: "/bc", pro: false },
+      { code: 103, name: "Commande fournisseurs", path: "/bc", pro: false },
       {
-        code: 102,
+        code: 104,
         name: "Livraison fournisseurs",
         path: "/liv-frns",
         pro: false,
@@ -60,19 +60,19 @@ const navItems: NavItem[] = [
     name: "Tiers",
     icon: <FontAwesomeIcon icon={faHandshakeSimple} />,
     subItems: [
-      { code: 105, name: "Fournisseurs", path: "/fournisseurs", pro: false },
-      { code: 106, name: "Clients", path: "/clients", pro: false },
+      { code: 102, name: "Fournisseurs", path: "/fournisseurs", pro: false },
+      { code: 101, name: "Clients", path: "/clients", pro: false },
     ],
   },
   {
     name: "Stock",
     icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
-      { code: 107, name: "Articles", path: "/articles", pro: false },
-      { code: 108, name: "Entree en stock", path: "/entree", pro: false },
-      { code: 109, name: "Sortie en stock", path: "/sortie", pro: false },
-      { code: 110, name: "Etat de stock", path: "/stock", pro: false },
-      { code: 111, name: "Mouvement de stock", path: "/mvt-stock", pro: false },
+      { code: 100, name: "Articles", path: "/articles", pro: false },
+      { code: 107, name: "Entree en stock", path: "/entree", pro: false },
+      { code: 107, name: "Sortie en stock", path: "/sortie", pro: false },
+      { code: 107, name: "Etat de stock", path: "/stock", pro: false },
+      { code: 107, name: "Mouvement de stock", path: "/mvt-stock", pro: false },
     ],
   },
   {
@@ -159,7 +159,6 @@ const AppSidebar: React.FC = () => {
   }, [openSubmenu]);
 
   useEffect(() => {
-    console.log(authorisation)
   }, [isExpanded, user]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
@@ -271,7 +270,7 @@ const AppSidebar: React.FC = () => {
                 }}
               >
                 <ul className="mt-2 space-y-1 ml-9">
-                  {nav.subItems.map((subItem) => (
+                  {allowedSubItems.map((subItem) => (
                     <li key={subItem.name}>
                       <Link
                         to={subItem.path}
