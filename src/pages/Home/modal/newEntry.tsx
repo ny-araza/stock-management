@@ -464,7 +464,7 @@ const Entry: React.FC<newEntryProps> = ({ isOpen, onClose, className }) => {
                   ></Select>
                 </div>
               </div>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
+              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-brand-500 text-white">

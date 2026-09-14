@@ -10,6 +10,7 @@ export interface StockArticle {
   stk_stockmini: number;
   stockMax?: number;
   unite?: string; // ex: "pcs", "kg", "L"
+  total_quantite_lots: number;
   article_table?: Articles;
 }
 

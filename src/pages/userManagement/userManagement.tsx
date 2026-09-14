@@ -64,6 +64,12 @@ export default function UserManagement() {
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [confirmDisableId, setConfirmDisableId] = useState<number | null>(null);
   const { closeModal, isOpen, openModal, toggleModal } = useModal();
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    openModal();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -170,14 +176,24 @@ export default function UserManagement() {
             <div>
               <Button
                 title="Ajouter un nouvelle utilisateur"
-                onClick={() => openModal()}
+                onClick={() => {
+                  setSelectedUser(null);
+                  openModal();
+                }}
               >
                 <FontAwesomeIcon icon={faPlus} />
               </Button>
               <NewUser
                 isOpen={isOpen}
-                onClose={closeModal}
+                onClose={() => {
+                  closeModal();
+                  setSelectedUser(null);
+                }}
                 className="max-w-[900px] m-4"
+                userToEdit={selectedUser}
+                onSuccess={() => {
+                  // Recharger les utilisateurs ici
+                }}
               />
             </div>
             <div>
@@ -282,8 +298,27 @@ export default function UserManagement() {
                         className="border-b border-slate-800/60 last:border-0 hover:bg-gray-300/20 dark:hover:bg-slate-800/30"
                       >
                         {/* Identifiant */}
-                        <td className="whitespace-nowrap px-3 py-3 font-medium dark:text-slate-100 sm:px-4">
+                        {/*<td className="whitespace-nowrap px-3 py-3 font-medium dark:text-slate-100 sm:px-4">
                           {user.use_login}
+                        </td>*/}
+                        <td className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                          <button
+                            type="button"
+                            onClick={() => handleEditUser(user)}
+                            className="
+                              cursor-pointer
+                              text-left
+                              text-teal-500
+                              transition
+                              hover:text-teal-600
+                              hover:underline
+                              dark:text-teal-400
+                              dark:hover:text-teal-300
+                            "
+                            title="Cliquer pour modifier cet utilisateur"
+                          >
+                            {user.use_login}
+                          </button>
                         </td>
 
                         {/* Rôle */}

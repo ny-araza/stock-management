@@ -327,7 +327,7 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
     e.preventDefault();
     try {
       const ligne_ok: boolean[] = [];
-      if (totalHT != 0 && totalTVA != 0) {
+      if (totalHT != 0) {
         const today = new Date().toISOString().split("T")[0];
         const res = await postData("/api/insert-database/", "t_cmd_fournis", {
           cmf_code: values.pieces,
@@ -757,7 +757,6 @@ const NewCommandFrns: React.FC<cmdFrns> = ({ isOpen, onClose, className }) => {
 
                           <td className="p-2">
                             <input
-                              required
                               value={ligne.pri_tva}
                               onChange={(e) =>
                                 modifierLigne(index, "pri_tva", e.target.value)

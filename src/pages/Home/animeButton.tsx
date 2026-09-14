@@ -19,7 +19,9 @@ export default function AnimatedButton({
       className="
         group
         relative
-        h-60
+        h-40
+        sm:h-52
+        md:h-60
         w-full
         overflow-hidden
         rounded-xl
@@ -45,8 +47,9 @@ export default function AnimatedButton({
             transition-all
             duration-300
             ease-out
-            group-hover:-translate-y-5
-            group-hover:scale-75
+
+            sm:group-hover:-translate-y-5
+            sm:group-hover:scale-75
           "
         >
           {icon}
@@ -56,16 +59,20 @@ export default function AnimatedButton({
         <span
           className="
             absolute
-            bottom-8
-            opacity-0
-            translate-y-5
-            text-lg
+            bottom-6
+
+            text-base
             font-semibold
+
+            opacity-100
+            translate-y-0
+
+            sm:bottom-5
+            sm:text-sm
+
             transition-all
             duration-300
             ease-out
-            group-hover:opacity-100
-            group-hover:translate-y-0
           "
         >
           {children}

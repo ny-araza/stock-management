@@ -1,4 +1,3 @@
-import React from "react";
 import { StockArticle } from "./types";
 import { StockLevelIndicator } from "./StockLevelIndicator";
 

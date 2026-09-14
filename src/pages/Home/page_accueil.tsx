@@ -23,6 +23,7 @@ import { useAuth } from "../../services/authLogin";
 import { Authorization } from "../../services/authLogin";
 import NewClts from "../Clients/newClts";
 import NewFrns from "../Fournisseurs/newFrns";
+import { Link } from "react-router";
 
 type ModalType =
   | "entry"
@@ -51,7 +52,7 @@ const MENU_CODES: Partial<Record<Exclude<ModalType, null>, number>> = {
   rtc: 104,
   rtf: 103,
   client: 101,
-  frns: 102
+  frns: 102,
 };
 
 export default function PageAccueil() {
@@ -89,7 +90,7 @@ export default function PageAccueil() {
             <Entry
               isOpen={openModal == "entry"}
               onClose={close}
-              className="max-w-[900px] m-4"
+              className="max-h-[900px] m-4"
             ></Entry>
           </>
         )}
@@ -114,9 +115,7 @@ export default function PageAccueil() {
           <>
             <AnimatedButton
               onClick={() => open("client")}
-              icon={
-                <FontAwesomeIcon icon={faUser} className="text-6xl" />
-              }
+              icon={<FontAwesomeIcon icon={faUser} className="text-6xl" />}
             >
               Ajouter client
             </AnimatedButton>
@@ -131,9 +130,7 @@ export default function PageAccueil() {
           <>
             <AnimatedButton
               onClick={() => open("frns")}
-              icon={
-                <FontAwesomeIcon icon={faBuilding} className="text-6xl" />
-              }
+              icon={<FontAwesomeIcon icon={faBuilding} className="text-6xl" />}
             >
               Ajouter fournisseur
             </AnimatedButton>
@@ -161,19 +158,18 @@ export default function PageAccueil() {
         )}
         {hasAccess("livraison") && (
           <>
-            <AnimatedButton
-              onClick={() => open("livraison")}
-              icon={
-                <FontAwesomeIcon icon={faCartArrowDown} className="text-6xl" />
-              }
-            >
-              Nouvelle livraison fournisseur
-            </AnimatedButton>
-            <NewLivFrns
-              isOpen={openModal == "livraison"}
-              onClose={close}
-              className="max-w-[900px] m-4"
-            />
+            <Link to={"/new-liv"}>
+              <AnimatedButton
+                icon={
+                  <FontAwesomeIcon
+                    icon={faCartArrowDown}
+                    className="text-6xl"
+                  />
+                }
+              >
+                Nouvelle livraison fournisseur
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {hasAccess("vente") && (

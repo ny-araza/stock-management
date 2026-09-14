@@ -13,10 +13,10 @@ import Alert from "../../../components/ui/alert/Alert";
 import NewClts from "../../Clients/newClts";
 import ValidationChoiceModal from "./utils/ValidationChoiceModal";
 import { generateDocumentPDF, DocumentData } from "./utils/generateDocumentPDF";
-import { ValueService } from "ag-grid-community";
 import { montantEnLettres } from "./utils/numberToWords";
-import { getStockSortable, LotStock } from "./utils/stockUtils";
+import { AllocationLot, LotStock } from "./utils/stockUtils";
 import { allouerLotsFEFO } from "./utils/stockUtils";
+import { useAuth } from "../../../services/authLogin";
 
 interface newVente {
   isOpen: boolean;
@@ -64,6 +64,8 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
   }>({});
   const articleRef = useRef<HTMLInputElement>(null);
   const [ligneArticle, setLigneArticle] = useState<any[]>([]);
+  const { user } = useAuth();
+
   const prixArticle = {
     pri_id: "",
     pri_article: "",
@@ -197,68 +199,45 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     return datePeremptionObj < aujourdHui;
   };
 
-  // const getOldStock = async (codeArticle: string) => {
-  //   try {
-  //     const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
-  //     console.log(res.stock);
-  //     const quantiteStock = res?.stock?.stk_quantite ?? 0;
-  //     setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
-  //     return quantiteStock;
-  //   } catch (error: any) {
-  //     setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
-  //     return 0;
-  //   }
-  // };
-
-  // const getOldStock = async (codeArticle: string) => {
-  //   try {
-  //     const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
-  //     const lots: LotStock[] = res?.lots ?? [];
-
-  //     setLotsParArticle((prev) => ({ ...prev, [codeArticle]: lots }));
-
-  //     // Stock "sortable" = uniquement les lots avec >= 7 jours avant péremption
-  //     const quantiteSortable = getStockSortable(lots, 7);
-
-  //     setStockDisponible((prev) => ({
-  //       ...prev,
-  //       [codeArticle]: quantiteSortable,
-  //     }));
-
-  //     return quantiteSortable;
-  //   } catch (error: any) {
-  //     console.error(error);
-  //     setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
-  //     return 0;
-  //   }
-  // };
   const getOldStock = async (codeArticle: string) => {
     try {
       const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
-      const lots = res?.stock?.lots || [];
-      console.log(lots);
 
+      const lots = res?.stock?.lots || [];
+      // On garde tous les lots ayant une quantité > 0
+      const lotsDisponibles = lots.filter(
+        (lot: any) => Number(lot.lot_qte) > 0,
+      );
+
+      console.log("ceci est le lot disponnible", lotsDisponibles);
+
+      setLotsParArticle((prev) => ({
+        ...prev,
+        [codeArticle]: lotsDisponibles,
+      }));
+
+      // Stock normal : uniquement non périmé
       const aujourdHui = new Date();
       aujourdHui.setHours(0, 0, 0, 0);
 
-      const lotsValides = lots.filter((lot: any) => {
-        const date = new Date(lot.lot_dateper);
-        date.setHours(0, 0, 0, 0);
+      const quantiteStock = lotsDisponibles
+        .filter((lot: any) => {
+          const date = new Date(lot.lot_dateper);
+          date.setHours(0, 0, 0, 0);
 
-        return Number(lot.lot_qte) > 0 && date >= aujourdHui;
-      });
+          return date >= aujourdHui;
+        })
+        .reduce(
+          (total: number, lot: any) => total + Number(lot.lot_qte || 0),
+          0,
+        );
 
-      const quantiteStock = lotsValides.reduce(
-        (total: number, lot: any) => total + Number(lot.lot_qte || 0),
-        0,
-      );
-      console.log(quantiteStock);
       setStockDisponible((prev) => ({
         ...prev,
         [codeArticle]: quantiteStock,
       }));
 
-      return lotsValides;
+      return lotsDisponibles;
     } catch (error) {
       setStockDisponible((prev) => ({
         ...prev,
@@ -269,24 +248,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
-  const handleStock = async (stk: any) => {
-    try {
-      const quantity = stockDisponible[stk.article] - parseInt(stk.quantite);
-      const res = await postData("/api/insert-database/", "t_stock", {
-        stk_quantite: quantity,
-        stk_pri_id: stk.pri_id,
-        stk_art_code: stk.article,
-        stk_lot_code: stk.lot_code,
-      });
-      if (!res.status) {
-        throw new Error(`${res.error}`);
-      }
-      console.log(`Stoké avec success ${res.message}`);
-    } catch (err: any) {
-      throw new Error(`${err.error}`);
-    }
-  };
-
   const handleLigneKeyDown = (e: any) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -294,13 +255,11 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     }
   };
 
-
   const choisirArticle = async (article: any) => {
     const oldStock = await getOldStock(article.code);
 
     // Récupérer les lots
     const lots = oldStock;
-
     const lotsDisponibles = lots
       .filter(
         (lot: any) => Number(lot.lot_qte) > 0 && !estPerime(lot.lot_dateper),
@@ -321,7 +280,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       pri_designation: article.nom_article,
 
       datePeremption: premierLot?.lot_dateper || "",
-      lot_code: premierLot?.lot_id || "",
+      lot_code: premierLot?.lot_code || "",
     }));
 
     setSuggestions([]);
@@ -536,7 +495,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
 
       const stock = stockDisponible[code];
       const quantiteDemandee = quantitesParArticle[code] || 0;
-
       if (stock !== undefined && quantiteDemandee > stock) {
         nouvellesErreurs["nouvelle"] =
           `Stock insuffisant. Disponible : ${stock}, demandé : ${quantiteDemandee}`;
@@ -583,8 +541,44 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       });
       return;
     }
+    for (const value of ligneArticle) {
+      const lots = lotsParArticle[value.pri_article] || [];
+      const quantiteDemandee = Number(value.pri_quantite);
+      let allocations;
+      try {
+        allocations = allouerLotsFEFO(lots, quantiteDemandee, 7);
+      } catch (err: any) {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: `Stock insuffisant pour ${value.pri_article}`,
+          message: err.message,
+        });
+        setActionLoading(false);
+        return; // on bloque toute la vente si un article ne peut pas être livré
+      }
+    }
     enregistrerFacture();
+    fetchCode("t_vente", false);
     setShowValidationChoice(true);
+  };
+
+  const handleLot = async (data: AllocationLot, quantite: any) => {
+    try {
+      if (!data.lot_id) return;
+      const body: Record<string, unknown> = {
+        lot_usemdf: user?.use_login,
+        lot_code: data.lot_code,
+        lot_dateper: data.datePeremption,
+        lot_art_quantite: quantite,
+      };
+      return await apiFetch(`/api/lot/update/${data.lot_id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+    } catch (error: any) {
+      console.error(`${error}`);
+    }
   };
 
   const enregistrerFacture = async () => {
@@ -593,119 +587,123 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
       try {
         const ligne_ok: boolean[] = [];
         const today = new Date().toISOString().split("T")[0];
-        const res = await postData("/api/insert-database/", "t_vente", {
-          vte_code: values.pieces,
-          vte_date: today,
-          vte_modepaye: values.modePaye,
-          vte_montant_ht: parseInt(totalHT),
-          vte_montant_ttc: parseInt(totalTTC),
-          vte_tva: parseInt(totalTVA),
-          vte_cli_code: values.code_cli,
-          vte_cli_nom: values.client,
-          vte_cli_contact: values.contact1,
-          vte_payeclient: values.payeClient,
-          vte_datepay: today,
-          vte_telmoney: values.telMoney,
-          vte_valide: "0",
-          vte_datevalide: today,
-          vte_paye: "0",
-          vte_livreur: values.livreur,
-          vet_operateur: values.operateur,
-          vte_lettremontant: "test",
-          ve_dateecheance: values.dateEcheance || today,
-          ve_code_bl: values.bl,
-          ve_adresse_liv: values.adresse,
-        });
-        if (res.status) {
-          for (const value of ligneArticle) {
-            const lots = lotsParArticle[value.pri_article] || [];
-            const quantiteDemandee = Number(value.pri_quantite);
+        for (const value of ligneArticle) {
+          const lots = lotsParArticle[value.pri_article] || [];
+          const quantiteDemandee = Number(value.pri_quantite);
 
-            let allocations;
-            try {
-              allocations = allouerLotsFEFO(lots, quantiteDemandee, 7);
-            } catch (err: any) {
-              setAlert({
-                open: true,
-                variant: "error",
-                title: `Stock insuffisant pour ${value.pri_article}`,
-                message: err.message,
-              });
-              setActionLoading(false);
-              return; // on bloque toute la vente si un article ne peut pas être livré
-            }
-
-            // Répartit la ligne saisie en plusieurs lignes t_ligne_vente, une par lot alloué
-            for (const alloc of allocations) {
-              const proportionHT =
-                (alloc.quantitePrise / quantiteDemandee) *
-                Number(value.pri_totalht);
-              const ttcLigne =
-                proportionHT + (proportionHT * Number(value.pri_tva)) / 100;
-
-              const send = await postData(
-                "/api/insert-database/",
-                "t_ligne_vente",
-                {
-                  vtel_quantite: alloc.quantitePrise,
-                  vtel_pri_id: value.pri_id,
-                  vtel_vte_code: values.pieces,
-                  vtel_prixunit: value.pri_pua,
-                  vtel_tva: value.pri_tva,
-                  vtel_ht: proportionHT.toFixed(2),
-                  vtel_art_code: value.pri_article,
-                  vtel_cli_code: values.code_cli,
-                  vtel_ttc: ttcLigne.toFixed(2),
-                  vtel_lot_dateper: alloc.datePeremption,
-                  vtel_remise: value.remise ? value.remise : "0",
-                },
-              );
-
-              await handleCreateMvtStock({
-                code_org: values.pieces,
-                date: today,
-                lot_code: alloc.lot_code,
-                origine: "t_vente",
-                pri_id: value.pri_id,
-                qte: alloc.quantitePrise,
-                art_code: value.pri_article,
-              });
-
-              // handleStock doit décrémenter le lot précis, pas juste stockDisponible[article]
-              await postData("/api/insert-database/", "t_stock", {
-                stk_quantite:
-                  Number(
-                    lots.find((l) => l.lot_code === alloc.lot_code)?.lot_qte ??
-                      0,
-                  ) - alloc.quantitePrise,
-                stk_pri_id: value.pri_id,
-                stk_art_code: value.pri_article,
-                stk_lot_code: alloc.lot_code,
-              });
-
-              ligne_ok.push(!!send.status);
-            }
+          let allocations;
+          try {
+            allocations = allouerLotsFEFO(lots, quantiteDemandee, 7);
+          } catch (err: any) {
+            setAlert({
+              open: true,
+              variant: "error",
+              title: `Stock insuffisant pour ${value.pri_article}`,
+              message: err.message,
+            });
+            setActionLoading(false);
+            return; // on bloque toute la vente si un article ne peut pas être livré
           }
-        } else {
-          setAlert({
-            open: true,
-            message: res.error,
-            title: "Une erreur survenue",
-            variant: "error",
-          });
-          return;
+
+          // Répartit la ligne saisie en plusieurs lignes t_ligne_vente, une par lot alloué
+          for (const alloc of allocations) {
+            const proportionHT =
+              (alloc.quantitePrise / quantiteDemandee) *
+              Number(value.pri_totalht);
+            const ttcLigne =
+              proportionHT + (proportionHT * Number(value.pri_tva)) / 100;
+
+            const send = await postData(
+              "/api/insert-database/",
+              "t_ligne_vente",
+              {
+                vtel_quantite: alloc.quantitePrise,
+                vtel_pri_id: value.pri_id,
+                vtel_vte_code: values.pieces,
+                vtel_prixunit: value.pri_pua,
+                vtel_tva: value.pri_tva,
+                vtel_ht: proportionHT.toFixed(2),
+                vtel_art_code: value.pri_article,
+                vtel_cli_code: values.code_cli,
+                vtel_ttc: ttcLigne.toFixed(2),
+                vtel_lot_dateper: alloc.datePeremption,
+                vtel_remise: value.remise ? value.remise : "0",
+              },
+            );
+
+            await handleCreateMvtStock({
+              code_org: values.pieces,
+              date: today,
+              lot_code: alloc.lot_code,
+              origine: "t_vente",
+              pri_id: value.pri_id,
+              qte: alloc.quantitePrise,
+              art_code: value.pri_article,
+            });
+
+            // handleStock doit décrémenter le lot précis, pas juste stockDisponible[article]
+            await postData("/api/insert-database/", "t_stock", {
+              stk_quantite:
+                Number(
+                  lots.find((l) => l.lot_code === alloc.lot_code)?.lot_qte ?? 0,
+                ) - alloc.quantitePrise,
+              stk_pri_id: value.pri_id,
+              stk_art_code: value.pri_article,
+              stk_lot_code: alloc.lot_id,
+            });
+
+            // reduce the quantity lotId
+            await handleLot(alloc, Number(
+              lots.find((l) => l.lot_code === alloc.lot_code)?.lot_qte ?? 0,
+            ) - alloc.quantitePrise);
+
+            ligne_ok.push(!!send.status);
+          }
         }
         if (!ligne_ok.find((val) => val == false)) {
-          fetchCode("t_vente", true);
-          setAlert({
-            open: true,
-            variant: "success",
-            title: "Opération réussie",
-            message: "Livraison fournisseur enregistrer avec succès",
+          const res = await postData("/api/insert-database/", "t_vente", {
+            vte_code: values.pieces,
+            vte_date: today,
+            vte_modepaye: values.modePaye,
+            vte_montant_ht: parseInt(totalHT),
+            vte_montant_ttc: parseInt(totalTTC),
+            vte_tva: parseInt(totalTVA),
+            vte_cli_code: values.code_cli,
+            vte_cli_nom: values.client,
+            vte_cli_contact: values.contact1,
+            vte_payeclient: values.payeClient,
+            vte_datepay: today,
+            vte_telmoney: values.telMoney,
+            vte_valide: "0",
+            vte_datevalide: today,
+            vte_paye: "0",
+            vte_livreur: values.livreur,
+            vet_operateur: values.operateur,
+            vte_lettremontant: "test",
+            ve_dateecheance: values.dateEcheance || null,
+            ve_code_bl: values.bl,
+            ve_adresse_liv: values.adresse,
           });
-          reset();
-          setLigneArticle([]);
-          return;
+          if (res.status) {
+            setAlert({
+              open: true,
+              variant: "success",
+              title: "Opération réussie",
+              message: "Vente enregistrer avec succès",
+            });
+            reset();
+            setLigneArticle([]);
+            fetchCode("t_vente", true);
+            return;
+          } else {
+            setAlert({
+              open: true,
+              message: res.error,
+              title: "Une erreur survenue",
+              variant: "error",
+            });
+            return;
+          }
         } else {
           setAlert({
             open: true,
@@ -878,7 +876,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     setField("payeClient", "16");
     console.log(values.payeClient);
     setField("modePaye", "1");
-    setField("dateEcheance", "12-05-2026");
+    setField("dateEcheance", "");
   }, [isOpen]);
 
   return (
@@ -1347,7 +1345,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                           </td>
                           <td className="p-2">
                             <input
-                              required
                               type="date"
                               value={ligne.datePeremption}
                               onChange={(e) =>

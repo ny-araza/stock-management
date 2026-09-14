@@ -1,24 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Modal } from "../../../components/ui/modal";
-import Label from "../../../components/form/Label";
-import Input from "../../../components/form/input/InputField";
-import { useForm } from "../../../hooks/useForm";
-import { apiFetch } from "../../../services/api";
+import Label from "../../components/form/Label";
+import Input from "../../components/form/input/InputField";
+import { useForm } from "../../hooks/useForm";
+import { apiFetch } from "../../services/api";
 import { useCallback, useState, useRef, useEffect } from "react";
-import Button from "../../../components/ui/button/Button";
-import NewFrns from "../../Fournisseurs/newFrns";
-import Select from "../../../components/form/Select";
-import { postData } from "../../../services/sendDataService";
-import Alert from "../../../components/ui/alert/Alert";
-import { Enumeration, EnumerationOption } from "../../../interfaces/interfaces";
+import Button from "../../components/ui/button/Button";
+import NewFrns from "../Fournisseurs/newFrns";
+import Select from "../../components/form/Select";
+import { postData } from "../../services/sendDataService";
+import Alert from "../../components/ui/alert/Alert";
+import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
 
-interface livFrns {
-  isOpen: boolean;
-  onClose: () => void;
-  className?: string;
-}
 
-const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
+export default function NewLivFrnsPage(){
   const { values, reset, setField, handleChange } = useForm({
     pieces: "",
     codeCf: "",
@@ -261,7 +255,6 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   const getOldStock = async (codeArticle: string) => {
     try {
       const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
-      console.log(res.stock);
       const quantiteStock = res?.stock?.stk_quantite ?? 0;
       setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
       return quantiteStock;
@@ -604,12 +597,12 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
   useEffect(() => {
     fetchCode("t_entree", false);
     fetchPaye("MODE_PAY");
-  }, [isOpen]);
+  }, []);
 
   return (
-    <>
-      <Modal isOpen={isOpen} onClose={onClose} className={className}>
-        <div className="no-scrollbar relative w-full max-w-[900px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+    <div>
+      <div>
+        <div className="no-scrollbar relative w-full overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
               Ajout livraisons fournisseur
@@ -620,7 +613,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
             </span>
           </div>
           <form className="flex flex-col" onSubmit={handleSubmit} autoComplete="off">
-            <div className="custom-scrollbar h-[600px] overflow-y-auto px-2 pb-3">
+            <div className="custom-scrollbar  overflow-y-auto px-2 pb-3">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
                 <div>
                   <Label>Piece N°</Label>
@@ -783,363 +776,8 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
                   ></Select>
                 </div>
               </div>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5 h-100">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-brand-500 text-white">
-                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium relative">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="pri_article"
-                          ref={articleRef}
-                          value={ligneEnCours.pri_article}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="code article"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                        {showSuggestions && suggestions.length > 0 && (
-                          <div className="absolute z-100 w-min-[50px] bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
-                            {suggestions.map((article: any) => (
-                              <div
-                                key={article.id}
-                                onClick={() => choisirArticle(article)}
-                                className="cursor-pointer px-3 py-2"
-                              >
-                                <div className="text-xs text-gray-500">
-                                  {article.code} - {article.nom_article}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </th>
-                      <th className="w-[220px] min-w-[220px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="pri_designation"
-                          value={ligneEnCours.pri_designation}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="designation"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[220px] min-w-[120px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="pri_quantite"
-                          value={ligneEnCours.pri_quantite}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="quantite"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[220px] min-w-[120px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="pri_pua"
-                          value={ligneEnCours.pri_pua}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="P.U"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="pri_tva"
-                          value={ligneEnCours.pri_tva}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="TVA"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[50px] min-w-[50px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="remise"
-                          value={ligneEnCours.remise}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="Remise %"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="pri_pht"
-                          value={ligneEnCours.pri_totalht}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="Prix HT"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="datePeremption"
-                          type="date"
-                          value={ligneEnCours.datePeremption}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="Date péremption"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-[120px] min-w-[120px] p-2 text-left font-medium">
-                        <input
-                          style={{ borderBottom: "1px solid gray" }}
-                          name="lot_code"
-                          type="text"
-                          value={ligneEnCours.lot_code}
-                          onChange={handleLigneChange}
-                          onKeyDown={handleLigneKeyDown}
-                          placeholder="lot code"
-                          className="w-full bg-transparent placeholder-white/70 outline-none"
-                        />
-                      </th>
-                      <th className="w-10 p-2 text-center">
-                        <button
-                          type="button"
-                          onClick={ajouterLigne}
-                          className="text-white"
-                          title="Ajouter la ligne"
-                        >
-                          +
-                        </button>
-                      </th>
-                    </tr>
-                    <tr className="bg-brand-500 text-gray-400 text-xs">
-                      <th className="p-2 text-left">Article</th>
-                      <th className="p-2 w-30 text-left">Désignation</th>
-                      <th className="p-2 text-left">Quantité</th>
-                      <th className="p-2 text-left">P.U</th>
-                      <th className="p-2 text-left">TVA (%)</th>
-                      <th className="p-2 text-left">Remise (%)</th>
-                      <th className="p-2 text-left">Prix HT</th>
-                      <th className="p-2 text-left">Date Péremption</th>
-                      <th className="p-2 text-left">Lot code</th>
-                      <th className="p-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="dark:bg-gray-900">
-                    {ligneArticle.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={8}
-                          className="p-4 text-center text-gray-500 dark:text-gray-400"
-                        >
-                          Aucune ligne n'a encore été crée
-                        </td>
-                      </tr>
-                    ) : (
-                      ligneArticle.map((ligne, index) => (
-                        <tr
-                          key={index}
-                          className="border-t border-gray-100 dark:border-gray-800 dark:text-white"
-                        >
-                          <td className="p-2 relative">
-                            <input
-                              required
-                              value={ligne.pri_article}
-                              onChange={(e) =>
-                                modifierLigne(
-                                  index,
-                                  "pri_article",
-                                  e.target.value,
-                                )
-                              }
-                              onFocus={() => setEditingRow(index)}
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                            {editingRow === index &&
-                              showRowSuggestions &&
-                              rowSuggestions.length > 0 && (
-                                <div className="absolute z-100  w-full bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
-                                  {rowSuggestions.map((article: any) => (
-                                    <div
-                                      key={article.id}
-                                      onClick={() =>
-                                        choisirArticleLigne(index, article)
-                                      }
-                                      className="cursor-pointer px-3 py-2"
-                                    >
-                                      <div className="text-xs text-gray-500">
-                                        {article.code}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                          </td>
-                          <td className="p-2">
-                            <input
-                              value={ligne.pri_designation}
-                              onChange={(e) =>
-                                modifierLigne(
-                                  index,
-                                  "pri_designation",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              required
-                              value={ligne.pri_quantite}
-                              onChange={(e) =>
-                                modifierLigne(
-                                  index,
-                                  "pri_quantite",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-
-                          <td className="p-2">
-                            <input
-                              required
-                              value={ligne.pri_pua}
-                              onChange={(e) =>
-                                modifierLigne(index, "pri_pua", e.target.value)
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-
-                          <td className="p-2">
-                            <input
-                              value={ligne.pri_tva}
-                              onChange={(e) =>
-                                modifierLigne(index, "pri_tva", e.target.value)
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              value={ligne.remise}
-                              onChange={(e) =>
-                                modifierLigne(index, "remise", e.target.value)
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              required
-                              readOnly
-                              value={ligne.pri_totalht}
-                              onChange={(e) =>
-                                modifierLigne(
-                                  index,
-                                  "pri_totalht",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              required
-                              type="date"
-                              value={ligne.datePeremption}
-                              onChange={(e) =>
-                                modifierLigne(
-                                  index,
-                                  "datePeremption",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={ligne.lot_code}
-                              onChange={(e) =>
-                                modifierLigne(index, "lot_code", e.target.value)
-                              }
-                              className="w-full rounded border border-gray-300 dark:border-gray-700 dark:bg-gray-800 px-2 py-1"
-                            />
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => supprimerLigne(index)}
-                              className="text-red-500"
-                              title="Supprimer la ligne"
-                            >
-                              −
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                  <tfoot className="bg-gray-100 dark:bg-gray-800 font-semibold">
-                    <tr>
-                      <td colSpan={4}></td>
-
-                      <td></td>
-                      <td></td>
-                      <td className="p-2 text-right dark:text-gray-300">
-                        Total HT
-                      </td>
-                      <td></td>
-                      <td className="p-2 text-right dark:text-gray-300">
-                        {totalHT.toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td></td>
-                    </tr>
-                    <tr>
-                      <td colSpan={4}></td>
-
-                      <td></td>
-                      <td></td>
-                      <td className="p-2 text-right dark:text-gray-300">
-                        Total TVA
-                      </td>
-                      <td></td>
-                      <td className="p-2 text-right dark:text-gray-300">
-                        {totalTVA.toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td></td>
-                    </tr>
-                    <tr className="bg-brand-500 dark:text-gray-300">
-                      <td colSpan={4}></td>
-                      <td></td>
-                      <td></td>
-                      <td className="p-2 text-right">Total TTC</td>
-                      <td></td>
-                      <td className="p-2 text-right">
-                        {totalTTC.toLocaleString("fr-FR", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
+              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
+                
               </div>
             </div>
             <div className="flex justify-center w-full">
@@ -1171,9 +809,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
             })
           }
         />
-      </Modal>
-    </>
+      </div>
+    </div>
   );
 };
-
-export default NewLivFrns;

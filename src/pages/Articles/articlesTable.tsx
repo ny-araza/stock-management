@@ -515,16 +515,6 @@ export default function ArticleTable() {
     [],
   );
 
-  const typeOptions: Option[] = [
-    { value: "1", label: "Stockable" },
-    { value: "0", label: "Non stockable" },
-  ];
-
-  const StatusOptions: Option[] = [
-    { value: "1", label: "Actif" },
-    { value: "0", label: "Non actif" },
-  ];
-
   // fetch avec search + filtres AgGrid (envoyes au backend)
   const fetcharticles = useCallback(
     async (pageNumber = page, keyword = search, filters = filterParams) => {
@@ -842,12 +832,6 @@ export default function ArticleTable() {
     return "Format invalide";
   }
 
-  const styleForm: CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    width: "100%",
-  };
 
   const styleMenu: CSSProperties = {
     display: "flex",
@@ -1097,24 +1081,6 @@ export default function ArticleTable() {
                           +
                         </Button>
                       </Dropdown>
-                    </div>
-                  </div>
-                  <div style={styleForm}>
-                    <div className="col-span-2 w-100">
-                      <Label>Type stockage</Label>
-                      <Select
-                        options={typeOptions}
-                        onChange={(value) => setField("stockable", value)}
-                        defaultValue={typeOptions[0].label}
-                      />
-                    </div>
-                    <div className="col-span-2 w-100">
-                      <Label>Status</Label>
-                      <Select
-                        options={StatusOptions}
-                        onChange={(value) => setField("enabled", value)}
-                        defaultValue={StatusOptions[0].label}
-                      />
                     </div>
                   </div>
                 </div>
@@ -1376,7 +1342,7 @@ export default function ArticleTable() {
                 <Button className="mr-2" size="sm" type="submit">
                   Sauvegarder
                 </Button>
-                <Button variant="outline" size="sm" type="submit">
+                <Button variant="outline" size="sm" onClick={reset}>
                   Tout effacer
                 </Button>
               </div>

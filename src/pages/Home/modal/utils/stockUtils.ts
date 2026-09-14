@@ -1,10 +1,12 @@
 export interface LotStock {
+  lot_id: number;
   lot_code: string;
   lot_qte: number;
   lot_dateper: string; // ISO date string
 }
 
 export interface AllocationLot {
+  lot_id: number;
   lot_code: string;
   datePeremption: string;
   quantitePrise: number;
@@ -86,6 +88,7 @@ export function allouerLotsFEFO(
     const qteDuLot = Math.min(Number(lot.lot_qte), reste);
     if (qteDuLot > 0) {
       allocations.push({
+        lot_id: lot.lot_id,
         lot_code: lot.lot_code,
         datePeremption: lot.lot_dateper,
         quantitePrise: qteDuLot,
