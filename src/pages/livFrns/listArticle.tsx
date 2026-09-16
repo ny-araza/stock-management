@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChevronDown,
   faPen,
   faTrash,
+  faCheck,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import Button from "../../components/ui/button/Button";
 import { ArticleVente } from "./ArticleModal";
 
 type Props = {
   articles: ArticleVente[];
+
+  /**
+   * Permet au composant parent de récupérer
+   * la nouvelle liste après modification/suppression.
+   */
+  onArticlesChange?: (articles: ArticleVente[]) => void;
 };
 
 interface Total {
@@ -18,36 +26,189 @@ interface Total {
   totalHt: number;
 }
 
-export default function ListArticles({ articles }: Props) {
+export default function ListArticles({ articles, onArticlesChange }: Props) {
+  // --------------------------------------------------
+  // Liste locale
+  // --------------------------------------------------
+
+  const [articleList, setArticleList] = useState<ArticleVente[]>(articles);
+
+  // Synchronise la liste locale lorsque le parent
+  // envoie une nouvelle liste
+  useEffect(() => {
+    setArticleList(articles);
+  }, [articles]);
+
+  // --------------------------------------------------
+  // Dropdown mobile
+  // --------------------------------------------------
+
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
   const toggleRow = (index: number) => {
     setExpandedIndex((current) => (current === index ? null : index));
   };
 
+  // --------------------------------------------------
+  // Modification
+  // --------------------------------------------------
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [editArticle, setEditArticle] = useState<ArticleVente | null>(null);
+
+  /**
+   * Commencer la modification
+   */
+  const startEdit = (article: ArticleVente) => {
+    setEditingId(article.pri_id);
+    setEditArticle({ ...article });
+  };
+
+  /**
+   * Annuler la modification
+   */
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditArticle(null);
+  };
+
+  /**
+   * Modifier un champ
+   */
+  const updateEditField = <K extends keyof ArticleVente>(
+    field: K,
+    value: ArticleVente[K],
+  ) => {
+    if (!editArticle) return;
+
+    setEditArticle({
+      ...editArticle,
+      [field]: value,
+    });
+  };
+
+  /**
+   * Enregistrer la modification
+   */
+  const saveEdit = () => {
+    if (!editArticle) return;
+
+    const newArticles = articleList.map((article) =>
+      article.pri_id === editArticle.pri_id ? editArticle : article,
+    );
+
+    setArticleList(newArticles);
+
+    // Informe le composant parent
+    onArticlesChange?.(newArticles);
+
+    setEditingId(null);
+    setEditArticle(null);
+  };
+
+  // --------------------------------------------------
+  // Suppression
+  // --------------------------------------------------
+
+  const deleteLigne = (id: string) => {
+    const articleToDelete = articleList.find(
+      (article) => article.pri_id === id,
+    );
+
+    if (!articleToDelete) return;
+
+    const confirmation = window.confirm(
+      `Voulez-vous vraiment supprimer l'article "${articleToDelete.pri_article}" ?`,
+    );
+
+    if (!confirmation) return;
+
+    const newArticles = articleList.filter((article) => article.pri_id !== id);
+
+    setArticleList(newArticles);
+
+    // Informe le parent
+    onArticlesChange?.(newArticles);
+
+    // Si l'article supprimé était ouvert
+    setExpandedIndex(null);
+
+    // Si l'article était en modification
+    if (editingId === id) {
+      setEditingId(null);
+      setEditArticle(null);
+    }
+  };
+
+  // --------------------------------------------------
+  // Totaux
+  // --------------------------------------------------
+
   function total(): Total {
-    if (!articles)
+    if (!articleList) {
       return {
         totalHt: 0,
         totalTtc: 0,
         totalTva: 0,
       };
+    }
+
     let totalht = 0;
     let totaltva = 0;
-    articles.map((article: ArticleVente) => {
-      totalht += article.pri_totalht;
-      totaltva += article.pri_tva;
+
+    articleList.forEach((article) => {
+      totalht += Number(article.pri_totalht) || 0;
+      totaltva += Number(article.pri_tva) || 0;
     });
-    const res: Total = {
+
+    return {
       totalHt: totalht,
       totalTva: totaltva,
       totalTtc: totalht + totaltva,
     };
-    return res;
   }
+
+  // --------------------------------------------------
+  // Recalcul HT
+  // --------------------------------------------------
+
+  const updateQuantity = (value: string) => {
+    if (!editArticle) return;
+
+    const quantity = Number(value) || 0;
+    const pua = Number(editArticle.pri_pua) || 0;
+
+    setEditArticle({
+      ...editArticle,
+      pri_quantite: quantity,
+      pri_totalht: quantity * pua,
+    });
+  };
+
+  const updatePua = (value: string) => {
+    if (!editArticle) return;
+
+    const pua = Number(value) || 0;
+    const quantity = Number(editArticle.pri_quantite) || 0;
+
+    setEditArticle({
+      ...editArticle,
+      pri_pua: pua,
+      pri_totalht: quantity * pua,
+    });
+  };
+
+  // --------------------------------------------------
+  // Rendu
+  // --------------------------------------------------
 
   return (
     <div className="mt-5 w-full overflow-hidden">
-      {/* ================= DESKTOP ================= */}
+      {/* ==================================================
+          DESKTOP
+      ================================================== */}
+
       <table className="hidden sm:table w-full border-b dark:text-white">
         <thead className="text-left">
           <tr className="border-b">
@@ -61,117 +222,234 @@ export default function ListArticles({ articles }: Props) {
         </thead>
 
         <tbody>
-          {articles.map((article, index) => (
-            <tr key={article.pri_id || index} className="border-b">
-              <td className="p-2">
-                <strong>{article.pri_article}</strong>
+          {articleList.map((article, index) => {
+            const isEditing =
+              editingId === article.pri_id && editArticle !== null;
 
-                <div className="text-sm text-gray-500">
-                  {article.pri_designation}
-                </div>
-              </td>
+            return (
+              <tr key={article.pri_id || index} className="border-b">
+                {/* ========================================
+                    CODE + DESIGNATION
+                ======================================== */}
 
-              <td className="p-2">{article.pri_quantite}</td>
+                <td className="p-2">
+                  {isEditing ? (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={editArticle.pri_article}
+                        onChange={(e) =>
+                          updateEditField("pri_article", e.target.value)
+                        }
+                        className="w-full rounded border px-2 py-1 text-sm dark:bg-gray-800"
+                      />
 
-              <td className="p-2">
-                {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
-              </td>
-              <td className="p-2">{article.datePeremption}</td>
-              <td className="p-2">
-                <strong>
-                  {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
-                </strong>
-              </td>
+                      <input
+                        type="text"
+                        value={editArticle.pri_designation}
+                        onChange={(e) =>
+                          updateEditField("pri_designation", e.target.value)
+                        }
+                        className="w-full rounded border px-2 py-1 text-sm dark:bg-gray-800"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <strong>{article.pri_article}</strong>
 
-              <td className="p-2">
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // modifier article
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faPen} />
-                  </Button>
+                      <div className="text-sm text-gray-500">
+                        {article.pri_designation}
+                      </div>
+                    </>
+                  )}
+                </td>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // supprimer article
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                {/* ========================================
+                    QUANTITE
+                ======================================== */}
+
+                <td className="p-2">
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={editArticle.pri_quantite}
+                      onChange={(e) => updateQuantity(e.target.value)}
+                      className="w-24 rounded border px-2 py-1 dark:bg-gray-800"
+                    />
+                  ) : (
+                    article.pri_quantite
+                  )}
+                </td>
+
+                {/* ========================================
+                    P.U
+                ======================================== */}
+
+                <td className="p-2">
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={editArticle.pri_pua}
+                      onChange={(e) => updatePua(e.target.value)}
+                      className="w-32 rounded border px-2 py-1 dark:bg-gray-800"
+                    />
+                  ) : (
+                    <>{Number(article.pri_pua).toLocaleString("fr-FR")} Ar</>
+                  )}
+                </td>
+
+                {/* ========================================
+                    DATE PEREMPTION
+                ======================================== */}
+
+                <td className="p-2">
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editArticle.datePeremption || ""}
+                      onChange={(e) =>
+                        updateEditField("datePeremption", e.target.value)
+                      }
+                      className="rounded border px-2 py-1 dark:bg-gray-800"
+                    />
+                  ) : (
+                    article.datePeremption
+                  )}
+                </td>
+
+                {/* ========================================
+                    TOTAL HT
+                ======================================== */}
+
+                <td className="p-2">
+                  <strong>
+                    {Number(
+                      isEditing ? editArticle.pri_totalht : article.pri_totalht,
+                    ).toLocaleString("fr-FR")}{" "}
+                    Ar
+                  </strong>
+                </td>
+
+                {/* ========================================
+                    ACTIONS
+                ======================================== */}
+
+                <td className="p-2">
+                  <div className="flex justify-end gap-1">
+                    {isEditing ? (
+                      <>
+                        {/* ENREGISTRER */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={saveEdit}
+                          title="Enregistrer"
+                        >
+                          <FontAwesomeIcon icon={faCheck} />
+                        </Button>
+
+                        {/* ANNULER */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={cancelEdit}
+                          title="Annuler"
+                        >
+                          <FontAwesomeIcon icon={faXmark} />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        {/* MODIFIER */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEdit(article)}
+                          title="Modifier"
+                        >
+                          <FontAwesomeIcon icon={faPen} />
+                        </Button>
+
+                        {/* SUPPRIMER */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteLigne(article.pri_id)}
+                          title="Supprimer"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
+
+        {/* ==================================================
+            TOTAUX DESKTOP
+        ================================================== */}
+
         <tfoot>
           <tr>
             <td>
               <span>TOTAL HT</span>
             </td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+
+            <td colSpan={4}></td>
+
             <td className="text-right pr-1.5">
-              <strong>
-                {total().totalHt != 0
-                  ? total().totalHt.toLocaleString("fr-FR")
-                  : "0"}{" "}
-                Ar
-              </strong>
+              <strong>{total().totalHt.toLocaleString("fr-FR")} Ar</strong>
             </td>
           </tr>
+
           <tr>
             <td>
               <span>TOTAL TVA</span>
             </td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+
+            <td colSpan={4}></td>
+
             <td className="text-right pr-1.5">
-              <strong>
-                {total().totalTva != 0
-                  ? total().totalTva.toLocaleString("fr-FR")
-                  : "0"}{" "}
-                Ar
-              </strong>
+              <strong>{total().totalTva.toLocaleString("fr-FR")} Ar</strong>
             </td>
           </tr>
+
           <tr>
             <td>
               <span>TOTAL TTC</span>
             </td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+
+            <td colSpan={4}></td>
+
             <td className="text-right pr-1.5">
-              <strong>
-                {total().totalTtc != 0
-                  ? total().totalTtc.toLocaleString("fr-FR")
-                  : "0"}{" "}
-                Ar
-              </strong>
+              <strong>{total().totalTtc.toLocaleString("fr-FR")} Ar</strong>
             </td>
           </tr>
         </tfoot>
       </table>
 
-      {/* ================= MOBILE ================= */}
+      {/* ==================================================
+          MOBILE
+      ================================================== */}
+
       <div className="sm:hidden w-full">
-        {articles.map((article, index) => {
+        {articleList.map((article, index) => {
           const isOpen = expandedIndex === index;
+
+          const isEditing =
+            editingId === article.pri_id && editArticle !== null;
 
           return (
             <div key={article.pri_id || index} className="border-b">
-              {/* Ligne principale */}
+              {/* ==========================================
+                  LIGNE PRINCIPALE
+              ========================================== */}
+
               <button
                 type="button"
                 onClick={() => toggleRow(index)}
@@ -185,9 +463,9 @@ export default function ListArticles({ articles }: Props) {
                   py-3
                   text-left
                   active:bg-gray-50
+                  dark:active:bg-gray-800
                 "
               >
-                {/* Article */}
                 <div className="min-w-0 flex-1">
                   <strong className="block truncate">
                     {article.pri_article}
@@ -198,7 +476,6 @@ export default function ListArticles({ articles }: Props) {
                   </div>
                 </div>
 
-                {/* Total HT + chevron */}
                 <div className="flex items-center gap-2 shrink-0">
                   <strong className="whitespace-nowrap">
                     {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
@@ -216,7 +493,10 @@ export default function ListArticles({ articles }: Props) {
                 </div>
               </button>
 
-              {/* Contenu dropdown */}
+              {/* ==========================================
+                  DROPDOWN
+              ========================================== */}
+
               <div
                 className={`
                   grid
@@ -240,36 +520,116 @@ export default function ListArticles({ articles }: Props) {
                       px-3
                       py-3
                       text-sm
+                      dark:bg-gray-800
                     "
                   >
-                    {/* Code article */}
-                    <div className="flex justify-between py-1.5">
+                    {/* ====================================
+                        CODE
+                    ==================================== */}
+
+                    <div className="flex justify-between gap-3 py-1.5">
                       <span className="text-gray-500">Code article</span>
 
-                      <strong>{article.pri_article}</strong>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editArticle.pri_article}
+                          onChange={(e) =>
+                            updateEditField("pri_article", e.target.value)
+                          }
+                          className="w-40 rounded border px-2 py-1 text-right dark:bg-gray-700"
+                        />
+                      ) : (
+                        <strong>{article.pri_article}</strong>
+                      )}
                     </div>
 
-                    {/* Quantité */}
-                    <div className="flex justify-between py-1.5">
+                    {/* ====================================
+                        DESIGNATION
+                    ==================================== */}
+
+                    {isEditing && (
+                      <div className="flex justify-between gap-3 py-1.5">
+                        <span className="text-gray-500">Désignation</span>
+
+                        <input
+                          type="text"
+                          value={editArticle.pri_designation}
+                          onChange={(e) =>
+                            updateEditField("pri_designation", e.target.value)
+                          }
+                          className="w-40 rounded border px-2 py-1 text-right dark:bg-gray-700"
+                        />
+                      </div>
+                    )}
+
+                    {/* ====================================
+                        QUANTITE
+                    ==================================== */}
+
+                    <div className="flex justify-between gap-3 py-1.5">
                       <span className="text-gray-500">Quantité</span>
 
-                      <strong>{article.pri_quantite}</strong>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min="0"
+                          value={editArticle.pri_quantite}
+                          onChange={(e) => updateQuantity(e.target.value)}
+                          className="w-28 rounded border px-2 py-1 text-right dark:bg-gray-700"
+                        />
+                      ) : (
+                        <strong>{article.pri_quantite}</strong>
+                      )}
                     </div>
-                    <div className="flex justify-between py-1.5">
+
+                    {/* ====================================
+                        DATE
+                    ==================================== */}
+
+                    <div className="flex justify-between gap-3 py-1.5">
                       <span className="text-gray-500">Date Per</span>
 
-                      <strong>{article.datePeremption}</strong>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={editArticle.datePeremption || ""}
+                          onChange={(e) =>
+                            updateEditField("datePeremption", e.target.value)
+                          }
+                          className="w-40 rounded border px-2 py-1 dark:bg-gray-700"
+                        />
+                      ) : (
+                        <strong>{article.datePeremption}</strong>
+                      )}
                     </div>
-                    {/* Prix unitaire */}
-                    <div className="flex justify-between py-1.5">
+
+                    {/* ====================================
+                        P.U
+                    ==================================== */}
+
+                    <div className="flex justify-between gap-3 py-1.5">
                       <span className="text-gray-500">P.U</span>
 
-                      <strong>
-                        {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
-                      </strong>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min="0"
+                          value={editArticle.pri_pua}
+                          onChange={(e) => updatePua(e.target.value)}
+                          className="w-32 rounded border px-2 py-1 text-right dark:bg-gray-700"
+                        />
+                      ) : (
+                        <strong>
+                          {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
+                        </strong>
+                      )}
                     </div>
 
-                    {/* Total HT */}
+                    {/* ====================================
+                        TOTAL HT
+                    ==================================== */}
+
                     <div
                       className="
                         flex
@@ -282,35 +642,79 @@ export default function ListArticles({ articles }: Props) {
                       <span className="text-gray-500">Total HT</span>
 
                       <strong>
-                        {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
+                        {Number(
+                          isEditing
+                            ? editArticle.pri_totalht
+                            : article.pri_totalht,
+                        ).toLocaleString("fr-FR")}{" "}
+                        Ar
                       </strong>
                     </div>
 
-                    {/* Actions */}
+                    {/* ====================================
+                        ACTIONS
+                    ==================================== */}
+
                     <div className="flex justify-end gap-2 mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                      {isEditing ? (
+                        <>
+                          {/* ENREGISTRER */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              saveEdit();
+                            }}
+                            title="Enregistrer"
+                          >
+                            <FontAwesomeIcon icon={faCheck} />
+                          </Button>
 
-                          // modifier article
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faPen} />
-                      </Button>
+                          {/* ANNULER */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEdit();
+                            }}
+                            title="Annuler"
+                          >
+                            <FontAwesomeIcon icon={faXmark} />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {/* MODIFIER */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                              startEdit(article);
+                            }}
+                            title="Modifier"
+                          >
+                            <FontAwesomeIcon icon={faPen} />
+                          </Button>
 
-                          // supprimer article
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </Button>
+                          {/* SUPPRIMER */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+
+                              deleteLigne(article.pri_id);
+                            }}
+                            title="Supprimer"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -318,48 +722,28 @@ export default function ListArticles({ articles }: Props) {
             </div>
           );
         })}
-        <div>
-          <div className="flex justify-between">
-            <div>
-              <span>TOTAL HT</span>
-            </div>
 
-            <div className="text-right pr-1.5">
-              <strong>
-                {total().totalHt != 0
-                  ? total().totalHt.toLocaleString("fr-FR")
-                  : "0"}{" "}
-                Ar
-              </strong>
-            </div>
+        {/* ================================================
+            TOTAUX MOBILE
+        ================================================ */}
+
+        <div className="mt-3 space-y-2">
+          <div className="flex justify-between">
+            <span>TOTAL HT</span>
+
+            <strong>{total().totalHt.toLocaleString("fr-FR")} Ar</strong>
           </div>
-          <div className="flex justify-between">
-            <div>
-              <span>TOTAL TVA</span>
-            </div>
 
-            <div className="text-right pr-1.5">
-              <strong>
-                {total().totalTva != 0
-                  ? total().totalTva.toLocaleString("fr-FR")
-                  : "0"}{" "}
-                Ar
-              </strong>
-            </div>
+          <div className="flex justify-between">
+            <span>TOTAL TVA</span>
+
+            <strong>{total().totalTva.toLocaleString("fr-FR")} Ar</strong>
           </div>
-          <div className="flex justify-between">
-            <div>
-              <span>TOTAL TTC</span>
-            </div>
 
-            <div className="text-right pr-1.5">
-              <strong>
-                {total().totalTtc != 0
-                  ? total().totalTtc.toLocaleString("fr-FR")
-                  : "0"}{" "}
-                Ar
-              </strong>
-            </div>
+          <div className="flex justify-between">
+            <span>TOTAL TTC</span>
+
+            <strong>{total().totalTtc.toLocaleString("fr-FR")} Ar</strong>
           </div>
         </div>
       </div>

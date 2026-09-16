@@ -12,12 +12,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
 import ArticleModal, { ArticleVente } from "./ArticleModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faHome,
-  faPen,
-  faPlus,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import ListArticles from "./listArticle";
 
 export default function NewLivFrnsPage() {
@@ -404,12 +399,6 @@ export default function NewLivFrnsPage() {
     setEditingRow(null);
   };
 
-  const supprimerLigne = (index: number) => {
-    const nouvelleListe = ligneArticle.filter((_, i) => i !== index);
-    // setField("ligneArticles", nouvelleListe);
-    setLigneArticle(nouvelleListe);
-  };
-
   const fetchCode = async (table_name: string, isInsert: boolean) => {
     try {
       const query = new URLSearchParams();
@@ -592,20 +581,7 @@ export default function NewLivFrnsPage() {
   const clear = () => {
     reset();
     fetchCode("t_entree", false);
-    setLigneArticle([]);
-    setLigneEnCours({
-      pri_article: "",
-      pri_designation: "",
-      pri_pua: "",
-      pri_id: "",
-      datePeremption: "",
-      pri_quantite: 0,
-      pri_totalht: 0,
-      pri_tva: 0.0,
-      remise: 0,
-      lot_code: "",
-      old_stock: "",
-    });
+    setArticles([]);
   };
 
   useEffect(() => {
@@ -810,7 +786,11 @@ export default function NewLivFrnsPage() {
                     <FontAwesomeIcon icon={faPlus} />
                   </Button>
                 </div>
-                <ListArticles articles={articles} />
+                {articles.length > 0 &&
+                  <ListArticles
+                    onArticlesChange={setArticles}
+                    articles={articles}
+                  />}
                 <ArticleModal
                   open={modalOpen}
                   onClose={() => setModalOpen(false)}
