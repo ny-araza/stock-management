@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Modal } from "../../components/ui/modal";
 
 export interface ArticleVente {
   pri_id: string;
@@ -18,6 +19,7 @@ interface ArticleModalProps {
   article?: ArticleVente | null;
   onClose: () => void;
   onSave: (article: ArticleVente) => void;
+  className?: string;
 }
 
 const emptyArticle: ArticleVente = {
@@ -38,6 +40,7 @@ export default function ArticleModal({
   article,
   onClose,
   onSave,
+  className,
 }: ArticleModalProps) {
   const [form, setForm] = useState<ArticleVente>(emptyArticle);
 
@@ -54,10 +57,7 @@ export default function ArticleModal({
   /*
    * Modifier un champ
    */
-  const handleChange = (
-    field: keyof ArticleVente,
-    value: string | number
-  ) => {
+  const handleChange = (field: keyof ArticleVente, value: string | number) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -78,11 +78,9 @@ export default function ArticleModal({
 
     const totalBrut = quantite * pua;
 
-    const montantRemise =
-      totalBrut * (remise / 100);
+    const montantRemise = totalBrut * (remise / 100);
 
-    const totalHT =
-      totalBrut - montantRemise;
+    const totalHT = totalBrut - montantRemise;
 
     setForm((prev) => {
       if (prev.pri_totalht === totalHT) {
@@ -94,11 +92,7 @@ export default function ArticleModal({
         pri_totalht: totalHT,
       };
     });
-  }, [
-    form.pri_quantite,
-    form.pri_pua,
-    form.remise,
-  ]);
+  }, [form.pri_quantite, form.pri_pua, form.remise]);
 
   /*
    * Enregistrer
@@ -131,32 +125,15 @@ export default function ArticleModal({
   }
 
   return (
-    <div
-      className="
-        fixed inset-0 z-50
-        flex items-center justify-center
-        bg-black/40
-        p-4
-      "
-    >
-      <div
-        className="
-          w-full max-w-5xl
-          overflow-hidden
-          rounded-xl
-          bg-white
-          shadow-2xl
-          dark:bg-gray-900
-        "
-      >
-        {/* =========================
+    <Modal isOpen={open} onClose={onClose} className={className}>
+      {/* =========================
             HEADER
         ========================== */}
-
+      <div className="max-h-[700px] overflow-auto">
         <div
           className="
             flex h-14
-            items-center justify-between
+            items-center justify-center
             border-b
             border-gray-200
             px-5
@@ -172,28 +149,9 @@ export default function ArticleModal({
                 dark:text-white
               "
             >
-              {article
-                ? "Modifier l'article"
-                : "Ajouter un article"}
+              {article ? "Modifier l'article" : "Ajouter un article"}
             </h2>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="
-              flex h-8 w-8
-              items-center justify-center
-              rounded-md
-              text-xl
-              text-gray-500
-              hover:bg-gray-100
-              hover:text-gray-800
-              dark:hover:bg-gray-800
-            "
-          >
-            ×
-          </button>
         </div>
 
         {/* =========================
@@ -201,7 +159,6 @@ export default function ArticleModal({
         ========================== */}
 
         <div className="p-5">
-
           <div
             className="
               grid
@@ -210,23 +167,16 @@ export default function ArticleModal({
               gap-y-4
             "
           >
-
             {/* ARTICLE */}
 
             <div className="col-span-12 md:col-span-5">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Article
               </label>
 
               <select
                 value={form.pri_article}
-                onChange={(e) =>
-                  handleChange(
-                    "pri_article",
-                    e.target.value
-                  )
-                }
+                onChange={(e) => handleChange("pri_article", e.target.value)}
                 className="
                   h-10 w-full
                   rounded-md
@@ -241,34 +191,21 @@ export default function ArticleModal({
                   dark:text-white
                 "
               >
-                <option value="">
-                  Sélectionner un article
-                </option>
+                <option value="">Sélectionner un article</option>
 
-                <option value="ART001">
-                  ART001 - Eau minérale 1.5L
-                </option>
+                <option value="ART001">ART001 - Eau minérale 1.5L</option>
 
-                <option value="ART002">
-                  ART002 - Eau minérale 1L
-                </option>
+                <option value="ART002">ART002 - Eau minérale 1L</option>
 
-                <option value="ART003">
-                  ART003 - Ice Tea Citron
-                </option>
+                <option value="ART003">ART003 - Ice Tea Citron</option>
 
-                <option value="ART004">
-                  ART004 - Ice Tea Pêche
-                </option>
+                <option value="ART004">ART004 - Ice Tea Pêche</option>
               </select>
-
             </div>
-
 
             {/* DESIGNATION */}
 
             <div className="col-span-12 md:col-span-7">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Désignation
               </label>
@@ -277,10 +214,7 @@ export default function ArticleModal({
                 type="text"
                 value={form.pri_designation}
                 onChange={(e) =>
-                  handleChange(
-                    "pri_designation",
-                    e.target.value
-                  )
+                  handleChange("pri_designation", e.target.value)
                 }
                 placeholder="Désignation de l'article"
                 className="
@@ -296,14 +230,11 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
 
             {/* QUANTITE */}
 
             <div className="col-span-12 md:col-span-3">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Quantité
               </label>
@@ -313,10 +244,7 @@ export default function ArticleModal({
                 min="0"
                 value={form.pri_quantite}
                 onChange={(e) =>
-                  handleChange(
-                    "pri_quantite",
-                    Number(e.target.value)
-                  )
+                  handleChange("pri_quantite", Number(e.target.value))
                 }
                 className="
                   h-10 w-full
@@ -331,14 +259,11 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
 
             {/* PUA */}
 
             <div className="col-span-12 md:col-span-3">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Prix unitaire
               </label>
@@ -347,12 +272,7 @@ export default function ArticleModal({
                 type="number"
                 min="0"
                 value={form.pri_pua}
-                onChange={(e) =>
-                  handleChange(
-                    "pri_pua",
-                    e.target.value
-                  )
-                }
+                onChange={(e) => handleChange("pri_pua", e.target.value)}
                 placeholder="0"
                 className="
                   h-10 w-full
@@ -367,14 +287,11 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
 
             {/* TVA */}
 
             <div className="col-span-12 md:col-span-3">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 TVA (%)
               </label>
@@ -385,10 +302,7 @@ export default function ArticleModal({
                 step="0.01"
                 value={form.pri_tva}
                 onChange={(e) =>
-                  handleChange(
-                    "pri_tva",
-                    Number(e.target.value)
-                  )
+                  handleChange("pri_tva", Number(e.target.value))
                 }
                 className="
                   h-10 w-full
@@ -403,14 +317,11 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
 
             {/* REMISE */}
 
             <div className="col-span-12 md:col-span-3">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Remise (%)
               </label>
@@ -420,12 +331,7 @@ export default function ArticleModal({
                 min="0"
                 step="0.01"
                 value={form.remise}
-                onChange={(e) =>
-                  handleChange(
-                    "remise",
-                    Number(e.target.value)
-                  )
-                }
+                onChange={(e) => handleChange("remise", Number(e.target.value))}
                 className="
                   h-10 w-full
                   rounded-md
@@ -439,23 +345,18 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
 
             {/* TOTAL HT */}
 
             <div className="col-span-12 md:col-span-4">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Total HT
               </label>
 
               <input
                 type="text"
-                value={`${form.pri_totalht.toLocaleString(
-                  "fr-FR"
-                )} Ar`}
+                value={`${form.pri_totalht.toLocaleString("fr-FR")} Ar`}
                 readOnly
                 className="
                   h-10 w-full
@@ -471,14 +372,11 @@ export default function ArticleModal({
                   dark:bg-gray-800
                 "
               />
-
             </div>
-
 
             {/* LOT */}
 
             <div className="col-span-12 md:col-span-4">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Code lot
               </label>
@@ -486,12 +384,7 @@ export default function ArticleModal({
               <input
                 type="text"
                 value={form.lot_code}
-                onChange={(e) =>
-                  handleChange(
-                    "lot_code",
-                    e.target.value
-                  )
-                }
+                onChange={(e) => handleChange("lot_code", e.target.value)}
                 placeholder="Ex : LOT-2026-001"
                 className="
                   h-10 w-full
@@ -506,14 +399,11 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
 
             {/* PEREMPTION */}
 
             <div className="col-span-12 md:col-span-4">
-
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Date de péremption
               </label>
@@ -521,12 +411,7 @@ export default function ArticleModal({
               <input
                 type="date"
                 value={form.datePeremption}
-                onChange={(e) =>
-                  handleChange(
-                    "datePeremption",
-                    e.target.value
-                  )
-                }
+                onChange={(e) => handleChange("datePeremption", e.target.value)}
                 className="
                   h-10 w-full
                   rounded-md
@@ -540,13 +425,9 @@ export default function ArticleModal({
                   dark:text-white
                 "
               />
-
             </div>
-
           </div>
-
         </div>
-
 
         {/* =========================
             FOOTER
@@ -564,7 +445,6 @@ export default function ArticleModal({
             dark:border-gray-700
           "
         >
-
           <button
             type="button"
             onClick={onClose}
@@ -584,7 +464,6 @@ export default function ArticleModal({
             Annuler
           </button>
 
-
           <button
             type="button"
             onClick={handleSubmit}
@@ -599,14 +478,10 @@ export default function ArticleModal({
               hover:bg-blue-700
             "
           >
-            {article
-              ? "Modifier"
-              : "Ajouter"}
+            {article ? "Modifier" : "Ajouter"}
           </button>
-
         </div>
-
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -10,9 +10,11 @@ import Select from "../../components/form/Select";
 import { postData } from "../../services/sendDataService";
 import Alert from "../../components/ui/alert/Alert";
 import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
+import ArticleModal, { ArticleVente } from "./ArticleModal";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
-
-export default function NewLivFrnsPage(){
+export default function NewLivFrnsPage() {
   const { values, reset, setField, handleChange } = useForm({
     pieces: "",
     codeCf: "",
@@ -27,7 +29,13 @@ export default function NewLivFrnsPage(){
     designation: "",
     code_frns: "",
   });
-
+  //new article modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [articles, setArticles] = useState<ArticleVente[]>([]);
+  const ajouterArticle = (article: ArticleVente) => {
+    setArticles((prev) => [...prev, article]);
+  };
+  //------------------//
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionFrns, setSuggestionsFrns] = useState([]);
   const [showSuggestionFrns, setShowSuggestionsFrns] = useState(false);
@@ -612,7 +620,11 @@ export default function NewLivFrnsPage(){
               {Date().split(" ")[3]}
             </span>
           </div>
-          <form className="flex flex-col" onSubmit={handleSubmit} autoComplete="off">
+          <form
+            className="flex flex-col"
+            onSubmit={handleSubmit}
+            autoComplete="off"
+          >
             <div className="custom-scrollbar  overflow-y-auto px-2 pb-3">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
                 <div>
@@ -777,7 +789,61 @@ export default function NewLivFrnsPage(){
                 </div>
               </div>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
-                
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    onClick={() => setModalOpen(true)}
+                    className="
+                          rounded-md
+                          bg-blue-600
+                          px-4 py-2
+                          text-white
+                        "
+                    title="Ajouter nouvelle article"
+                  >
+                    <FontAwesomeIcon icon={faPlus}/>
+                  </Button>
+                </div>
+                {/* Tableau des articles */}
+
+                <div className="mt-5">
+                  {articles.map((article, index) => (
+                    <div
+                      key={index}
+                      className="
+                              border-b
+                              py-3
+                            "
+                    >
+                      <div className="flex justify-between">
+                        <div>
+                          <strong>{article.pri_article}</strong>
+
+                          <div className="text-sm text-gray-500">
+                            {article.pri_designation}
+                          </div>
+                        </div>
+
+                        <div>
+                          {article.pri_quantite} ×{" "}
+                          {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
+                        </div>
+
+                        <strong>
+                          {article.pri_totalht.toLocaleString("fr-FR")} Ar
+                        </strong>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Modal */}
+
+                <ArticleModal
+                  open={modalOpen}
+                  onClose={() => setModalOpen(false)}
+                  onSave={ajouterArticle}
+                  className="max-w-[900px] m-4 max-h-[700px]"
+                />
               </div>
             </div>
             <div className="flex justify-center w-full">
@@ -812,4 +878,4 @@ export default function NewLivFrnsPage(){
       </div>
     </div>
   );
-};
+}
