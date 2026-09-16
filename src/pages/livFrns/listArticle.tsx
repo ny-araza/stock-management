@@ -10,6 +10,8 @@ import { ArticleVente } from "./ArticleModal";
 
 type Props = {
   articles: ArticleVente[];
+  onEditArticle: (article: ArticleVente) => void;
+  onArticlesChange: (articles: ArticleVente[]) => void;
 };
 
 interface Total {
@@ -18,10 +20,19 @@ interface Total {
   totalHt: number;
 }
 
-export default function ListArticles({ articles }: Props) {
+export default function ListArticles({
+  articles,
+  onEditArticle,
+  onArticlesChange,
+}: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const toggleRow = (index: number) => {
     setExpandedIndex((current) => (current === index ? null : index));
+  };
+
+  const supprimerArticle = (index: number) => {
+    onArticlesChange(articles.filter((_, i) => i !== index));
+    setExpandedIndex(null);
   };
 
   function total(): Total {
@@ -88,9 +99,8 @@ export default function ListArticles({ articles }: Props) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      // modifier article
-                    }}
+                    onClick={() => onEditArticle(article)}
+                    title="Modifier"
                   >
                     <FontAwesomeIcon icon={faPen} />
                   </Button>
@@ -98,9 +108,8 @@ export default function ListArticles({ articles }: Props) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      // supprimer article
-                    }}
+                    onClick={() => supprimerArticle(index)}
+                    title="Supprimer"
                   >
                     <FontAwesomeIcon icon={faTrash} />
                   </Button>
@@ -293,8 +302,7 @@ export default function ListArticles({ articles }: Props) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-
-                          // modifier article
+                          onEditArticle(article);
                         }}
                       >
                         <FontAwesomeIcon icon={faPen} />
@@ -305,8 +313,7 @@ export default function ListArticles({ articles }: Props) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-
-                          // supprimer article
+                          supprimerArticle(index);
                         }}
                       >
                         <FontAwesomeIcon icon={faTrash} />

@@ -38,8 +38,37 @@ export default function NewLivFrnsPage() {
   //new article modal
   const [modalOpen, setModalOpen] = useState(false);
   const [articles, setArticles] = useState<ArticleVente[]>([]);
-  const ajouterArticle = (article: ArticleVente) => {
-    setArticles((prev) => [...prev, article]);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+
+  const modifierArticle = (articleSelectionne: ArticleVente) => {
+    setArticle({ ...articleSelectionne });
+    setEditingUid(articleSelectionne.uid ?? null);
+    setModalOpen(true);
+  };
+
+  const ajouterArticle = (nouvelArticle: ArticleVente) => {
+    setArticles((current) => {
+      if (editingUid) {
+        return current.map((item) =>
+          item.uid === editingUid
+            ? { ...nouvelArticle, uid: editingUid }
+            : item,
+        );
+      }
+      return [
+        ...current,
+        {
+          ...nouvelArticle,
+          uid:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random()}`,
+        },
+      ];
+    });
+    setModalOpen(false);
+    setArticle(null);
+    setEditingUid(null);
   };
   //------------------//
   const [suggestions, setSuggestions] = useState([]);
@@ -51,6 +80,7 @@ export default function NewLivFrnsPage() {
   const [showCFSuggestions, setShowCFSuggestions] = useState(false);
   const [CFSuggestions, setCFSuggestions] = useState([]);
   const [openModal, setOpenModal] = useState(false);
+  const [article, setArticle] = useState<ArticleVente | null>(null);
   //ligne
   const articleRef = useRef<HTMLInputElement>(null);
   const prixArticle = {
@@ -810,10 +840,22 @@ export default function NewLivFrnsPage() {
                     <FontAwesomeIcon icon={faPlus} />
                   </Button>
                 </div>
-                <ListArticles articles={articles} />
+                {articles.length > 0 && (
+                  <ListArticles
+                    articles={articles}
+                    onEditArticle={modifierArticle}
+                    onArticlesChange={setArticles}
+                  />
+                )}
+
                 <ArticleModal
                   open={modalOpen}
-                  onClose={() => setModalOpen(false)}
+                  article={article}
+                  onClose={() => {
+                    setModalOpen(false);
+                    setArticle(null);
+                    setEditingUid(null);
+                  }}
                   onSave={ajouterArticle}
                   className="max-w-[900px] m-4 max-h-[700px]"
                 />

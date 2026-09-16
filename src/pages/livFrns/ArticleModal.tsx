@@ -124,7 +124,6 @@ export default function ArticleModal({
   if (!open) {
     return null;
   }
-
   return (
     <Modal isOpen={open} onClose={onClose} className={className}>
       {/* =========================
