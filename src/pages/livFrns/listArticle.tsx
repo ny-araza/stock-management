@@ -1,30 +1,60 @@
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faChevronDown,
+  faPen,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import Button from "../../components/ui/button/Button";
 import { ArticleVente } from "./ArticleModal";
-
 
 type Props = {
   articles: ArticleVente[];
 };
 
+interface Total {
+  totalTtc: number;
+  totalTva: number;
+  totalHt: number;
+}
+
 export default function ListArticles({ articles }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-
   const toggleRow = (index: number) => {
     setExpandedIndex((current) => (current === index ? null : index));
   };
 
+  function total(): Total {
+    if (!articles)
+      return {
+        totalHt: 0,
+        totalTtc: 0,
+        totalTva: 0,
+      };
+    let totalht = 0;
+    let totaltva = 0;
+    articles.map((article: ArticleVente) => {
+      totalht += article.pri_totalht;
+      totaltva += article.pri_tva;
+    });
+    const res: Total = {
+      totalHt: totalht,
+      totalTva: totaltva,
+      totalTtc: totalht + totaltva,
+    };
+    return res;
+  }
+
   return (
     <div className="mt-5 w-full overflow-hidden">
       {/* ================= DESKTOP ================= */}
-      <table className="hidden sm:table w-full border-b">
+      <table className="hidden sm:table w-full border-b dark:text-white">
         <thead className="text-left">
           <tr className="border-b">
             <th className="p-2">Code Article</th>
             <th className="p-2">Quantité</th>
             <th className="p-2">P.U</th>
+            <th className="p-2">Date Per</th>
             <th className="p-2">HT</th>
             <th className="p-2 text-right">Actions</th>
           </tr>
@@ -46,7 +76,7 @@ export default function ListArticles({ articles }: Props) {
               <td className="p-2">
                 {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
               </td>
-
+              <td className="p-2">{article.datePeremption}</td>
               <td className="p-2">
                 <strong>
                   {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
@@ -79,6 +109,59 @@ export default function ListArticles({ articles }: Props) {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr>
+            <td>
+              <span>TOTAL HT</span>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td className="text-right pr-1.5">
+              <strong>
+                {total().totalHt != 0
+                  ? total().totalHt.toLocaleString("fr-FR")
+                  : "0"}{" "}
+                Ar
+              </strong>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span>TOTAL TVA</span>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td className="text-right pr-1.5">
+              <strong>
+                {total().totalTva != 0
+                  ? total().totalTva.toLocaleString("fr-FR")
+                  : "0"}{" "}
+                Ar
+              </strong>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span>TOTAL TTC</span>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td className="text-right pr-1.5">
+              <strong>
+                {total().totalTtc != 0
+                  ? total().totalTtc.toLocaleString("fr-FR")
+                  : "0"}{" "}
+                Ar
+              </strong>
+            </td>
+          </tr>
+        </tfoot>
       </table>
 
       {/* ================= MOBILE ================= */}
@@ -87,10 +170,7 @@ export default function ListArticles({ articles }: Props) {
           const isOpen = expandedIndex === index;
 
           return (
-            <div
-              key={article.pri_id || index}
-              className="border-b"
-            >
+            <div key={article.pri_id || index} className="border-b">
               {/* Ligne principale */}
               <button
                 type="button"
@@ -164,31 +244,25 @@ export default function ListArticles({ articles }: Props) {
                   >
                     {/* Code article */}
                     <div className="flex justify-between py-1.5">
-                      <span className="text-gray-500">
-                        Code article
-                      </span>
+                      <span className="text-gray-500">Code article</span>
 
-                      <strong>
-                        {article.pri_article}
-                      </strong>
+                      <strong>{article.pri_article}</strong>
                     </div>
 
                     {/* Quantité */}
                     <div className="flex justify-between py-1.5">
-                      <span className="text-gray-500">
-                        Quantité
-                      </span>
+                      <span className="text-gray-500">Quantité</span>
 
-                      <strong>
-                        {article.pri_quantite}
-                      </strong>
+                      <strong>{article.pri_quantite}</strong>
                     </div>
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">Date Per</span>
 
+                      <strong>{article.datePeremption}</strong>
+                    </div>
                     {/* Prix unitaire */}
                     <div className="flex justify-between py-1.5">
-                      <span className="text-gray-500">
-                        P.U
-                      </span>
+                      <span className="text-gray-500">P.U</span>
 
                       <strong>
                         {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
@@ -205,15 +279,10 @@ export default function ListArticles({ articles }: Props) {
                         pt-2
                       "
                     >
-                      <span className="text-gray-500">
-                        Total HT
-                      </span>
+                      <span className="text-gray-500">Total HT</span>
 
                       <strong>
-                        {Number(article.pri_totalht).toLocaleString(
-                          "fr-FR"
-                        )}{" "}
-                        Ar
+                        {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
                       </strong>
                     </div>
 
@@ -249,6 +318,50 @@ export default function ListArticles({ articles }: Props) {
             </div>
           );
         })}
+        <div>
+          <div className="flex justify-between">
+            <div>
+              <span>TOTAL HT</span>
+            </div>
+
+            <div className="text-right pr-1.5">
+              <strong>
+                {total().totalHt != 0
+                  ? total().totalHt.toLocaleString("fr-FR")
+                  : "0"}{" "}
+                Ar
+              </strong>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <div>
+              <span>TOTAL TVA</span>
+            </div>
+
+            <div className="text-right pr-1.5">
+              <strong>
+                {total().totalTva != 0
+                  ? total().totalTva.toLocaleString("fr-FR")
+                  : "0"}{" "}
+                Ar
+              </strong>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <div>
+              <span>TOTAL TTC</span>
+            </div>
+
+            <div className="text-right pr-1.5">
+              <strong>
+                {total().totalTtc != 0
+                  ? total().totalTtc.toLocaleString("fr-FR")
+                  : "0"}{" "}
+                Ar
+              </strong>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

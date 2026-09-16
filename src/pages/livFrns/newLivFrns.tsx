@@ -12,7 +12,12 @@ import Alert from "../../components/ui/alert/Alert";
 import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
 import ArticleModal, { ArticleVente } from "./ArticleModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome, faPen, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faHome,
+  faPen,
+  faPlus,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import ListArticles from "./listArticle";
 
 export default function NewLivFrnsPage() {
@@ -714,7 +719,6 @@ export default function NewLivFrnsPage() {
                         +
                       </Button>
                     </div>
-                    <NewFrns isOpen={openModal} onClose={close}></NewFrns>
                   </div>
                   {showSuggestionFrns && suggestionFrns.length > 0 && (
                     <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
@@ -806,11 +810,7 @@ export default function NewLivFrnsPage() {
                     <FontAwesomeIcon icon={faPlus} />
                   </Button>
                 </div>
-                {/* Tableau des articles */}
-
-                <ListArticles articles={articles}/>
-                {/* Modal */}
-
+                <ListArticles articles={articles} />
                 <ArticleModal
                   open={modalOpen}
                   onClose={() => setModalOpen(false)}
@@ -833,6 +833,8 @@ export default function NewLivFrnsPage() {
             </div>
           </form>
         </div>
+        <NewFrns isOpen={openModal} onClose={close}></NewFrns>
+
         <Alert
           open={alert.open}
           variant={alert.variant}
