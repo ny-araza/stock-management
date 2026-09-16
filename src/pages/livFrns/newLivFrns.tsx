@@ -12,7 +12,8 @@ import Alert from "../../components/ui/alert/Alert";
 import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
 import ArticleModal, { ArticleVente } from "./ArticleModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faPen, faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
+import ListArticles from "./listArticle";
 
 export default function NewLivFrnsPage() {
   const { values, reset, setField, handleChange } = useForm({
@@ -610,7 +611,7 @@ export default function NewLivFrnsPage() {
   return (
     <div>
       <div>
-        <div className="no-scrollbar relative w-full overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="no-scrollbar relative w-full overflow-y-auto rounded-3xl p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
               Ajout livraisons fournisseur
@@ -788,6 +789,7 @@ export default function NewLivFrnsPage() {
                   ></Select>
                 </div>
               </div>
+              <Label>Articles</Label>
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
                 <div className="flex justify-center">
                   <Button
@@ -801,41 +803,12 @@ export default function NewLivFrnsPage() {
                         "
                     title="Ajouter nouvelle article"
                   >
-                    <FontAwesomeIcon icon={faPlus}/>
+                    <FontAwesomeIcon icon={faPlus} />
                   </Button>
                 </div>
                 {/* Tableau des articles */}
 
-                <div className="mt-5">
-                  {articles.map((article, index) => (
-                    <div
-                      key={index}
-                      className="
-                              border-b
-                              py-3
-                            "
-                    >
-                      <div className="flex justify-between">
-                        <div>
-                          <strong>{article.pri_article}</strong>
-
-                          <div className="text-sm text-gray-500">
-                            {article.pri_designation}
-                          </div>
-                        </div>
-
-                        <div>
-                          {article.pri_quantite} ×{" "}
-                          {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
-                        </div>
-
-                        <strong>
-                          {article.pri_totalht.toLocaleString("fr-FR")} Ar
-                        </strong>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ListArticles articles={articles}/>
                 {/* Modal */}
 
                 <ArticleModal

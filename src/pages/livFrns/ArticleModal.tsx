@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "../../components/ui/modal";
+import Button from "../../components/ui/button/Button";
 
 export interface ArticleVente {
   pri_id: string;
@@ -464,22 +465,20 @@ export default function ArticleModal({
             Annuler
           </button>
 
-          <button
+          <Button
             type="button"
             onClick={handleSubmit}
             className="
               rounded-md
-              bg-blue-600
               px-5
               py-2
               text-sm
               font-medium
               text-white
-              hover:bg-blue-700
             "
           >
             {article ? "Modifier" : "Ajouter"}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
