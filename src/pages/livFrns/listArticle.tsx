@@ -198,7 +198,7 @@ export default function ListArticles({
                   py-3
                   text-left
                   active:bg-gray-50
-                  dark: text-white
+                  dark:text-white
                 "
               >
                 {/* Article */}
@@ -206,18 +206,15 @@ export default function ListArticles({
                   <strong className="block truncate">
                     {article.pri_article}
                   </strong>
-
                   <div className="text-sm text-gray-500 truncate">
                     {article.pri_designation}
                   </div>
                 </div>
-
                 {/* Total HT + chevron */}
                 <div className="flex items-center gap-2 shrink-0">
                   <strong className="whitespace-nowrap">
                     {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
                   </strong>
-
                   <FontAwesomeIcon
                     icon={faChevronDown}
                     className={`
@@ -229,7 +226,6 @@ export default function ListArticles({
                   />
                 </div>
               </button>
-
               {/* Contenu dropdown */}
               <div
                 className={`
@@ -262,29 +258,24 @@ export default function ListArticles({
 
                       <strong>{article.pri_article}</strong>
                     </div>
-
                     {/* Quantité */}
                     <div className="flex justify-between py-1.5">
                       <span className="text-gray-500">Quantité</span>
-
                       <strong>{article.pri_quantite}</strong>
                     </div>
                     <div className="flex justify-between py-1.5">
                       <span className="text-gray-500">TVA (Ar)</span>
-
                       <strong>
                         {Number(article.pri_tva_ar).toLocaleString("fr-FR")}
                       </strong>
                     </div>
                     <div className="flex justify-between py-1.5">
                       <span className="text-gray-500">Date Per</span>
-
                       <strong>{article.datePeremption}</strong>
                     </div>
                     {/* Prix unitaire */}
                     <div className="flex justify-between py-1.5">
                       <span className="text-gray-500">P.U</span>
-
                       <strong>
                         {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
                       </strong>
@@ -301,7 +292,6 @@ export default function ListArticles({
                       "
                     >
                       <span className="text-gray-500">Total HT</span>
-
                       <strong>
                         {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
                       </strong>
@@ -337,7 +327,7 @@ export default function ListArticles({
             </div>
           );
         })}
-        <div className="dark: text-white">
+        <div className="dark:text-white">
           <div className="flex justify-between">
             <div>
               <span>TOTAL HT</span>

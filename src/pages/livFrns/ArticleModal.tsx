@@ -41,6 +41,7 @@ export interface ArticleVente {
   pri_totalht: number;
   pri_totalttc: number;
   remise: number;
+  pri_montant_remise: number;
   datePeremption: string;
   lot_code: string;
   quantite_stock?: number;
@@ -65,6 +66,7 @@ const emptyArticle: ArticleVente = {
   pri_totalht: 0,
   pri_totalttc: 0,
   remise: 0,
+  montant_remise: 0,
   datePeremption: "",
   lot_code: "",
   quantite_stock: 0,
@@ -331,7 +333,8 @@ export default function ArticleModal({
       if (
         prev.pri_totalht === totalHT &&
         prev.pri_tva_ar === tva_ar &&
-        prev.pri_totalttc === totalttc
+        prev.pri_totalttc === totalttc &&
+        prev.pri_montant_remise === montantRemise
       ) {
         return prev;
       }
@@ -340,6 +343,7 @@ export default function ArticleModal({
         pri_totalht: totalHT,
         pri_tva_ar: tva_ar,
         pri_totalttc: totalttc,
+        pri_montant_remise: montantRemise,
       };
     });
   }, [form.pri_quantite, form.pri_pua, form.remise]);
@@ -395,9 +399,32 @@ export default function ArticleModal({
             <div className="col-span-12 md:col-span-5">
               <div className="flex justify-between">
                 <label className={labelClass}>Article</label>
-                <span title="Quantié en stock" className="cursor-pointer inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-brand-300 text-white text-[20px] font-bold">
-                  {" "}{form.quantite_stock || 0}
-                </span>
+
+                <div className="relative group">
+                  {/* Quantité */}
+                  <span className="cursor-help inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-brand-300 text-white text-[20px] font-bold">
+                    {form.quantite_stock || 0}
+                  </span>
+
+                  {/* Popup au survol */}
+                  <div
+                    className="
+                      absolute right-0 top-7 z-50
+                      invisible opacity-0 translate-y-1
+                      group-hover:visible group-hover:opacity-100 group-hover:translate-y-0
+                      transition-all duration-200
+                      whitespace-nowrap
+                      rounded-md bg-gray-800 px-3 py-1.5
+                      text-xs text-white shadow-lg
+                      pointer-events-none
+                    "
+                  >
+                    Quantité en stock :{" "}
+                    <span className="font-bold">
+                      {form.quantite_stock || 0}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div ref={wrapperRef} className="relative">
                 <input
@@ -612,10 +639,19 @@ export default function ArticleModal({
         <div className="flex justify-between items-center gap-2 border-t border-gray-200 px-5 py-3 dark:border-gray-700">
           <div className="col-span-12 md:col-span-4">
             <div className="flex items-center">
-              <span className="mr-2">TTC</span>
+              <span className="mr-2">TTC: </span>
               <span className="text-green-600">
                 <strong>
                   {Number(form.pri_totalttc).toLocaleString("fr-FR")} Ar
+                </strong>
+              </span>
+              <span className="ml-2"> | Remise: </span>
+              <span className="text-red-600 ml-2">
+                <strong>
+                  {form.pri_montant_remise > 0
+                    ? Number(form.pri_montant_remise).toLocaleString("fr-FR")
+                    : "0"}{" "}
+                  Ar
                 </strong>
               </span>
             </div>
