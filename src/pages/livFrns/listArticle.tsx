@@ -46,7 +46,7 @@ export default function ListArticles({
     let totaltva = 0;
     articles.map((article: ArticleVente) => {
       totalht += article.pri_totalht;
-      totaltva += article.pri_tva;
+      totaltva += article.pri_tva_ar;
     });
     const res: Total = {
       totalHt: totalht,
@@ -64,6 +64,7 @@ export default function ListArticles({
           <tr className="border-b">
             <th className="p-2">Code Article</th>
             <th className="p-2">Quantité</th>
+            <th className="p-2">TVA (Ar)</th>
             <th className="p-2">P.U</th>
             <th className="p-2">Date Per</th>
             <th className="p-2">HT</th>
@@ -83,6 +84,9 @@ export default function ListArticles({
               </td>
 
               <td className="p-2">{article.pri_quantite}</td>
+              <td className="p-2">
+                {Number(article.pri_tva_ar).toLocaleString("fr-FR")}
+              </td>
 
               <td className="p-2">
                 {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
@@ -118,7 +122,7 @@ export default function ListArticles({
             </tr>
           ))}
         </tbody>
-        <tfoot>
+        <tfoot className="dark:text-white">
           <tr>
             <td>
               <span>TOTAL HT</span>
@@ -194,6 +198,7 @@ export default function ListArticles({
                   py-3
                   text-left
                   active:bg-gray-50
+                  dark: text-white
                 "
               >
                 {/* Article */}
@@ -265,6 +270,13 @@ export default function ListArticles({
                       <strong>{article.pri_quantite}</strong>
                     </div>
                     <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">TVA (Ar)</span>
+
+                      <strong>
+                        {Number(article.pri_tva_ar).toLocaleString("fr-FR")}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between py-1.5">
                       <span className="text-gray-500">Date Per</span>
 
                       <strong>{article.datePeremption}</strong>
@@ -325,7 +337,7 @@ export default function ListArticles({
             </div>
           );
         })}
-        <div>
+        <div className="dark: text-white">
           <div className="flex justify-between">
             <div>
               <span>TOTAL HT</span>

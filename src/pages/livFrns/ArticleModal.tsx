@@ -22,6 +22,7 @@ export interface ArticleApi {
   pri_tva: number;
   nom_article: string;
   lots: LotApi[];
+  quantite_stock: number;
 }
 
 /* =========================
@@ -36,10 +37,13 @@ export interface ArticleVente {
   pri_quantite: number;
   pri_pua: string;
   pri_tva: number;
+  pri_tva_ar: number;
   pri_totalht: number;
+  pri_totalttc: number;
   remise: number;
   datePeremption: string;
   lot_code: string;
+  quantite_stock?: number;
 }
 
 interface ArticleModalProps {
@@ -57,10 +61,13 @@ const emptyArticle: ArticleVente = {
   pri_quantite: 0,
   pri_pua: "",
   pri_tva: 0,
+  pri_tva_ar: 0,
   pri_totalht: 0,
+  pri_totalttc: 0,
   remise: 0,
   datePeremption: "",
   lot_code: "",
+  quantite_stock: 0,
 };
 
 const inputClass = `
@@ -227,9 +234,12 @@ export default function ArticleModal({
       pri_designation: a.nom_article,
       pri_pua: String(a.prix_ht ?? ""),
       pri_tva: Number(a.pri_tva ?? 0),
+      pri_tva_ar: (Number(a.pri_tva ?? 0) * a.prix_ht) / 100,
+      pri_totalttc: 0,
       // on repart d'un lot vierge : les lots dépendent de l'article
       lot_code: "",
       datePeremption: "",
+      quantite_stock: a.quantite_stock,
     }));
 
     setLots(a.lots ?? []);
@@ -310,11 +320,28 @@ export default function ArticleModal({
     const remise = Number(form.remise) || 0;
 
     const totalBrut = quantite * pua;
-    const totalHT = totalBrut - totalBrut * (remise / 100);
+    const montantRemise = totalBrut * (remise / 100);
+    const totalHT = totalBrut - montantRemise;
 
-    setForm((prev) =>
-      prev.pri_totalht === totalHT ? prev : { ...prev, pri_totalht: totalHT },
-    );
+    // TVA calculée sur le HT après remise, pas sur le brut
+    const tva_ar = totalHT * (Number(form.pri_tva) / 100);
+    const totalttc = tva_ar + totalHT;
+
+    setForm((prev) => {
+      if (
+        prev.pri_totalht === totalHT &&
+        prev.pri_tva_ar === tva_ar &&
+        prev.pri_totalttc === totalttc
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        pri_totalht: totalHT,
+        pri_tva_ar: tva_ar,
+        pri_totalttc: totalttc,
+      };
+    });
   }, [form.pri_quantite, form.pri_pua, form.remise]);
 
   /* =========================
@@ -366,8 +393,12 @@ export default function ArticleModal({
           <div className="grid grid-cols-12 gap-x-4 gap-y-4">
             {/* ARTICLE — AUTOCOMPLETE */}
             <div className="col-span-12 md:col-span-5">
-              <label className={labelClass}>Article</label>
-
+              <div className="flex justify-between">
+                <label className={labelClass}>Article</label>
+                <span title="Quantié en stock" className="cursor-pointer inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-brand-300 text-white text-[20px] font-bold">
+                  {" "}{form.quantite_stock || 0}
+                </span>
+              </div>
               <div ref={wrapperRef} className="relative">
                 <input
                   ref={inputRef}
@@ -487,12 +518,12 @@ export default function ArticleModal({
 
             {/* TVA */}
             <div className="col-span-12 md:col-span-3">
-              <label className={labelClass}>TVA (%)</label>
+              <label className={labelClass}>TVA (Ar)</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.pri_tva}
+                value={form.pri_tva_ar}
                 onChange={(e) =>
                   handleChange("pri_tva", Number(e.target.value))
                 }
@@ -522,7 +553,7 @@ export default function ArticleModal({
                 readOnly
                 className="
                   h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3
-                  text-sm font-semibold text-green-600 outline-none
+                  text-sm font-semibold  outline-none
                   dark:border-gray-600 dark:bg-gray-800
                 "
               />
@@ -578,25 +609,37 @@ export default function ArticleModal({
         </div>
 
         {/* ========== FOOTER ========== */}
-        <div className="flex justify-end gap-2 border-t border-gray-200 px-5 py-3 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={onClose}
-            className="
+        <div className="flex justify-between items-center gap-2 border-t border-gray-200 px-5 py-3 dark:border-gray-700">
+          <div className="col-span-12 md:col-span-4">
+            <div className="flex items-center">
+              <span className="mr-2">TTC</span>
+              <span className="text-green-600">
+                <strong>
+                  {Number(form.pri_totalttc).toLocaleString("fr-FR")} Ar
+                </strong>
+              </span>
+            </div>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="
               rounded-md bg-gray-100 px-5 py-2 text-sm font-medium text-gray-700
               hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300
             "
-          >
-            Annuler
-          </button>
+            >
+              Annuler
+            </button>
 
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            className="rounded-md px-5 py-2 text-sm font-medium text-white"
-          >
-            {article ? "Modifier" : "Ajouter"}
-          </Button>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              className="rounded-md px-5 py-2 text-sm font-medium text-white"
+            >
+              {article ? "Modifier" : "Ajouter"}
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>
