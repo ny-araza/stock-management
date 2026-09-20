@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import SearchableSelect from "../Home/modal/utils/searchableSelect";
 import {
   BCAutoComplete,
+  CFLigneArticle,
   Enumeration,
   EnumerationOption,
 } from "../../interfaces/interfaces";
@@ -13,6 +14,11 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { useForm } from "../../hooks/useForm";
 import Select from "../../components/form/Select";
+import ListArticles from "./listArticle";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlug, faPlus } from "@fortawesome/free-solid-svg-icons";
+import ListItems, { ListColumn } from "../Home/modal/utils/listItems";
+import Button from "../../components/ui/button/Button";
 
 export default function NewLivFrnsPage() {
   const emptyFrns: Fourniseur = {
@@ -51,6 +57,7 @@ export default function NewLivFrnsPage() {
     ligne: [],
   };
 
+  const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<BCAutoComplete>(emptyBC);
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState<BCAutoComplete[]>([]);
@@ -63,6 +70,7 @@ export default function NewLivFrnsPage() {
     codeBl: "",
     datePaiement: "",
     facture: "",
+    modeCmd: "",
   });
   const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
   const enumerationPaye: EnumerationOption[] = payementEnum.map(
@@ -72,7 +80,62 @@ export default function NewLivFrnsPage() {
       label: item.enu_nom,
     }),
   );
+  // list article
+  const [article, setArticle] = useState<CFLigneArticle | null>(null);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+  const articleColumns: ListColumn<CFLigneArticle>[] = [
+    {
+      label: "Code Article",
+      mobilePrimary: true,
+      render: (article) => (
+        <div>
+          <strong>{article.cmfl_Art_Code}</strong>
 
+          <div className="text-sm text-gray-500">{article.art_nom}</div>
+        </div>
+      ),
+    },
+
+    {
+      label: "Quantité",
+      render: (article) => article.cmfl_Quantite,
+    },
+
+    {
+      label: "TVA (Ar)",
+      render: (article) => Number(article.cmfl_Tva).toLocaleString("fr-FR"),
+    },
+
+    {
+      label: "P.U",
+      render: (article) => (
+        <>{Number(article.cmfl_PrixAchat).toLocaleString("fr-FR")} Ar</>
+      ),
+    },
+
+    {
+      label: "Date Per",
+      render: (article) => article.cmfl_pri_id,
+    },
+
+    {
+      label: "HT",
+      mobilePrimary: true,
+      render: (article) => (
+        <strong>
+          {Number(article.cmfl_TotalHT).toLocaleString("fr-FR")} Ar
+        </strong>
+      ),
+    },
+  ];
+
+  const modifierArticle = (articleSelectionne: CFLigneArticle) => {
+    setArticle({ ...articleSelectionne });
+    setEditingUid(articleSelectionne.cmfl_Art_Code ?? null);
+    setModalOpen(true);
+  };
+
+  // end list article
   const inputClass = `
     h-10 w-full rounded-md border border-gray-300 px-3 text-sm
     outline-none focus:border-blue-500
@@ -385,6 +448,88 @@ export default function NewLivFrnsPage() {
                   defaultValue="espèce"
                 ></Select>
               </div>
+            </div>
+            <Label>Articles</Label>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  onClick={() => setModalOpen(true)}
+                  className="
+                        rounded-md
+                        bg-blue-600
+                        px-4 py-2
+                        text-white
+                      "
+                  title="Ajouter nouvelle article"
+                >
+                  <FontAwesomeIcon icon={faPlus} />
+                </Button>
+              </div>
+
+              <ListItems<CFLigneArticle>
+                items={form.ligne}
+                columns={articleColumns}
+
+                getKey={(article: CFLigneArticle) => article.cmfl_Art_Code}
+
+                onEdit={modifierArticle}
+
+                onDelete={(article: CFLigneArticle) => {
+                  // traitement supplémentaire éventuel
+                }}
+
+                onItemsChange={setArticle}
+
+                totals={[
+                  {
+                    label: "TOTAL HT",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total + Number(article.cmfl_TotalHT || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
+
+                  {
+                    label: "TOTAL TVA",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total + Number(article.cmfl_Tva || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
+
+                  {
+                    label: "TOTAL TTC",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total +
+                          Number(article.cmfl_TotalHT || 0) +
+                          Number(article.cmfl_Tva || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
+                ]}
+              />
+
+              {/*<ArticleModal
+                open={modalOpen}
+                article={article}
+                onClose={() => {
+                  setModalOpen(false);
+                  setArticle(null);
+                  setEditingUid(null);
+                }}
+                onSave={ajouterArticle}
+                className="max-w-[900px] m-4 max-h-[700px]"
+              />*/}
             </div>
           </form>
         </div>
