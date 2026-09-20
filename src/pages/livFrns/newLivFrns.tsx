@@ -125,7 +125,8 @@ export default function NewLivFrnsPage() {
 
     {
       label: "TVA (Ar)",
-      render: (article) => Number(article.cmfl_Tva).toLocaleString("fr-FR"),
+      render: (article) =>
+        Number(article.cmfl_montant_tva).toLocaleString("fr-FR"),
     },
 
     {
@@ -153,8 +154,22 @@ export default function NewLivFrnsPage() {
 
   const modifierArticle = (articleSelectionne: CFLigneArticle) => {
     setArticle({ ...articleSelectionne });
-    setEditingUid(articleSelectionne.uid ?? null);
+    setEditingUid(articleSelectionne.cmfl_uid ?? null);
     setModalOpen(true);
+  };
+
+  const supprimerArticle = (uid: string) => {
+    setForm((prev) => ({
+      ...prev,
+      ligne: prev.ligne.filter((item) => item.cmfl_uid !== uid),
+    }));
+
+    // Si on supprimait l'article actuellement en modification
+    if (editingUid === uid) {
+      setEditingUid(null);
+      setArticle(null);
+      setModalOpen(false);
+    }
   };
 
   // end list article
@@ -298,27 +313,81 @@ export default function NewLivFrnsPage() {
   };
 
   const ajouterArticle = (nouvelArticle: CFLigneArticle) => {
-    setArticles((current) => {
+    console.log("Article reçu :", nouvelArticle);
+    console.log("Mode :", editingUid ? "MODIFICATION" : "AJOUT");
+
+    setForm((prev) => {
+      // =====================================================
+      // 1. MODIFICATION D'UNE LIGNE EXISTANTE
+      // =====================================================
       if (editingUid) {
-        return current.map((item) =>
-          item.uid === editingUid
-            ? { ...nouvelArticle, uid: editingUid }
-            : item,
-        );
+        return {
+          ...prev,
+          ligne: prev.ligne.map((item) =>
+            item.cmfl_uid === editingUid
+              ? {
+                  ...item,
+                  ...nouvelArticle,
+
+                  // On conserve l'UID de la ligne existante
+                  cmfl_uid: editingUid,
+
+                  // On conserve les informations du BC
+                  cmfl_cmf_code: prev.cmf_code,
+                  cmfl_fou_Code: prev.cmf_fou_code,
+
+                  // Normalisation
+                  cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
+                  cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
+                  cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
+                  cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
+                  cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
+                  cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+                }
+              : item,
+          ),
+        };
       }
-      return [
-        ...current,
-        {
-          ...nouvelArticle,
-          uid:
-            typeof crypto !== "undefined" && crypto.randomUUID
-              ? crypto.randomUUID()
-              : `${Date.now()}-${Math.random()}`,
-        },
-      ];
+
+      // =====================================================
+      // 2. AJOUT D'UNE NOUVELLE LIGNE
+      // =====================================================
+
+      const newArticle: CFLigneArticle = {
+        ...nouvelArticle,
+
+        // Nouvel UID uniquement pour cette nouvelle ligne
+        cmfl_uid:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
+
+        // Informations du BC
+        cmfl_cmf_code: prev.cmf_code,
+        cmfl_fou_Code: prev.cmf_fou_code,
+
+        // Normalisation
+        cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
+        cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
+        cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
+        cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
+        cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
+        cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+      };
+
+      return {
+        ...prev,
+        ligne: [...prev.ligne, newArticle],
+      };
     });
+
+    // Fermer le modal
     setModalOpen(false);
+
+    // Réinitialiser l'article sélectionné
     setArticle(null);
+
+    // IMPORTANT : réinitialiser le mode édition
     setEditingUid(null);
   };
 
@@ -676,11 +745,9 @@ export default function NewLivFrnsPage() {
 
                 onEdit={modifierArticle}
 
-                onDelete={(article: CFLigneArticle) => {
-                  // traitement supplémentaire éventuel
-                }}
+                onDelete={(item) => supprimerArticle(item.cmfl_uid!)}
 
-                onItemsChange={setArticle}
+                onItemsChange={setArticles}
 
                 totals={[
                   {
@@ -699,7 +766,7 @@ export default function NewLivFrnsPage() {
                     value: (items: CFLigneArticle[]) =>
                       items.reduce(
                         (total, article) =>
-                          total + Number(article.cmfl_Tva || 0),
+                          total + Number(article.cmfl_montant_tva || 0),
                         0,
                       ),
                     suffix: "Ar",
