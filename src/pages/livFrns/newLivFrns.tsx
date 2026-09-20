@@ -24,6 +24,8 @@ import GenericArticleModal, {
   ArticleField,
   ArticleSearchConfig,
 } from "../Home/modal/utils/articleGenericModal";
+import { postData } from "../../services/sendDataService";
+import Alert from "../../components/ui/alert/Alert";
 
 export default function NewLivFrnsPage() {
   const emptyFrns: Fourniseur = {
@@ -72,10 +74,10 @@ export default function NewLivFrnsPage() {
     cmfl_Tva: 0,
     cmfl_cmf_code: "",
     cmfl_fou_Code: "",
-    cmfl_pri_id: "",
-    cmfl_id: "",
-    remise: 0,
-    uid: "",
+    cmfl_pri_id: 0,
+    cmfl_id: 0,
+    cmfl_remise: 0,
+    cmfl_uid: "",
   };
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -105,6 +107,12 @@ export default function NewLivFrnsPage() {
   const [article, setArticle] = useState<CFLigneArticle | null>(null);
   const [articles, setArticles] = useState<CFLigneArticle[]>([]);
   const [editingUid, setEditingUid] = useState<string | null>(null);
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
   const articleColumns: ListColumn<CFLigneArticle>[] = [
     {
       label: "Code Article",
@@ -545,7 +553,259 @@ export default function NewLivFrnsPage() {
   };
 
   // End Article Modal
+  // on Submit
 
+  const stockLot = async (data: any) => {
+    const res = await postData("/api/insert-database/", "t_lot", {
+      lot_enabled: true,
+      lot_code: data.pri_lot,
+      lot_dateper: data.pri_datePeremption,
+      lot_art_quantite: data.pri_quantite,
+      lot_art_code: data.pri_article,
+    });
+    return res.id;
+  };
+
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      console.log(`mvt ${mvt}`);
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "insert",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: mvt.origine,
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
+  const handleStock = async (stk: any) => {
+    try {
+      const quantity = stk.old_stock + parseInt(stk.quantite);
+
+      const res = await postData("/api/insert-database/", "t_stock", {
+        stk_quantite: quantity,
+        stk_pri_id: stk.pri_id,
+        stk_art_code: stk.article,
+        stk_lot_code: stk.lot_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Stoké avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      console.log(form);
+      if (!form.ligne || form.ligne.length === 0) {
+        setAlert({
+          open: true,
+          message: "Veuillez ajouter au moins un article.",
+          title: "Aucune ligne",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (form.cmf_montant_ttc === 0) {
+        setAlert({
+          open: true,
+          message: "Le montant total HT doit être supérieur à 0.",
+          title: "Montant invalide",
+          variant: "error",
+        });
+        return;
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+
+      // Mode de commande par défaut
+      const modeCmd = form.cmf_modecmd || "1";
+
+      /*
+       * 1. Création de l'entrée principale
+       *
+       * Le fournisseur n'est pas pris depuis chaque ligne ici.
+       * Il reste au niveau du document principal si t_entree
+       * possède toujours ent_fou_code.
+       */
+      const res = await postData("/api/insert-database/", "t_entree", {
+        ent_code: values.codeBl,
+        ent_modepaye: modeCmd,
+        ent_datepay: form.cmf_dateliv,
+        ent_montant_ht: Math.round(form.cmf_montant_ht),
+        ent_montant_ttc: Math.round(form.cmf_montant_ttc),
+        ent_fou_code: form.cmf_fou_code,
+        ent_date: today,
+        ent_facture: values.facture,
+        ent_cmf_code: form.cmf_code,
+      });
+
+      if (!res.status) {
+        setAlert({
+          open: true,
+          message: res.error,
+          title: "Une erreur est survenue",
+          variant: "error",
+        });
+        return;
+      }
+
+      /*
+       * 2. Enregistrement de toutes les lignes
+       */
+      const resultats = await Promise.all(
+        form.ligne.map(async (value) => {
+          try {
+            /*
+             * Création du lot
+             */
+            const lot_id = await stockLot({
+              pri_lot: value.cmfl_lot || "",
+              pri_datePeremption: value.cmfl_datePer || "",
+              pri_quantite: value.cmfl_Quantite,
+              pri_article: value.cmfl_Art_Code,
+            });
+
+            /*
+             * Création de la ligne d'entrée
+             */
+            const send = await postData(
+              "/api/insert-database/",
+              "t_ligne_entree",
+              {
+                entl_quantite: value.cmfl_Quantite,
+                entl_pri_id: value.cmfl_pri_id,
+
+                // Code de l'entrée principale
+                entl_ent_code: form.cmf_code,
+
+                entl_prixunit: value.cmfl_PrixAchat,
+                entl_tva: value.cmfl_Tva,
+                entl_ht: value.cmfl_TotalHT,
+
+                entl_art_code: value.cmfl_Art_Code,
+
+                /*
+                 * IMPORTANT :
+                 * Le fournisseur vient de la ligne.
+                 */
+                entl_fou_code: value.cmfl_fou_Code,
+
+                entl_ttc: value.cmfl_TotalTTC,
+
+                entl_dateper: value.cmfl_datePer,
+                entl_prix: value.cmfl_PrixAchat,
+
+                entl_remise: value.cmfl_remise ?? 0,
+
+                entl_lot: lot_id,
+              },
+            );
+
+            if (!send.status) {
+              return false;
+            }
+
+            /*
+             * Mouvement de stock
+             */
+            await handleCreateMvtStock({
+              code_org: form.cmf_code,
+              date: today,
+              lot_code: lot_id,
+              origine: "t_entree_stock",
+              pri_id: value.cmfl_pri_id,
+              qte: value.cmfl_Quantite,
+              art_code: value.cmfl_Art_Code,
+            });
+            /*
+             * Mise à jour du stock
+             */
+            await handleStock({
+              quantite: value.cmfl_Quantite,
+              pri_id: value.cmfl_pri_id,
+              date: today,
+              lot_code: lot_id,
+              article: value.cmfl_Art_Code,
+              old_stock: value.cmfl_quantite_stock ?? 0,
+            });
+
+            return true;
+          } catch (error) {
+            console.error(
+              "Erreur lors de l'enregistrement de la ligne :",
+              value,
+              error,
+            );
+
+            return false;
+          }
+        }),
+      );
+
+      /*
+       * 3. Vérifier toutes les lignes
+       */
+      const toutesLesLignesOK = resultats.every((result) => result === true);
+
+      if (!toutesLesLignesOK) {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur est survenue",
+          message:
+            "La livraison a été créée, mais une ou plusieurs lignes n'ont pas pu être enregistrées.",
+        });
+
+        return;
+      }
+
+      /*
+       * 4. Succès
+       */
+      fetchCode("t_entree", true);
+
+      setAlert({
+        open: true,
+        variant: "success",
+        title: "Opération réussie",
+        message: "Livraison enregistrée avec succès",
+      });
+
+      reset();
+
+      setForm((prev) => ({
+        ...prev,
+        ligne: [],
+      }));
+    } catch (error) {
+      console.error("Erreur handleSubmit :", error);
+
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Une erreur est survenue",
+        message: "Erreur lors de l'enregistrement dans la base de données.",
+      });
+    }
+  };
+  // on submit end
   const clear = () => {
     setArticles([]);
     setForm(emptyBC);
@@ -582,7 +842,7 @@ export default function NewLivFrnsPage() {
               {Date().split(" ")[3]}
             </span>
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
               <div>
                 <Label>Piece N°</Label>
@@ -793,6 +1053,18 @@ export default function NewLivFrnsPage() {
                 ]}
               />
             </div>
+            <div className="flex justify-center w-full">
+              <Button
+                className="md:w-50 sm:w-auto md:mr-3"
+                variant="primary"
+                type="submit"
+              >
+                Valider
+              </Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
+            </div>
           </form>
         </div>
       </div>
@@ -848,18 +1120,22 @@ export default function NewLivFrnsPage() {
           </div>
         )}
       />
-      <div className="flex justify-center w-full">
-        <Button
-          className="md:w-50 sm:w-auto md:mr-3"
-          variant="primary"
-          type="submit"
-        >
-          Valider
-        </Button>
-        <Button variant="outline" onClick={clear}>
-          Effacer tout
-        </Button>
-      </div>
+
+      <Alert
+        open={alert.open}
+        variant={alert.variant}
+        title={alert.title}
+        message={alert.message}
+        showLink={false}
+        onClose={() =>
+          setAlert({
+            open: false,
+            variant: alert.variant,
+            message: alert.message,
+            title: alert.title,
+          })
+        }
+      />
     </div>
   );
 }
