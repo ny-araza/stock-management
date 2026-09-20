@@ -12,12 +12,17 @@ import { ArticleVente } from "./ArticleModal";
 
 type Props = {
   articles: ArticleVente[];
+<<<<<<< HEAD
 
   /**
    * Permet au composant parent de récupérer
    * la nouvelle liste après modification/suppression.
    */
   onArticlesChange?: (articles: ArticleVente[]) => void;
+=======
+  onEditArticle: (article: ArticleVente) => void;
+  onArticlesChange: (articles: ArticleVente[]) => void;
+>>>>>>> newliv-work
 };
 
 interface Total {
@@ -26,6 +31,7 @@ interface Total {
   totalHt: number;
 }
 
+<<<<<<< HEAD
 export default function ListArticles({ articles, onArticlesChange }: Props) {
   // --------------------------------------------------
   // Liste locale
@@ -43,12 +49,20 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
   // Dropdown mobile
   // --------------------------------------------------
 
+=======
+export default function ListArticles({
+  articles,
+  onEditArticle,
+  onArticlesChange,
+}: Props) {
+>>>>>>> newliv-work
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const toggleRow = (index: number) => {
     setExpandedIndex((current) => (current === index ? null : index));
   };
 
+<<<<<<< HEAD
   // --------------------------------------------------
   // Modification
   // --------------------------------------------------
@@ -145,6 +159,13 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
   // Totaux
   // --------------------------------------------------
 
+=======
+  const supprimerArticle = (index: number) => {
+    onArticlesChange(articles.filter((_, i) => i !== index));
+    setExpandedIndex(null);
+  };
+
+>>>>>>> newliv-work
   function total(): Total {
     if (!articleList) {
       return {
@@ -156,10 +177,16 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
 
     let totalht = 0;
     let totaltva = 0;
+<<<<<<< HEAD
 
     articleList.forEach((article) => {
       totalht += Number(article.pri_totalht) || 0;
       totaltva += Number(article.pri_tva) || 0;
+=======
+    articles.map((article: ArticleVente) => {
+      totalht += article.pri_totalht;
+      totaltva += article.pri_tva_ar;
+>>>>>>> newliv-work
     });
 
     return {
@@ -214,6 +241,7 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
           <tr className="border-b">
             <th className="p-2">Code Article</th>
             <th className="p-2">Quantité</th>
+            <th className="p-2">TVA (Ar)</th>
             <th className="p-2">P.U</th>
             <th className="p-2">Date Per</th>
             <th className="p-2">HT</th>
@@ -232,6 +260,7 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                     CODE + DESIGNATION
                 ======================================== */}
 
+<<<<<<< HEAD
                 <td className="p-2">
                   {isEditing ? (
                     <div className="space-y-1">
@@ -243,6 +272,12 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                         }
                         className="w-full rounded border px-2 py-1 text-sm dark:bg-gray-800"
                       />
+=======
+              <td className="p-2">{article.pri_quantite}</td>
+              <td className="p-2">
+                {Number(article.pri_tva_ar).toLocaleString("fr-FR")}
+              </td>
+>>>>>>> newliv-work
 
                       <input
                         type="text"
@@ -257,6 +292,7 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                     <>
                       <strong>{article.pri_article}</strong>
 
+<<<<<<< HEAD
                       <div className="text-sm text-gray-500">
                         {article.pri_designation}
                       </div>
@@ -395,6 +431,33 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
         ================================================== */}
 
         <tfoot>
+=======
+              <td className="p-2">
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEditArticle(article)}
+                    title="Modifier"
+                  >
+                    <FontAwesomeIcon icon={faPen} />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => supprimerArticle(index)}
+                    title="Supprimer"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="dark:text-white">
+>>>>>>> newliv-work
           <tr>
             <td>
               <span>TOTAL HT</span>
@@ -463,24 +526,30 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                   py-3
                   text-left
                   active:bg-gray-50
+<<<<<<< HEAD
                   dark:active:bg-gray-800
+=======
+                  dark:text-white
+>>>>>>> newliv-work
                 "
               >
                 <div className="min-w-0 flex-1">
                   <strong className="block truncate">
                     {article.pri_article}
                   </strong>
-
                   <div className="text-sm text-gray-500 truncate">
                     {article.pri_designation}
                   </div>
                 </div>
+<<<<<<< HEAD
 
+=======
+                {/* Total HT + chevron */}
+>>>>>>> newliv-work
                 <div className="flex items-center gap-2 shrink-0">
                   <strong className="whitespace-nowrap">
                     {Number(article.pri_totalht).toLocaleString("fr-FR")} Ar
                   </strong>
-
                   <FontAwesomeIcon
                     icon={faChevronDown}
                     className={`
@@ -492,11 +561,15 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                   />
                 </div>
               </button>
+<<<<<<< HEAD
 
               {/* ==========================================
                   DROPDOWN
               ========================================== */}
 
+=======
+              {/* Contenu dropdown */}
+>>>>>>> newliv-work
               <div
                 className={`
                   grid
@@ -543,6 +616,7 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                         <strong>{article.pri_article}</strong>
                       )}
                     </div>
+<<<<<<< HEAD
 
                     {/* ====================================
                         DESIGNATION
@@ -602,6 +676,22 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                       ) : (
                         <strong>{article.datePeremption}</strong>
                       )}
+=======
+                    {/* Quantité */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">Quantité</span>
+                      <strong>{article.pri_quantite}</strong>
+                    </div>
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">TVA (Ar)</span>
+                      <strong>
+                        {Number(article.pri_tva_ar).toLocaleString("fr-FR")}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">Date Per</span>
+                      <strong>{article.datePeremption}</strong>
+>>>>>>> newliv-work
                     </div>
 
                     {/* ====================================
@@ -610,6 +700,7 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
 
                     <div className="flex justify-between gap-3 py-1.5">
                       <span className="text-gray-500">P.U</span>
+<<<<<<< HEAD
 
                       {isEditing ? (
                         <input
@@ -624,6 +715,11 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                           {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
                         </strong>
                       )}
+=======
+                      <strong>
+                        {Number(article.pri_pua).toLocaleString("fr-FR")} Ar
+                      </strong>
+>>>>>>> newliv-work
                     </div>
 
                     {/* ====================================
@@ -640,7 +736,6 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                       "
                     >
                       <span className="text-gray-500">Total HT</span>
-
                       <strong>
                         {Number(
                           isEditing
@@ -656,6 +751,7 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                     ==================================== */}
 
                     <div className="flex justify-end gap-2 mt-3">
+<<<<<<< HEAD
                       {isEditing ? (
                         <>
                           {/* ENREGISTRER */}
@@ -715,6 +811,29 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
                           </Button>
                         </>
                       )}
+=======
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditArticle(article);
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faPen} />
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          supprimerArticle(index);
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </Button>
+>>>>>>> newliv-work
                     </div>
                   </div>
                 </div>
@@ -722,6 +841,14 @@ export default function ListArticles({ articles, onArticlesChange }: Props) {
             </div>
           );
         })}
+<<<<<<< HEAD
+=======
+        <div className="dark:text-white">
+          <div className="flex justify-between">
+            <div>
+              <span>TOTAL HT</span>
+            </div>
+>>>>>>> newliv-work
 
         {/* ================================================
             TOTAUX MOBILE

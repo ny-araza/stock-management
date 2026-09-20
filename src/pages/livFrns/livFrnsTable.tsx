@@ -22,6 +22,7 @@ import {
 } from "ag-grid-community";
 import { Modal } from "../../components/ui/modal";
 import { useModal } from "../../hooks/useModal";
+import SearchableSelect from "../Home/modal/utils/searchableSelect";
 
 // ---- Types correspondant aux données reçues par ce composant ----
 // (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)

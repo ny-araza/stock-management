@@ -1,71 +1,98 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useRef, useCallback, useEffect } from "react";
+import SearchableSelect from "../Home/modal/utils/searchableSelect";
+import {
+  ArticleApi,
+  BCAutoComplete,
+  CFLigneArticle,
+  Enumeration,
+  EnumerationOption,
+} from "../../interfaces/interfaces";
+import { Fourniseur } from "../../interfaces/interfaces";
+import { apiFetch } from "../../services/api";
+import { formatDate } from "../Home/modal/utils/utilsFucntions";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { useForm } from "../../hooks/useForm";
-import { apiFetch } from "../../services/api";
-import { useCallback, useState, useRef, useEffect } from "react";
-import Button from "../../components/ui/button/Button";
-import NewFrns from "../Fournisseurs/newFrns";
 import Select from "../../components/form/Select";
-import { postData } from "../../services/sendDataService";
-import Alert from "../../components/ui/alert/Alert";
-import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
-import ArticleModal, { ArticleVente } from "./ArticleModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import ListArticles from "./listArticle";
+import ListItems, { ListColumn } from "../Home/modal/utils/listItems";
+import Button from "../../components/ui/button/Button";
+import GenericArticleModal, {
+  ArticleCalculation,
+  ArticleField,
+  ArticleSearchConfig,
+} from "../Home/modal/utils/articleGenericModal";
 
 export default function NewLivFrnsPage() {
-  const { values, reset, setField, handleChange } = useForm({
-    pieces: "",
-    codeCf: "",
-    facture: "",
-    fournisseur: "",
-    contact1: "",
-    contact2: "",
-    adresse: "",
-    mail: "",
-    modeCmd: "",
-    datePaye: "",
-    designation: "",
-    code_frns: "",
-  });
-  //new article modal
-  const [modalOpen, setModalOpen] = useState(false);
-  const [articles, setArticles] = useState<ArticleVente[]>([]);
-  const ajouterArticle = (article: ArticleVente) => {
-    setArticles((prev) => [...prev, article]);
+  const emptyFrns: Fourniseur = {
+    fou_adresse: "",
+    fou_code: "",
+    fou_commercial: "",
+    fou_datecre: "",
+    fou_datemdf: "",
+    fou_enabled: true,
+    fou_id: 0,
+    fou_mail: "",
+    fou_modepay: "",
+    fou_nom: "",
+    fou_tel1: "",
+    fou_tel2: "",
+    fou_usercre: "",
+    fou_usermdf: "",
   };
-  //------------------//
-  const [suggestions, setSuggestions] = useState([]);
-  const [suggestionFrns, setSuggestionsFrns] = useState([]);
-  const [showSuggestionFrns, setShowSuggestionsFrns] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [rowSuggestions, setRowSuggestions] = useState([]);
-  const [showRowSuggestions, setShowRowSuggestions] = useState(false);
-  const [showCFSuggestions, setShowCFSuggestions] = useState(false);
-  const [CFSuggestions, setCFSuggestions] = useState([]);
-  const [openModal, setOpenModal] = useState(false);
-  //ligne
-  const articleRef = useRef<HTMLInputElement>(null);
-  const prixArticle = {
-    pri_id: "",
-    pri_article: "",
-    pri_designation: "",
-    pri_quantite: 0,
-    pri_pua: "",
-    pri_tva: 0.0,
-    pri_totalht: 0.0,
+  const emptyBC: BCAutoComplete = {
+    cmf_code: "",
+    cmf_date: "",
+    cmf_datecre: "",
+    cmf_dateliv: "",
+    cmf_datemdf: "",
+    cmf_enabled: true,
+    cmf_fou_code: "",
+    cmf_id: 0,
+    cmf_islivre: false,
+    cmf_lettre: "",
+    cmf_modecmd: "",
+    cmf_montant_ht: 0,
+    cmf_montant_ttc: 0,
+    cmf_usercre: "",
+    cmf_usermdf: "",
+    fournisseur: emptyFrns,
+    ligne: [],
+  };
+
+  const emptyArticle: CFLigneArticle = {
+    art_nom: "",
+    cmfl_Art_Code: "",
+    cmfl_PrixAchat: 0,
+    cmfl_Quantite: 0,
+    cmfl_TotalHT: 0,
+    cmfl_TotalTTC: 0,
+    cmfl_Tva: 0,
+    cmfl_cmf_code: "",
+    cmfl_fou_Code: "",
+    cmfl_pri_id: "",
+    cmfl_id: "",
     remise: 0,
-    lot_code: "",
-    datePeremption: "",
-    old_stock: "",
+    uid: "",
   };
-  const [ligneArticle, setLigneArticle] = useState<any[]>([]);
-  const [ligneEnCours, setLigneEnCours] = useState(prixArticle);
-  const open = () => {
-    setOpenModal(true);
-  };
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState<BCAutoComplete>(emptyBC);
+  const [search, setSearch] = useState("");
+  const [suggestions, setSuggestions] = useState<BCAutoComplete[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const skipSearch = useRef(false); // évite de relancer une recherche après sélection
+  const [highlight, setHighlight] = useState(-1);
+  const requestId = useRef(0);
+  const { values, reset, setField, handleChange } = useForm({
+    codeBl: "",
+    datePaiement: "",
+    facture: "",
+    modeCmd: "",
+  });
   const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
   const enumerationPaye: EnumerationOption[] = payementEnum.map(
     (item: Enumeration) => ({
@@ -74,42 +101,187 @@ export default function NewLivFrnsPage() {
       label: item.enu_nom,
     }),
   );
-  const [alert, setAlert] = useState({
-    open: false,
-    variant: "success" as "success" | "error" | "warning" | "info",
-    title: "",
-    message: "",
-  });
-  const [editingRow, setEditingRow] = useState<number | null>(null);
-  const close = () => {
-    setOpenModal(false);
+  // list article
+  const [article, setArticle] = useState<CFLigneArticle | null>(null);
+  const [articles, setArticles] = useState<CFLigneArticle[]>([]);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+  const articleColumns: ListColumn<CFLigneArticle>[] = [
+    {
+      label: "Code Article",
+      mobilePrimary: true,
+      render: (article) => (
+        <div>
+          <strong>{article.cmfl_Art_Code}</strong>
+
+          <div className="text-sm text-gray-500">{article.art_nom}</div>
+        </div>
+      ),
+    },
+
+    {
+      label: "Quantité",
+      render: (article) => article.cmfl_Quantite,
+    },
+
+    {
+      label: "TVA (Ar)",
+      render: (article) =>
+        Number(article.cmfl_montant_tva).toLocaleString("fr-FR"),
+    },
+
+    {
+      label: "P.U",
+      render: (article) => (
+        <>{Number(article.cmfl_PrixAchat).toLocaleString("fr-FR")} Ar</>
+      ),
+    },
+
+    {
+      label: "Date Per",
+      render: (article) => article.cmfl_pri_id,
+    },
+
+    {
+      label: "HT",
+      mobilePrimary: true,
+      render: (article) => (
+        <strong>
+          {Number(article.cmfl_TotalHT).toLocaleString("fr-FR")} Ar
+        </strong>
+      ),
+    },
+  ];
+
+  const modifierArticle = (articleSelectionne: CFLigneArticle) => {
+    setArticle({ ...articleSelectionne });
+    setEditingUid(articleSelectionne.cmfl_uid ?? null);
+    setModalOpen(true);
   };
-  const [stockDisponible, setStockDisponible] = useState<{
-    [code: string]: number;
-  }>({});
-  const [ligneErreurs, setLigneErreurs] = useState<{ [cle: string]: string }>(
-    {},
-  );
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const rechercherFrns = useCallback(async (code: string) => {
+
+  const supprimerArticle = (uid: string) => {
+    setForm((prev) => ({
+      ...prev,
+      ligne: prev.ligne.filter((item) => item.cmfl_uid !== uid),
+    }));
+
+    // Si on supprimait l'article actuellement en modification
+    if (editingUid === uid) {
+      setEditingUid(null);
+      setArticle(null);
+      setModalOpen(false);
+    }
+  };
+
+  // end list article
+  const inputClass = `
+    h-10 w-full rounded-md border border-gray-300 px-3 text-sm
+    outline-none focus:border-blue-500
+    dark:border-gray-600 dark:bg-gray-800 dark:text-white
+  `;
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setShowSuggestions(true);
+
+    // L'article n'est plus considéré comme validé tant qu'on tape
+    setForm((prev) => ({
+      ...prev,
+      cmf_code: "",
+      cmf_id: 0,
+    }));
+  };
+
+  const choisirArticle = (a: BCAutoComplete) => {
+    skipSearch.current = true;
+    setSearch(a.cmf_code);
+
+    setForm((prev) => ({
+      ...prev,
+
+      cmf_id_id: String(a.cmf_id),
+      cmf_code: a.cmf_code,
+      cmf_datecre: a.cmf_datecre,
+      cmf_datemdf: a.cmf_datemdf,
+      cmf_usercre: a.cmf_usercre,
+      cmf_usermdf: a.cmf_usermdf,
+      cmf_date: a.cmf_date,
+      cmf_modecmd: a.cmf_modecmd,
+      cmf_dateliv: a.cmf_dateliv,
+      cmf_enabled: a.cmf_enabled,
+      cmf_montant_ht: Number(a.cmf_montant_ht ?? 0),
+      cmf_montant_ttc: Number(a.cmf_montant_ttc ?? 0),
+      cmf_islivre: a.cmf_islivre,
+      cmf_fou_code: a.cmf_fou_code,
+      cmf_lettre: a.cmf_lettre,
+      fournisseur: {
+        ...a.fournisseur,
+      },
+
+      ligne: a.ligne.map((item) => ({
+        ...item,
+        cmfl_Quantite: Number(item.cmfl_Quantite ?? 0),
+        cmfl_PrixAchat: Number(item.cmfl_PrixAchat ?? 0),
+        cmfl_Tva: Number(item.cmfl_Tva ?? 0),
+        cmfl_TotalHT: Number(item.cmfl_TotalHT ?? 0),
+        cmfl_TotalTTC: Number(item.cmfl_TotalTTC ?? 0),
+        cmfl_pri_id: Number(item.cmfl_pri_id ?? 0),
+      })),
+    }));
+
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setHighlight(-1);
+  };
+
+  const rechercherArticle = useCallback(async (code: string) => {
+    const currentId = ++requestId.current;
+
     if (!code.trim()) {
-      setSuggestionsFrns([]);
-      setShowSuggestionsFrns(false);
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
     try {
+      setLoading(true);
       const query = new URLSearchParams();
       query.set("search", code);
-      const res = await apiFetch(`/api/fournisseurs/?${query.toString()}`);
+
+      const res = await apiFetch(
+        `/api/cmf-fournis-autocomplete/?${query.toString()}`,
+      );
+
+      if (currentId !== requestId.current) return; // réponse obsolète
+
       if (res.status) {
-        setSuggestionsFrns(res.fournisseur);
-        setShowSuggestionsFrns(true);
+        setSuggestions(res.cmf_fournis ?? []);
+        setShowSuggestions(true);
+        setHighlight(-1);
       }
     } catch (err) {
       console.error(err);
+      if (currentId === requestId.current) setSuggestions([]);
+    } finally {
+      if (currentId === requestId.current) setLoading(false);
     }
   }, []);
+
+  const fetchCode = async (table_name: string, isInsert: boolean) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("table_name", table_name);
+      query.set("is_insert", isInsert ? "1" : "0");
+      const res = await apiFetch(
+        `/api/generate-date-code/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setField("codeBl", res.code);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
 
   const fetchPaye = async (enu_code: string) => {
     try {
@@ -127,467 +299,275 @@ export default function NewLivFrnsPage() {
     }
   };
 
-  const rechercherCF = useCallback(async (code: string) => {
-    if (!code.trim()) {
-      setCFSuggestions([]);
-      setShowCFSuggestions(false);
-      return;
-    }
-
-    try {
-      const query = new URLSearchParams();
-      query.set("search", code);
-      const res = await apiFetch(
-        `/api/cmf-fournis-autocomplete/?${query.toString()}`,
-      );
-      if (res.status) {
-        console.log(res.cmf_fournis);
-        setCFSuggestions(res.cmf_fournis);
-        setShowCFSuggestions(true);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
-
-  const handleFrnsChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  const handleFournisseurChange = (
+    field: keyof Fourniseur,
+    value: string | number,
   ) => {
-    const { name, value } = e.target;
-    if (name === "fournisseur") {
-      rechercherFrns(value);
-      setField("fournisseur", value);
-    }
+    setForm((prev) => ({
+      ...prev,
+      fournisseur: {
+        ...prev.fournisseur,
+        [field]: value,
+      },
+    }));
   };
 
-  const handleCfChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    if (name === "codeCf") {
-      rechercherCF(value);
-      setField("codeCf", value);
-    }
-  };
+  const ajouterArticle = (nouvelArticle: CFLigneArticle) => {
+    console.log("Article reçu :", nouvelArticle);
+    console.log("Mode :", editingUid ? "MODIFICATION" : "AJOUT");
 
-  const frnsChoisit = (frns: any) => {
-    setField("fournisseur", frns.fou_nom);
-    setField("adresse", frns.fou_adresse);
-    setField("contact1", frns.fou_tel1);
-    setField("contact2", frns.fou_tel2);
-    setField("modeCmd", frns.fou_modepay);
-    setField("code_frns", frns.fou_code);
-    setShowSuggestionsFrns(false);
-  };
-
-  const cfChoisit = async (cmf: any) => {
-    setField("codeCf", cmf.cmf_code);
-
-    const lignes = await Promise.all(
-      (cmf.ligne || []).map(async (ligne: any) => {
-        const oldStock = await getOldStock(ligne.cmfl_Art_Code);
-
+    setForm((prev) => {
+      // =====================================================
+      // 1. MODIFICATION D'UNE LIGNE EXISTANTE
+      // =====================================================
+      if (editingUid) {
         return {
-          pri_article: ligne.cmfl_Art_Code || "",
-          pri_designation: ligne.art_nom || "",
-          pri_quantite: ligne.cmfl_Quantite || 0,
-          pri_pua: ligne.cmfl_PrixAchat ?? "",
-          pri_tva: ligne.cmfl_Tva ?? 0.0,
-          pri_totalht: ligne.cmfl_TotalHT ?? 0.0,
-          pri_id: ligne.cmfl_pri_id,
-          datePeremption: "",
+          ...prev,
+          ligne: prev.ligne.map((item) =>
+            item.cmfl_uid === editingUid
+              ? {
+                  ...item,
+                  ...nouvelArticle,
 
-          // Ancien stock récupéré
-          oldStock: oldStock,
+                  // On conserve l'UID de la ligne existante
+                  cmfl_uid: editingUid,
+
+                  // On conserve les informations du BC
+                  cmfl_cmf_code: prev.cmf_code,
+                  cmfl_fou_Code: prev.cmf_fou_code,
+
+                  // Normalisation
+                  cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
+                  cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
+                  cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
+                  cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
+                  cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
+                  cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+                }
+              : item,
+          ),
         };
-      }),
-    );
+      }
 
-    setField("fournisseur", cmf.fournisseur?.fou_nom || "");
-    setField("adresse", cmf.fournisseur?.fou_adresse || "");
-    setField("contact1", cmf.fournisseur?.fou_tel1 || "");
-    setField("contact2", cmf.fournisseur?.fou_tel2 || "");
-    setField("modeCmd", cmf.fournisseur?.fou_modepay || "");
-    setField("code_frns", cmf.fournisseur?.fou_code || "");
+      // =====================================================
+      // 2. AJOUT D'UNE NOUVELLE LIGNE
+      // =====================================================
 
-    setLigneArticle(lignes);
+      const newArticle: CFLigneArticle = {
+        ...nouvelArticle,
 
-    setShowCFSuggestions(false);
-  };
+        // Nouvel UID uniquement pour cette nouvelle ligne
+        cmfl_uid:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
 
-  //function ligne
-  const handleLigneChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setLigneEnCours((prev: any) => {
-      const nouvelleLigne = {
-        ...prev,
-        [name]: value,
+        // Informations du BC
+        cmfl_cmf_code: prev.cmf_code,
+        cmfl_fou_Code: prev.cmf_fou_code,
+
+        // Normalisation
+        cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
+        cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
+        cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
+        cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
+        cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
+        cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
       };
 
-      if (name === "pri_article") {
-        rechercherArticle(value);
-      }
-
-      const quantite = Number(nouvelleLigne.pri_quantite) || 0;
-      const pht = Number(nouvelleLigne.pri_pua) * quantite;
-      const remise = pht * (Number(nouvelleLigne.remise) / 100);
-      const pht_with_remise = pht - remise;
-      nouvelleLigne.pri_totalht = pht_with_remise.toFixed(2);
-      return nouvelleLigne;
+      return {
+        ...prev,
+        ligne: [...prev.ligne, newArticle],
+      };
     });
+
+    // Fermer le modal
+    setModalOpen(false);
+
+    // Réinitialiser l'article sélectionné
+    setArticle(null);
+
+    // IMPORTANT : réinitialiser le mode édition
+    setEditingUid(null);
   };
 
-  const ajouterLigne = () => {
-    // évite d'ajouter une ligne totalement vide
-    const estVide = Object.values(ligneEnCours).every((v) => v === "");
-    if (estVide) return;
-
-    if (ligneErreurs["nouvelle"]) {
-      setAlert({
-        open: true,
-        variant: "error",
-        title: `Quantité invalide ${ligneEnCours.pri_article}`,
-        message: ligneErreurs["nouvelle"],
-      });
-      return;
-    }
-
-    setLigneArticle([...ligneArticle, ligneEnCours]);
-    setLigneEnCours(prixArticle);
-    setTimeout(() => {
-      articleRef.current?.focus();
-    });
-  };
-
-  const getOldStock = async (codeArticle: string) => {
-    try {
-      const res = await apiFetch(`/api/stock/article/${codeArticle}/`);
-      const quantiteStock = res?.stock?.stk_quantite ?? 0;
-      setStockDisponible((prev) => ({ ...prev, [codeArticle]: quantiteStock }));
-      return quantiteStock;
-    } catch (error: any) {
-      setStockDisponible((prev) => ({ ...prev, [codeArticle]: 0 }));
-      return 0;
-    }
-  };
-
-  const handleStock = async (stk: any) => {
-    try {
-      const quantity = stockDisponible[stk.article]
-        ? stockDisponible[stk.article]
-        : stk.old_stock + parseInt(stk.quantite);
-
-      const res = await postData("/api/insert-database/", "t_stock", {
-        stk_quantite: quantity,
-        stk_pri_id: stk.pri_id,
-        stk_art_code: stk.article,
-        stk_lot_code: stk.lot_code,
-      });
-      if (!res.status) {
-        throw new Error(`${res.error}`);
-      }
-      console.log(`Stoké avec success ${res.message}`);
-    } catch (err: any) {
-      throw new Error(`${err.error}`);
-    }
-  };
-
-  const handleLigneKeyDown = (e: any) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      ajouterLigne();
-    }
-  };
-
-  const choisirArticle = (article: any) => {
-    setLigneEnCours((prev: any) => ({
-      ...prev,
-      pri_article: article.code,
-      pri_id: article.id,
-      pri_pua: article.prix_ht,
-      pri_designation: article.nom_article,
-    }));
-    getOldStock(article.code);
-    setSuggestions([]);
-    setShowSuggestions(false);
-  };
-
-  const rechercherArticle = useCallback(
-    async (code: string, cible: "nouvelle" | "existante" = "nouvelle") => {
-      if (!code.trim()) {
-        if (cible === "nouvelle") {
-          setSuggestions([]);
-          setShowSuggestions(false);
-        } else {
-          setRowSuggestions([]);
-          setShowRowSuggestions(false);
-        }
-        return;
-      }
-
-      try {
-        const query = new URLSearchParams();
-        query.set("search", code);
-        const res = await apiFetch(
-          `/api/articles-autocomplete/?${query.toString()}`,
-        );
-        if (res.status) {
-          if (cible === "nouvelle") {
-            setSuggestions(res.articles);
-            setShowSuggestions(true);
-          } else {
-            setRowSuggestions(res.articles);
-            setShowRowSuggestions(true);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
+  // Article Modal
+  const articleFields: ArticleField<CFLigneArticle>[] = [
+    {
+      name: "art_nom",
+      label: "Désignation",
+      type: "text",
+      placeholder: "Désignation de l'article",
+      className: "md:col-span-7",
     },
-    [],
-  );
 
-  const modifierLigne = (
-    index: number,
-    field: keyof (typeof ligneArticle)[number],
-    value: string,
-  ) => {
-    setLigneArticle((prev) =>
-      prev.map((ligne, i) => {
-        if (i !== index) return ligne;
+    {
+      name: "cmfl_Quantite",
+      label: "Quantité",
+      type: "number",
+      min: 0,
+      parseValue: Number,
+    },
 
-        const nouvelleLigne = {
-          ...ligne,
-          [field]: value,
-        };
+    {
+      name: "cmfl_PrixAchat",
+      label: "Prix unitaire",
+      type: "number",
+      min: 0,
+    },
+    {
+      name: "cmfl_montant_tva",
+      label: "TVA (Ar)",
+      type: "number",
+      min: 0,
+      step: 0.01,
+      parseValue: Number,
+    },
+    {
+      name: "cmfl_remise",
+      label: "Remise (%)",
+      type: "number",
+      min: 0,
+      step: 0.01,
+      parseValue: Number,
+    },
+    {
+      name: "cmfl_TotalHT",
+      label: "Total HT",
+      type: "text",
+      readOnly: true,
+      getValue: (article: CFLigneArticle) =>
+        `${Number(article.cmfl_TotalHT).toLocaleString("fr-FR")} Ar`,
+    },
+  ];
 
-        const pua = Number(nouvelleLigne.pri_pua) || 0;
-        const qte = Number(nouvelleLigne.pri_quantite) || 0;
-        const remise = Number(nouvelleLigne.remise) || 0;
-
-        nouvelleLigne.pri_totalht = pua * qte - (pua * qte * remise) / 100;
-
-        return nouvelleLigne;
-      }),
-    );
-
-    if (field === "pri_article") {
-      setEditingRow(index);
-      rechercherArticle(value, "existante");
-    }
-  };
-
-  const choisirArticleLigne = (index: number, article: any) => {
-    setLigneArticle((prev: any) =>
-      prev.map((ligne: any, i: any) =>
-        i === index
-          ? {
-              ...ligne,
-              pri_article: article.code,
-              pri_id: article.id,
-              pri_pua: article.prix_ht,
-              pri_designation: article.nom_article,
-            }
-          : ligne,
-      ),
-    );
-    getOldStock(article.code);
-    setRowSuggestions([]);
-    setShowRowSuggestions(false);
-    setEditingRow(null);
-  };
-
-  const fetchCode = async (table_name: string, isInsert: boolean) => {
-    try {
+  const articleSearchConfig: ArticleSearchConfig<CFLigneArticle, ArticleApi> = {
+    search: async (value) => {
       const query = new URLSearchParams();
-      query.set("table_name", table_name);
-      query.set("is_insert", isInsert ? "1" : "0");
-      console.log(query.toString());
+
+      query.set("search", value);
+
       const res = await apiFetch(
-        `/api/generate-date-code/?${query.toString()}`,
+        `/api/articles-autocomplete/?${query.toString()}`,
       );
 
-      if (res.success) {
-        setField("pieces", res.code);
-      }
-    } catch (error: any) {
-      console.log(error);
-    }
+      return res.status ? (res.articles ?? []) : [];
+    },
+
+    getKey: (article) => article.id,
+
+    getSearchValue: (article) => article.code,
+
+    getLots: (article) => article.lots ?? [],
+
+    getStock: (article) => article.quantite_stock,
+
+    renderItem: (article) => (
+      <div className="px-3 py-2">
+        <div
+          className="
+            text-sm font-medium
+            text-gray-800
+            dark:text-white
+          "
+        >
+          {article.code}
+        </div>
+
+        <div
+          className="
+            truncate text-xs
+            text-gray-500
+          "
+        >
+          {article.nom_article}
+        </div>
+
+        <div className="text-xs text-gray-400">
+          {Number(article.prix_ht).toLocaleString("fr-FR")} Ar · TVA{" "}
+          {article.pri_tva}%
+        </div>
+      </div>
+    ),
+
+    mapToForm: (article, previous) => ({
+      ...previous,
+
+      cmfl_id: article.id,
+
+      cmfl_Art_Code: article.code,
+
+      art_nom: article.nom_article,
+
+      cmfl_PrixAchat: article.prix_ht ?? 0,
+
+      cmfl_Tva: Number(article.pri_tva ?? 0),
+
+      cmfl_montant_tva:
+        (Number(article.pri_tva ?? 0) * Number(article.prix_ht ?? 0)) / 100,
+
+      cmfl_TotalHT: 0,
+
+      cmfl_lot: "",
+
+      cmfl_datePer: "",
+      cmfl_remise: 0,
+      cmfl_montant_remise: 0,
+      cmfl_quantite_stock: article.quantite_stock,
+    }),
   };
 
-  const totalHT = ligneArticle.reduce(
-    (total, ligne) => total + Number(ligne.pri_totalht || 0),
-    0,
-  );
+  const calculation: ArticleCalculation<CFLigneArticle> = {
+    calculate: (form) => {
+      const quantite = Number(form.cmfl_Quantite) || 0;
 
-  const totalTVA = ligneArticle.reduce(
-    (total, ligne) =>
-      total +
-      (Number(ligne.pri_totalht || 0) * Number(ligne.pri_tva || 0)) / 100,
-    0,
-  );
+      const pua = Number(form.cmfl_PrixAchat) || 0;
 
-  const totalTTC = totalHT + totalTVA;
+      const remise = Number(form.cmfl_remise) || 0;
 
-  const handleCreateMvtStock = async (mvt: any) => {
-    try {
-      console.log(`mvt ${mvt}`);
-      const res = await postData("/api/insert-database/", "t_mvt_stock", {
-        mvt_action: "insert",
-        mvt_code_org: mvt.code_org,
-        mvt_date: mvt.date,
-        mvt_lot_code: mvt.lot_code,
-        mvt_origine: mvt.origine,
-        mvt_pri_id: mvt.pri_id,
-        mvt_qte: mvt.qte,
-        mvt_art_code: mvt.art_code,
-      });
-      if (!res.status) {
-        throw new Error(`${res.error}`);
-      }
-      console.log(`Mvt stocker avec success ${res.message}`);
-    } catch (err: any) {
-      throw new Error(`${err.error}`);
-    }
+      const totalBrut = quantite * pua;
+
+      const montantRemise = totalBrut * (remise / 100);
+
+      const totalHT = totalBrut - montantRemise;
+
+      const tva = totalHT * (Number(form.cmfl_Tva) / 100);
+
+      const totalTTC = totalHT + tva;
+
+      return {
+        cmfl_TotalHT: totalHT,
+        cmfl_montant_tva: tva,
+        cmfl_TotalTTC: totalTTC,
+        cmfl_montant_remise: montantRemise,
+      };
+    },
   };
-  const stockLot = async (data: any) => {
-    const res = await postData("/api/insert-database/", "t_lot", {
-      lot_enabled: true,
-      lot_code: data.pri_lot,
-      lot_dateper: data.pri_datePeremption,
-      lot_art_quantite: data.pri_quantite,
-      lot_art_code: data.pri_article,
-    });
-    return res.id;
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const ligne_ok: boolean[] = [];
-      if (!values.modeCmd) values.modeCmd = "1";
-      if (totalHT != 0) {
-        const today = new Date().toISOString().split("T")[0];
-        const res = await postData("/api/insert-database/", "t_entree", {
-          ent_code: values.pieces,
-          ent_modepaye: values.modeCmd,
-          ent_datepay: values.datePaye,
-          ent_montant_ht: parseInt(totalHT),
-          ent_montant_ttc: parseInt(totalTTC),
-          ent_fou_code: values.code_frns,
-          ent_date: today,
-          ent_facture: values.facture,
-          ent_cmf_code: values.codeCf,
-        });
-        if (res.status) {
-          ligneArticle.map(async (value) => {
-            const lot_id = await stockLot({
-              pri_lot: value.lot_code,
-              pri_datePeremption: value.datePeremption,
-              pri_quantite: value.pri_quantite,
-              pri_article: value.pri_article,
-            });
-            const send = await postData(
-              "/api/insert-database/",
-              "t_ligne_entree",
-              {
-                entl_quantite: value.pri_quantite,
-                entl_pri_id: value.pri_id,
-                entl_ent_code: values.pieces,
-                entl_prixunit: value.pri_pua,
-                entl_tva: value.pri_tva,
-                entl_ht: value.pri_totalht,
-                entl_art_code: value.pri_article,
-                entl_fou_code: values.code_frns,
-                entl_ttc: (
-                  parseInt(value.pri_totalht) +
-                  (parseInt(value.pri_totalht) * parseInt(value.pri_tva)) / 100
-                ).toFixed(2),
-                entl_dateper: value.datePeremption,
-                entl_prix: value.pri_pua,
-                entl_remise: value.remise ? value.remise : "0",
-                entl_lot: lot_id,
-              },
-            );
 
-            handleCreateMvtStock({
-              code_org: values.pieces,
-              date: today,
-              lot_code: lot_id,
-              origine: "t_entree_stock",
-              pri_id: value.pri_id,
-              qte: value.pri_quantite,
-              art_code: value.pri_article,
-            });
-            handleStock({
-              quantite: value.pri_quantite,
-              pri_id: value.pri_id,
-              date: today,
-              lot_code: lot_id,
-              article: value.pri_article,
-              old_stock: value.oldStock,
-            });
-            if (send.status) {
-              ligne_ok.push(true);
-            } else ligne_ok.push(false);
-          });
-        } else {
-          setAlert({
-            open: true,
-            message: res.error,
-            title: "Une erreur survenue",
-            variant: "error",
-          });
-          return;
-        }
-        if (!ligne_ok.find((val) => val == false)) {
-          fetchCode("t_entree", true);
-          setAlert({
-            open: true,
-            variant: "success",
-            title: "Opération réussie",
-            message: "Livraison enregistrer avec succès",
-          });
-          reset();
-          setLigneArticle([]);
-          return;
-        } else {
-          setAlert({
-            open: true,
-            variant: "error",
-            title: "Une erreur est survenue",
-            message: "Erreur lors de l'enregistrement dans la base de donnée",
-          });
-        }
-      }
-
-      setAlert({
-        open: true,
-        message: "Vous avez laisser un (des) champ(s) vide(s)",
-        title: "Une erreur survenue",
-        variant: "error",
-      });
-    } catch (error: any) {
-      setAlert({
-        open: true,
-        message: `${error.error}`,
-        title: "Une erreur survenue",
-        variant: "error",
-      });
-    }
-  };
+  // End Article Modal
 
   const clear = () => {
-    reset();
-    fetchCode("t_entree", false);
     setArticles([]);
+    setForm(emptyBC);
+    reset();
   };
 
   useEffect(() => {
     fetchCode("t_entree", false);
     fetchPaye("MODE_PAY");
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (skipSearch.current) {
+      skipSearch.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => rechercherArticle(search), 300);
+    return () => clearTimeout(timer);
+  }, [search, open, rechercherArticle]);
 
   return (
     <div>
@@ -602,234 +582,283 @@ export default function NewLivFrnsPage() {
               {Date().split(" ")[3]}
             </span>
           </div>
-          <form
-            className="flex flex-col"
-            onSubmit={handleSubmit}
-            autoComplete="off"
-          >
-            <div className="custom-scrollbar  overflow-y-auto px-2 pb-3">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
-                <div>
-                  <Label>Piece N°</Label>
-                  <Input
-                    name="pieces"
-                    type="text"
-                    value={values.pieces}
-                    onChange={handleChange}
-                    readonly={true}
-                  />
-                </div>
-                <div>
-                  <Label>Date de paiements</Label>
-                  <Input
-                    type="date"
-                    value={values.datePaye}
-                    onChange={handleChange}
-                    name="datePaye"
-                    required={true}
-                  />
-                </div>
+          <form className="flex flex-col">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
+              <div>
+                <Label>Piece N°</Label>
+                <Input
+                  name="codeBl"
+                  type="text"
+                  value={values.codeBl}
+                  onChange={handleChange}
+                  readonly={true}
+                />
               </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
-                <div>
-                  <Label>Code CF</Label>
-                  <div className="flex items-center w-full gap-2 flex-nowrap">
-                    <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
-                      <Input
-                        name="codeCf"
-                        type="text"
-                        value={values.codeCf}
-                        onChange={handleCfChange}
-                        required={true}
-                        placeholder="Code Commande fournisseur"
-                        className="w-full bg-transparent placeholder-white/70 outline-none"
-                      />
-                    </div>
-                  </div>
-                  {showCFSuggestions && CFSuggestions.length > 0 && (
-                    <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
-                      {CFSuggestions.map((cf: any) => (
-                        <div
-                          key={cf.cmf_id}
-                          onClick={() => cfChoisit(cf)}
-                          className="cursor-pointer px-3 py-2"
-                        >
-                          <div className="text-xs text-gray-500">
-                            {cf.cmf_code}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label>N° Facture</Label>
-                  <Input
-                    name="facture"
-                    type="text"
-                    value={values.facture}
-                    onChange={handleChange}
-                    placeholder="N° Facture"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
-                <div>
-                  <Label>Fournisseur</Label>
-                  <div className="flex items-center w-full gap-2 flex-nowrap">
-                    <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
-                      <Input
-                        name="fournisseur"
-                        type="text"
-                        value={values.fournisseur}
-                        onChange={handleFrnsChange}
-                        required={true}
-                        placeholder="Nom du fournisseurs"
-                        className="w-full bg-transparent placeholder-white/70 outline-none"
-                      />
-                      <Button
-                        variant="outline"
-                        title="Ajouter nouveau fournisseur"
-                        onClick={() => open()}
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                  {showSuggestionFrns && suggestionFrns.length > 0 && (
-                    <div className="absolute z-100 w-70  bg-white border rounded shadow max-h-60 overflow-y-auto dark:bg-gray-800">
-                      {suggestionFrns.map((frns: any) => (
-                        <div
-                          key={frns.fou_id}
-                          onClick={() => frnsChoisit(frns)}
-                          className="cursor-pointer px-3 py-2"
-                        >
-                          <div className="text-xs text-gray-500">
-                            {frns.fou_nom}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label>Adrèsse</Label>
-                  <Input
-                    name="adresse"
-                    type="text"
-                    placeholder="L'adrèsse du fournisseur"
-                    value={values.adresse}
-                    onChange={handleChange}
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
-                <div>
-                  <Label>Contact 1</Label>
-                  <Input
-                    name="contact1"
-                    type="text"
-                    value={values.contact1}
-                    onChange={handleChange}
-                    placeholder="N° de tel 1"
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-                <div>
-                  <Label>Contact 2</Label>
-                  <Input
-                    name="contact2"
-                    type="text"
-                    value={values.contact2}
-                    placeholder="N° de tel 2"
-                    onChange={handleChange}
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
-                <div>
-                  <Label>Mail</Label>
-                  <Input
-                    name="mail"
-                    type="text"
-                    value={values.mail}
-                    onChange={handleChange}
-                    placeholder="fournisseurs@gmail.com"
-                    className="w-full bg-transparent placeholder-white/70 outline-none"
-                  />
-                </div>
-                <div>
-                  <Label>Mode de paiement</Label>
-                  <Select
-                    options={enumerationPaye}
-                    onChange={(value) => setField("modeCmd", value)}
-                    defaultValue="espèce"
-                  ></Select>
-                </div>
-              </div>
-              <Label>Articles</Label>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
-                <div className="flex justify-center">
-                  <Button
-                    type="button"
-                    onClick={() => setModalOpen(true)}
-                    className="
-                          rounded-md
-                          bg-blue-600
-                          px-4 py-2
-                          text-white
-                        "
-                    title="Ajouter nouvelle article"
-                  >
-                    <FontAwesomeIcon icon={faPlus} />
-                  </Button>
-                </div>
-                {articles.length > 0 &&
-                  <ListArticles
-                    onArticlesChange={setArticles}
-                    articles={articles}
-                  />}
-                <ArticleModal
-                  open={modalOpen}
-                  onClose={() => setModalOpen(false)}
-                  onSave={ajouterArticle}
-                  className="max-w-[900px] m-4 max-h-[700px]"
+              <div>
+                <Label>Date de paiements</Label>
+                <Input
+                  name="datePaiement"
+                  type="date"
+                  value={values.datePaiement}
+                  onChange={handleChange}
+                  required={true}
                 />
               </div>
             </div>
-            <div className="flex justify-center w-full">
-              <Button
-                className="md:w-50 sm:w-auto md:mr-3"
-                variant="primary"
-                type="submit"
-              >
-                Valider
-              </Button>
-              <Button variant="outline" onClick={clear}>
-                Effacer tout
-              </Button>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
+              <div>
+                <Label>Code CF</Label>
+                <SearchableSelect<BCAutoComplete>
+                  value={search}
+                  onChange={handleSearchChange}
+                  suggestions={suggestions}
+                  loading={loading}
+                  onSelect={choisirArticle}
+                  placeholder="Numéro CF"
+                  noResultsText="Aucun article trouvé"
+                  getKey={(cmf: BCAutoComplete) => cmf.cmf_id}
+                  inputClassName={inputClass}
+                  renderItem={(cmf: BCAutoComplete) => (
+                    <div className="px-3 py-2">
+                      <div className="text-sm font-medium text-gray-800 dark:text-white">
+                        {cmf.cmf_code}
+                      </div>
+
+                      <div className="truncate text-xs text-gray-500">
+                        {cmf.fournisseur.fou_nom}
+                      </div>
+
+                      <div className="text-xs text-gray-400">
+                        Crée le: {formatDate(cmf.cmf_datecre)}
+                      </div>
+                    </div>
+                  )}
+                />
+              </div>
+              <div>
+                <Label>N° Facture</Label>
+                <Input
+                  name="facture"
+                  type="text"
+                  value={values.facture}
+                  onChange={handleChange}
+                  placeholder="N° Facture"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
+              <div>
+                <Label>Nom Fournisseur</Label>
+                <Input
+                  name="adresse"
+                  type="text"
+                  placeholder="L'adrèsse du fournisseur"
+                  value={form.fournisseur.fou_nom}
+                  onChange={(e) =>
+                    handleFournisseurChange("fou_adresse", e.target.value)
+                  }
+                  className="w-full bg-transparent placeholder-white/70 outline-none"
+                />
+              </div>
+              <div>
+                <Label>Adrèsse</Label>
+                <Input
+                  name="adresse"
+                  type="text"
+                  placeholder="L'adrèsse du fournisseur"
+                  value={form.fournisseur.fou_adresse}
+                  onChange={(e) =>
+                    handleFournisseurChange("fou_adresse", e.target.value)
+                  }
+                  className="w-full bg-transparent placeholder-white/70 outline-none"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
+              <div>
+                <Label>Contact 1</Label>
+                <Input
+                  name="contact1"
+                  type="text"
+                  value={form.fournisseur.fou_tel1}
+                  onChange={(e) =>
+                    handleFournisseurChange("fou_tel1", e.target.value)
+                  }
+                  placeholder="N° de tel 1"
+                  className="w-full bg-transparent placeholder-white/70 outline-none"
+                />
+              </div>
+              <div>
+                <Label>Contact 2</Label>
+                <Input
+                  name="contact2"
+                  type="text"
+                  value={form.fournisseur.fou_tel2}
+                  placeholder="N° de tel 2"
+                  onChange={(e) =>
+                    handleFournisseurChange("fou_tel2", e.target.value)
+                  }
+                  className="w-full bg-transparent placeholder-white/70 outline-none"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
+              <div>
+                <Label>Mail</Label>
+                <Input
+                  name="contact1"
+                  type="text"
+                  value={form.fournisseur.fou_mail}
+                  onChange={(e) =>
+                    handleFournisseurChange("fou_mail", e.target.value)
+                  }
+                  placeholder="N° de tel 1"
+                  className="w-full bg-transparent placeholder-white/70 outline-none"
+                />
+              </div>
+              <div>
+                <Label>Mode de paiement</Label>
+                <Select
+                  options={enumerationPaye}
+                  onChange={(value) => setField("modeCmd", value)}
+                  defaultValue="espèce"
+                ></Select>
+              </div>
+            </div>
+            <Label>Articles</Label>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  onClick={() => setModalOpen(true)}
+                  className="
+                        rounded-md
+                        bg-blue-600
+                        px-4 py-2
+                        text-white
+                      "
+                  title="Ajouter nouvelle article"
+                >
+                  <FontAwesomeIcon icon={faPlus} />
+                </Button>
+              </div>
+
+              <ListItems<CFLigneArticle>
+                items={form.ligne}
+                columns={articleColumns}
+
+                getKey={(article: CFLigneArticle) => article.cmfl_Art_Code}
+
+                onEdit={modifierArticle}
+
+                onDelete={(item) => supprimerArticle(item.cmfl_uid!)}
+
+                onItemsChange={setArticles}
+
+                totals={[
+                  {
+                    label: "TOTAL HT",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total + Number(article.cmfl_TotalHT || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
+
+                  {
+                    label: "TOTAL TVA",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total + Number(article.cmfl_montant_tva || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
+
+                  {
+                    label: "TOTAL TTC",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total +
+                          Number(article.cmfl_TotalHT || 0) +
+                          Number(article.cmfl_Tva || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
+                ]}
+              />
             </div>
           </form>
         </div>
-        <NewFrns isOpen={openModal} onClose={close}></NewFrns>
+      </div>
+      <GenericArticleModal<CFLigneArticle, ArticleApi>
+        open={modalOpen}
+        article={article}
+        emptyValue={emptyArticle}
+        onClose={() => setModalOpen(false)}
+        onSave={ajouterArticle}
+        className="max-w-[900px] m-4 max-h-[700px]"
 
-        <Alert
-          open={alert.open}
-          variant={alert.variant}
-          title={alert.title}
-          message={alert.message}
-          showLink={false}
-          onClose={() =>
-            setAlert({
-              open: false,
-              variant: alert.variant,
-              message: alert.message,
-              title: alert.title,
-            })
+        searchConfig={articleSearchConfig}
+
+        fields={articleFields}
+
+        calculation={calculation}
+
+        getArticleCode={(article) => article.cmfl_Art_Code}
+        getStock={(article) => article.cmfl_quantite_stock ?? 0}
+        validate={(form) => {
+          if (!form.cmfl_Art_Code || !form.cmfl_id) {
+            return "Veuillez sélectionner un article dans la liste.";
           }
-        />
+
+          if (Number(form.cmfl_Quantite) <= 0) {
+            return "La quantité doit être supérieure à 0.";
+          }
+
+          if (Number(form.cmfl_PrixAchat) < 0) {
+            return "Le prix unitaire est invalide.";
+          }
+
+          return null;
+        }}
+
+        renderFooter={(form) => (
+          <div className="flex items-center">
+            <span className="mr-2 dark:text-white">TTC :</span>
+
+            <span className="text-green-600">
+              <strong>
+                {Number(form.cmfl_TotalTTC).toLocaleString("fr-FR")} Ar
+              </strong>
+            </span>
+
+            <span className="ml-2 dark:text-white">| Remise :</span>
+
+            <span className="ml-2 text-red-600">
+              <strong>
+                {Number(form.cmfl_montant_remise).toLocaleString("fr-FR")} Ar
+              </strong>
+            </span>
+          </div>
+        )}
+      />
+      <div className="flex justify-center w-full">
+        <Button
+          className="md:w-50 sm:w-auto md:mr-3"
+          variant="primary"
+          type="submit"
+        >
+          Valider
+        </Button>
+        <Button variant="outline" onClick={clear}>
+          Effacer tout
+        </Button>
       </div>
     </div>
   );
