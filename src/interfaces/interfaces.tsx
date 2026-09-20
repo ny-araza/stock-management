@@ -117,10 +117,11 @@ export interface BCAutoComplete {
   cmf_fou_code: string;
   cmf_lettre: string;
   fournisseur: Fourniseur;
-  ligne: CFLigneArticle[]
+  ligne: CFLigneArticle[];
 }
 
 export interface CFLigneArticle {
+  cmfl_id?: number;
   cmfl_cmf_code: string;
   cmfl_Quantite: number;
   cmfl_PrixAchat: number;
@@ -131,6 +132,13 @@ export interface CFLigneArticle {
   cmfl_TotalTTC: number;
   cmfl_pri_id: number;
   art_nom: string;
+  cmfl_uid?: string;
+  cmfl_remise?: number;
+  cmfl_montant_remise?: number;
+  cmfl_montant_tva?: number
+  cmfl_lot: "",
+  cmfl_datePer?: "",
+  cmfl_quantite_stock?: number
 }
 
 export interface Fourniseur {
@@ -173,6 +181,24 @@ export interface SousFamille {
   sof_fabricant: string;
   sof_paysorg: string;
   sof_enabled: boolean;
+}
+
+export interface ArticleApi {
+  id: number;
+  code: string;
+  prix_ht: number;
+  prix_vte: number;
+  pri_tva: number;
+  nom_article: string;
+  lots: LotApi[];
+  quantite_stock: number;
+}
+
+export interface LotApi {
+  lot_id: number;
+  lot_code: string;
+  lot_datePeremption: string | null;
+  lot_quantite: number;
 }
 
 export interface ArticleLigneEntrer {
