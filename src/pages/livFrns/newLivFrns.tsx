@@ -546,6 +546,12 @@ export default function NewLivFrnsPage() {
 
   // End Article Modal
 
+  const clear = () => {
+    setArticles([]);
+    setForm(emptyBC);
+    reset();
+  };
+
   useEffect(() => {
     fetchCode("t_entree", false);
     fetchPaye("MODE_PAY");
@@ -842,6 +848,18 @@ export default function NewLivFrnsPage() {
           </div>
         )}
       />
+      <div className="flex justify-center w-full">
+        <Button
+          className="md:w-50 sm:w-auto md:mr-3"
+          variant="primary"
+          type="submit"
+        >
+          Valider
+        </Button>
+        <Button variant="outline" onClick={clear}>
+          Effacer tout
+        </Button>
+      </div>
     </div>
   );
 }
