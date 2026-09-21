@@ -607,7 +607,7 @@ export default function GenericArticleModal<T, S>({
                   md:col-span-6
                 "
               >
-                <label className={labelClass}>Code lot</label>
+                <label className={labelClass}>Date Per</label>
 
                 {lots.length > 0 && (
                   <select
@@ -631,7 +631,7 @@ export default function GenericArticleModal<T, S>({
                 {(lotMode === "nouveau" || lots.length === 0) && (
                   <input
                     type="text"
-                    placeholder="Ex : LOT-2026-001"
+                    placeholder="Ex : 2026-001"
                     className={inputClass}
                   />
                 )}

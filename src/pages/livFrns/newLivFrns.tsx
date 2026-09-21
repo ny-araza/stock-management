@@ -146,7 +146,7 @@ export default function NewLivFrnsPage() {
 
     {
       label: "Date Per",
-      render: (article) => article.cmfl_pri_id,
+      render: (article) => (article.cmfl_datePer ? article.cmfl_datePer : "-"),
     },
 
     {
@@ -158,11 +158,25 @@ export default function NewLivFrnsPage() {
         </strong>
       ),
     },
+    {
+      label: "Remise (Ar)",
+      mobilePrimary: true,
+      render: (article) => (
+        <strong>
+          {article.cmfl_montant_remise
+            ? Number(article.cmfl_montant_remise).toLocaleString("fr-FR")
+            : "0"}{" "}
+          Ar
+        </strong>
+      ),
+    },
   ];
 
   const modifierArticle = (articleSelectionne: CFLigneArticle) => {
     setArticle({ ...articleSelectionne });
+    console.log("article selct=> ", articleSelectionne);
     setEditingUid(articleSelectionne.cmfl_uid ?? null);
+    console.log(articleSelectionne.cmfl_uid);
     setModalOpen(true);
   };
 
@@ -233,6 +247,10 @@ export default function NewLivFrnsPage() {
         cmfl_TotalHT: Number(item.cmfl_TotalHT ?? 0),
         cmfl_TotalTTC: Number(item.cmfl_TotalTTC ?? 0),
         cmfl_pri_id: Number(item.cmfl_pri_id ?? 0),
+        cmfl_uid:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
       })),
     }));
 
@@ -323,6 +341,7 @@ export default function NewLivFrnsPage() {
   const ajouterArticle = (nouvelArticle: CFLigneArticle) => {
     console.log("Article reçu :", nouvelArticle);
     console.log("Mode :", editingUid ? "MODIFICATION" : "AJOUT");
+    console.log(editingUid);
 
     setForm((prev) => {
       // =====================================================
@@ -343,6 +362,7 @@ export default function NewLivFrnsPage() {
                   // On conserve les informations du BC
                   cmfl_cmf_code: prev.cmf_code,
                   cmfl_fou_Code: prev.cmf_fou_code,
+                  cmfl_id: nouvelArticle.cmfl_id,
 
                   // Normalisation
                   cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
@@ -351,6 +371,8 @@ export default function NewLivFrnsPage() {
                   cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
                   cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
                   cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+                  cmfl_datePer: nouvelArticle.cmfl_datePer || "",
+                  cmfl_remise: nouvelArticle.cmfl_remise,
                 }
               : item,
           ),
@@ -373,6 +395,7 @@ export default function NewLivFrnsPage() {
         // Informations du BC
         cmfl_cmf_code: prev.cmf_code,
         cmfl_fou_Code: prev.cmf_fou_code,
+        cmfl_id: nouvelArticle.cmfl_id,
 
         // Normalisation
         cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
@@ -381,6 +404,8 @@ export default function NewLivFrnsPage() {
         cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
         cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
         cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+        cmfl_datePer: nouvelArticle.cmfl_datePer || "",
+        cmfl_remise: nouvelArticle.cmfl_remise || 0,
       };
 
       return {
@@ -461,7 +486,6 @@ export default function NewLivFrnsPage() {
 
       return res.status ? (res.articles ?? []) : [];
     },
-
     getKey: (article) => article.id,
 
     getSearchValue: (article) => article.code,
@@ -805,11 +829,18 @@ export default function NewLivFrnsPage() {
       });
     }
   };
+
+  const openGenericModal = () => {
+    setArticle(emptyArticle);
+    setModalOpen(true);
+  };
+
   // on submit end
   const clear = () => {
     setArticles([]);
     setForm(emptyBC);
     reset();
+    fetchCode("t_entree", false);
   };
 
   useEffect(() => {
@@ -990,7 +1021,7 @@ export default function NewLivFrnsPage() {
               <div className="flex justify-center">
                 <Button
                   type="button"
-                  onClick={() => setModalOpen(true)}
+                  onClick={openGenericModal}
                   className="
                         rounded-md
                         bg-blue-600
@@ -1085,7 +1116,8 @@ export default function NewLivFrnsPage() {
         getArticleCode={(article) => article.cmfl_Art_Code}
         getStock={(article) => article.cmfl_quantite_stock ?? 0}
         validate={(form) => {
-          if (!form.cmfl_Art_Code || !form.cmfl_id) {
+          console.log("***", form);
+          if (!form.cmfl_Art_Code || !form.cmfl_uid) {
             return "Veuillez sélectionner un article dans la liste.";
           }
 
