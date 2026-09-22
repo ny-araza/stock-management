@@ -141,7 +141,7 @@ export default function NewLivFrnsPage() {
         setShowSuggestionsFrns(true);
       }
     } catch (err) {
-      console.error(err);
+      console.ror(err);
     }
   }, []);
 

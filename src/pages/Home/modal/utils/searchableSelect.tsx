@@ -14,7 +14,7 @@ interface SearchableSelectProps<T> {
   onSelect: (item: T) => void;
 
   loading?: boolean;
-
+  required?: boolean
   placeholder?: string;
   noResultsText?: string;
 
@@ -55,7 +55,7 @@ export default function SearchableSelect<T>({
   suggestions,
   onSelect,
   loading = false,
-
+  required,
   placeholder = "Rechercher...",
   noResultsText = "Aucun résultat trouvé",
 
@@ -216,6 +216,7 @@ export default function SearchableSelect<T>({
         onFocus={handleFocus}
         placeholder={placeholder}
         className={inputClassName}
+        required={required}
       />
 
       {/* Loading */}

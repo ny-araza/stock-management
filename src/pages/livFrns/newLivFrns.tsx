@@ -672,6 +672,25 @@ export default function NewLivFrnsPage() {
   // End Article Modal
   // on Submit
 
+  function calculateTotal() {
+    const totalHT = form.ligne.reduce(
+      (total, article) => total + Number(article.cmfl_TotalHT || 0),
+      0,
+    );
+    const totalTTC = form.ligne.reduce(
+      (total, article) =>
+        total +
+        Number(article.cmfl_TotalHT || 0) +
+        Number(article.cmfl_Tva || 0),
+      0,
+    );
+    setForm((prev) => ({
+      ...prev,
+      cmf_montant_ttc: totalTTC,
+      cmf_montant_ht: totalHT,
+    }));
+  }
+
   const stockLot = async (data: any) => {
     const res = await postData("/api/insert-database/", "t_lot", {
       lot_enabled: true,
@@ -728,7 +747,7 @@ export default function NewLivFrnsPage() {
     e.preventDefault();
 
     try {
-      console.log(form);
+      calculateTotal();
       if (!form.ligne || form.ligne.length === 0) {
         setAlert({
           open: true,
@@ -738,8 +757,23 @@ export default function NewLivFrnsPage() {
         });
         return;
       }
-
-      if (calculation.calculate(form.ligne).cmfl_TotalTTC === 0) {
+      const total_remise = form.ligne.reduce(
+        (total, article) => total + Number(article.cmfl_montant_remise || 0),
+        0,
+      );
+      const ht =
+        form.ligne.reduce(
+          (total, article) => total + Number(article.cmfl_TotalHT || 0),
+          0,
+        ) - total_remise || 0;
+      const ttc = form.ligne.reduce(
+        (total, article) =>
+          total +
+          Number(article.cmfl_TotalHT || 0) +
+          Number(article.cmfl_montant_tva || 0),
+        0,
+      );
+      if (ttc === 0) {
         setAlert({
           open: true,
           message: "Le montant total HT doit être supérieur à 0.",
@@ -755,9 +789,9 @@ export default function NewLivFrnsPage() {
         ent_code: values.codeBl,
         ent_modepaye: values.modeCmd ?? "0",
         ent_datepay: values.datePaiement,
-        ent_montant_ht: Math.round(form.cmf_montant_ht),
-        ent_montant_ttc: Math.round(form.cmf_montant_ttc),
-        ent_fou_code: form.cmf_fou_code,
+        ent_montant_ht: Math.round(ht),
+        ent_montant_ttc: Math.round(ttc),
+        ent_fou_code: form.fournisseur.fou_code,
         ent_date: today,
         ent_facture: values.facture,
         ent_cmf_code: form.cmf_code,
@@ -896,7 +930,7 @@ export default function NewLivFrnsPage() {
         message: "Entree enregistrée avec succès",
       });
 
-      clear()
+      clear();
     } catch (error) {
       console.error("Erreur handleSubmit :", error);
 
@@ -1043,6 +1077,7 @@ export default function NewLivFrnsPage() {
                         noResultsText="Aucun article trouvé"
                         getKey={(frn: Fourniseur) => frn.fou_id}
                         inputClassName={inputClass}
+                        required={true}
                         renderItem={(frn: Fourniseur) => (
                           <div className="px-3 py-2">
                             <div className="text-sm font-medium text-gray-800 dark:text-white">
@@ -1174,10 +1209,24 @@ export default function NewLivFrnsPage() {
                         (total, article) =>
                           total + Number(article.cmfl_TotalHT || 0),
                         0,
+                      ) -
+                      items.reduce(
+                        (total, article) =>
+                          total + Number(article.cmfl_montant_remise || 0),
+                        0,
                       ),
                     suffix: "Ar",
                   },
-
+                  {
+                    label: "TOTAL REMISE",
+                    value: (items: CFLigneArticle[]) =>
+                      items.reduce(
+                        (total, article) =>
+                          total + Number(article.cmfl_montant_remise || 0),
+                        0,
+                      ),
+                    suffix: "Ar",
+                  },
                   {
                     label: "TOTAL TVA",
                     value: (items: CFLigneArticle[]) =>
@@ -1196,7 +1245,7 @@ export default function NewLivFrnsPage() {
                         (total, article) =>
                           total +
                           Number(article.cmfl_TotalHT || 0) +
-                          Number(article.cmfl_Tva || 0),
+                          Number(article.cmfl_montant_tva || 0),
                         0,
                       ),
                     suffix: "Ar",

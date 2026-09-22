@@ -111,6 +111,7 @@ const NewFrns: React.FC<newFrnsProps> = ({ isOpen, onClose, className }) => {
           message: `Fournisseur ${values.denomination} enrigistrer avec succès`,
         });
         clear();
+        fetchCode("t_fournis", true);
       } else {
         setAlert({
           open: true,
