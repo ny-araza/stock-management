@@ -26,6 +26,7 @@ import GenericArticleModal, {
 } from "../Home/modal/utils/articleGenericModal";
 import { postData } from "../../services/sendDataService";
 import Alert from "../../components/ui/alert/Alert";
+import NewFrns from "../Fournisseurs/newFrns";
 
 export default function NewLivFrnsPage() {
   const emptyFrns: Fourniseur = {
@@ -118,6 +119,20 @@ export default function NewLivFrnsPage() {
     title: "",
     message: "",
   });
+  //open frns modal
+  const [openModalFrns, setOpenModalFrns] = useState(false);
+  const handleOpenModalFrns = () => {
+    setOpenModalFrns(true);
+  };
+  const closeFrns = () => {
+    setOpenModalFrns(false);
+  };
+  const [suggestionsFrns, setSuggestionsFrns] = useState<Fourniseur[]>([]);
+  const [showSuggestionsFrns, setShowSuggestionsFrns] =
+    useState<boolean>(false);
+  const [searchFrns, setSearchFrns] = useState("");
+
+  //end frnns ope modal
   const articleColumns: ListColumn<CFLigneArticle>[] = [
     {
       label: "Code Article",
@@ -216,6 +231,17 @@ export default function NewLivFrnsPage() {
     }));
   };
 
+  const handleSearchChangeFrns = (value: string) => {
+    setSearchFrns(value);
+    setShowSuggestionsFrns(true);
+
+    // L'article n'est plus considéré comme validé tant qu'on tape
+    setForm((prev) => ({
+      ...prev,
+      fournisseur: emptyFrns,
+    }));
+  };
+
   const choisirArticle = (a: BCAutoComplete) => {
     skipSearch.current = true;
     setSearch(a.cmf_code);
@@ -263,6 +289,22 @@ export default function NewLivFrnsPage() {
     setHighlight(-1);
   };
 
+  //new frns
+  const choisirFrns = (a: Fourniseur) => {
+    skipSearch.current = true;
+    setSearchFrns(a.fou_nom);
+    console.log(a);
+    setForm((prev) => ({
+      ...prev,
+      fournisseur: {
+        ...a,
+      },
+    }));
+    setSuggestionsFrns([]);
+    setShowSuggestions(false);
+    setHighlight(-1);
+  };
+
   const rechercherArticle = useCallback(async (code: string) => {
     const currentId = ++requestId.current;
 
@@ -293,6 +335,45 @@ export default function NewLivFrnsPage() {
       if (currentId === requestId.current) setSuggestions([]);
     } finally {
       if (currentId === requestId.current) setLoading(false);
+    }
+  }, []);
+
+  const rechercherFrns = useCallback(async (code: string) => {
+    const currentId = ++requestId.current;
+
+    if (!code.trim()) {
+      setSuggestionsFrns([]);
+      setShowSuggestionsFrns(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const query = new URLSearchParams();
+      query.set("search", code);
+
+      const res = await apiFetch(`/api/fournisseurs/?${query.toString()}`);
+
+      // La réponse n'est plus la plus récente
+      if (currentId !== requestId.current) return;
+
+      if (res.status) {
+        setSuggestionsFrns(res.fournisseur ?? []);
+        setShowSuggestionsFrns(true);
+        setHighlight(-1);
+      }
+    } catch (err) {
+      console.error(err);
+
+      if (currentId === requestId.current) {
+        setSuggestionsFrns([]);
+        setShowSuggestionsFrns(false);
+      }
+    } finally {
+      if (currentId === requestId.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -680,7 +761,7 @@ export default function NewLivFrnsPage() {
         ent_date: today,
         ent_facture: values.facture,
         ent_cmf_code: form.cmf_code,
-        ent_is_paye: false
+        ent_is_paye: false,
       });
 
       if (!res.status) {
@@ -698,7 +779,7 @@ export default function NewLivFrnsPage() {
        */
       const resultats = await Promise.all(
         form.ligne.map(async (value) => {
-          console.log(value)
+          console.log(value);
           try {
             /*
              * Création du lot
@@ -812,15 +893,10 @@ export default function NewLivFrnsPage() {
         open: true,
         variant: "success",
         title: "Opération réussie",
-        message: "Livraison enregistrée avec succès",
+        message: "Entree enregistrée avec succès",
       });
 
-      reset();
-
-      setForm((prev) => ({
-        ...prev,
-        ligne: [],
-      }));
+      clear()
     } catch (error) {
       console.error("Erreur handleSubmit :", error);
 
@@ -842,6 +918,8 @@ export default function NewLivFrnsPage() {
 
   // on submit end
   const clear = () => {
+    setSearch("");
+    setSearchFrns("");
     setArticles([]);
     setForm(emptyBC);
     reset();
@@ -863,8 +941,24 @@ export default function NewLivFrnsPage() {
     }
 
     const timer = setTimeout(() => rechercherArticle(search), 300);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [search, open, rechercherArticle]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (skipSearch.current) {
+      skipSearch.current = false;
+      return;
+    }
+
+    const timerFrns = setTimeout(() => rechercherFrns(searchFrns), 300);
+    return () => {
+      clearTimeout(timerFrns);
+    };
+  }, [searchFrns, open, rechercherFrns]);
 
   return (
     <div>
@@ -918,11 +1012,11 @@ export default function NewLivFrnsPage() {
                   renderItem={(cmf: BCAutoComplete) => (
                     <div className="px-3 py-2">
                       <div className="text-sm font-medium text-gray-800 dark:text-white">
-                        {cmf.cmf_code}
+                        {cmf.fournisseur.fou_nom}
                       </div>
 
                       <div className="truncate text-xs text-gray-500">
-                        {cmf.fournisseur.fou_nom}
+                        {cmf.cmf_code}
                       </div>
 
                       <div className="text-xs text-gray-400">
@@ -932,31 +1026,51 @@ export default function NewLivFrnsPage() {
                   )}
                 />
               </div>
-              <div>
-                <Label>N° Facture</Label>
-                <Input
-                  name="facture"
-                  type="text"
-                  value={values.facture}
-                  onChange={handleChange}
-                  placeholder="N° Facture"
-                />
-              </div>
             </div>
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
               <div>
                 <Label>Nom Fournisseur</Label>
-                <Input
-                  name="adresse"
-                  type="text"
-                  placeholder="L'adrèsse du fournisseur"
-                  value={form.fournisseur.fou_nom}
-                  onChange={(e) =>
-                    handleFournisseurChange("fou_adresse", e.target.value)
-                  }
-                  className="w-full bg-transparent placeholder-white/70 outline-none"
-                />
+                <div className="flex items-center w-full gap-2 flex-nowrap">
+                  <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
+                    <div>
+                      <SearchableSelect<Fourniseur>
+                        value={searchFrns}
+                        onChange={handleSearchChangeFrns}
+                        suggestions={suggestionsFrns}
+                        loading={loading}
+                        onSelect={choisirFrns}
+                        placeholder="Rechercher fournisseur"
+                        noResultsText="Aucun article trouvé"
+                        getKey={(frn: Fourniseur) => frn.fou_id}
+                        inputClassName={inputClass}
+                        renderItem={(frn: Fourniseur) => (
+                          <div className="px-3 py-2">
+                            <div className="text-sm font-medium text-gray-800 dark:text-white">
+                              {frn.fou_nom}
+                            </div>
+
+                            <div className="truncate text-xs text-gray-500">
+                              {frn.fou_code}
+                            </div>
+
+                            <div className="text-xs text-gray-400">
+                              Crée le: {formatDate(frn.fou_datecre)}
+                            </div>
+                          </div>
+                        )}
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      title="Ajouter nouveau fournisseur"
+                      onClick={() => handleOpenModalFrns()}
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
               </div>
+
               <div>
                 <Label>Adrèsse</Label>
                 <Input
@@ -1157,7 +1271,7 @@ export default function NewLivFrnsPage() {
           </div>
         )}
       />
-
+      <NewFrns isOpen={openModalFrns} onClose={closeFrns}></NewFrns>
       <Alert
         open={alert.open}
         variant={alert.variant}

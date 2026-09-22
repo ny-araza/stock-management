@@ -1156,6 +1156,7 @@ const NewLivFrns: React.FC<livFrns> = ({ isOpen, onClose, className }) => {
             </div>
           </form>
         </div>
+        <NewFrns isOpen={openModal} onClose={close}></NewFrns>
         <Alert
           open={alert.open}
           variant={alert.variant}
