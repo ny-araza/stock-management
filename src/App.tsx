@@ -18,6 +18,7 @@ import FactureManagement from "./pages/validFacture/validFacture";
 import RetourFrnsListeTables from "./pages/rtf/listeRetourFrnsTables";
 import RetourClientListeTables from "./pages/rtc/listeRetourCltsTables";
 import NewLivFrnsPage from "./pages/livFrns/newLivFrns";
+import NewCmdFrnsPage from "./pages/Bc/newCommandFrns";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="ventes" element={<ListVentesTables />} />
             <Route path="/bc" element={<ListBcTables />} />
             <Route path="/new-liv" element={<NewLivFrnsPage />} />
+            <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />
             <Route path="/liv-frns" element={<LivFrnsListeTables />} />

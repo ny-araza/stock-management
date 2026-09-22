@@ -15,7 +15,6 @@ import {
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import AnimatedButton from "./animeButton";
-import NewLivFrns from "./modal/newLivFrns";
 import NewVente from "./modal/newVente";
 import NewRetourFrns from "./modal/newRetourFrns";
 import NewRetourClient from "./modal/newRetourClient";
@@ -143,17 +142,13 @@ export default function PageAccueil() {
         )}
         {hasAccess("commandeFournisseur") && (
           <>
-            <AnimatedButton
-              onClick={() => open("commandeFournisseur")}
-              icon={<FontAwesomeIcon icon={faCaravan} className="text-6xl" />}
-            >
-              Nouvelle commande fournisseurs
-            </AnimatedButton>
-            <NewCommandFrns
-              isOpen={openModal == "commandeFournisseur"}
-              onClose={close}
-              className="max-w-[900px] m-4"
-            ></NewCommandFrns>
+            <Link to={"/new-cmd_fournis"}>
+              <AnimatedButton
+                icon={<FontAwesomeIcon icon={faCaravan} className="text-6xl" />}
+              >
+                Nouvelle commande fournisseur
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {hasAccess("livraison") && (
