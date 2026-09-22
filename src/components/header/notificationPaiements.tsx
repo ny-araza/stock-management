@@ -288,14 +288,14 @@ export default function NotificationPaiement({
 
                   ${
                     overdue
-                      ? "bg-red-100 dark:bg-red-900/30"
-                      : "bg-orange-100 dark:bg-orange-900/30"
+                      ? "bg-red-100 dark:bg-brand-900/30"
+                      : "bg-orange-100 dark:bg-brand-900/30"
                   }
                 `}
               >
                 <CalendarClock
                   size={19}
-                  className={overdue ? "text-red-500" : "text-orange-500"}
+                  className={overdue ? "text-brand-500" : "text-orange-500"}
                 />
               </div>
 
@@ -331,7 +331,7 @@ export default function NotificationPaiement({
                     dark:text-gray-400
                   "
                 >
-                  Facture :{" "}
+                  Bon de livraison :{" "}
                   <span className="font-medium">
                     {item.ent_facture || item.ent_code || "-"}
                   </span>
@@ -350,7 +350,7 @@ export default function NotificationPaiement({
                     className={`
                       text-xs
                       ${
-                        overdue ? "font-semibold text-red-500" : "text-gray-500"
+                        overdue ? "font-semibold text-brand-500" : "text-gray-500"
                       }
                     `}
                   >

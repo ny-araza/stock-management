@@ -373,7 +373,6 @@ export default function GenericArticleModal<T, S>({
     skipSearch.current = true;
 
     const searchValue = searchConfig.getSearchValue(item);
-
     setSearch(searchValue);
 
     setForm((prev) => searchConfig.mapToForm(item, prev));
@@ -464,6 +463,7 @@ export default function GenericArticleModal<T, S>({
   // ==========================================================
 
   const handleSubmit = () => {
+    console.log(form)
     if (validate) {
       const error = validate(form);
 
@@ -472,7 +472,6 @@ export default function GenericArticleModal<T, S>({
         return;
       }
     }
-
     onSave(form);
 
     onClose();

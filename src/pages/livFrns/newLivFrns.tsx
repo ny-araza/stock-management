@@ -78,6 +78,11 @@ export default function NewLivFrnsPage() {
     cmfl_id: 0,
     cmfl_remise: 0,
     cmfl_uid: "",
+    cmfl_lot: "",
+    cmfl_datePer: "",
+    cmfl_montant_remise: 0,
+    cmfl_montant_tva: 0,
+    cmfl_quantite_stock: 0,
   };
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -250,9 +255,9 @@ export default function NewLivFrnsPage() {
             ? crypto.randomUUID()
             : `${Date.now()}-${Math.random()}`,
         cmfl_datePer: "",
+        cmfl_id: item.cmfl_id,
       })),
     }));
-
     setSuggestions([]);
     setShowSuggestions(false);
     setHighlight(-1);
@@ -525,7 +530,6 @@ export default function NewLivFrnsPage() {
         </div>
       </div>
     ),
-
     mapToForm: (article, previous) => ({
       ...previous,
 
@@ -550,6 +554,10 @@ export default function NewLivFrnsPage() {
       cmfl_remise: 0,
       cmfl_montant_remise: 0,
       cmfl_quantite_stock: article.quantite_stock,
+      cmfl_uid:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`,
     }),
   };
 
@@ -650,7 +658,7 @@ export default function NewLivFrnsPage() {
         return;
       }
 
-      if (form.cmf_montant_ttc === 0) {
+      if (calculation.calculate(form.ligne).cmfl_TotalTTC === 0) {
         setAlert({
           open: true,
           message: "Le montant total HT doit être supérieur à 0.",
@@ -672,6 +680,7 @@ export default function NewLivFrnsPage() {
         ent_date: today,
         ent_facture: values.facture,
         ent_cmf_code: form.cmf_code,
+        ent_is_paye: false
       });
 
       if (!res.status) {
@@ -689,6 +698,7 @@ export default function NewLivFrnsPage() {
        */
       const resultats = await Promise.all(
         form.ligne.map(async (value) => {
+          console.log(value)
           try {
             /*
              * Création du lot
@@ -824,7 +834,8 @@ export default function NewLivFrnsPage() {
   };
 
   const openGenericModal = () => {
-    setArticle(emptyArticle);
+    setArticle(null);
+    console.log(emptyArticle);
     setModalOpen(true);
     setEditingUid(null);
   };
