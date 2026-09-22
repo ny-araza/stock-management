@@ -25,6 +25,9 @@ import GenericArticleModal, {
   ArticleSearchConfig,
 } from "../Home/modal/utils/articleGenericModal";
 import NewFrns from "../Fournisseurs/newFrns";
+import montantTTCEnLettres from "../../utils/montantEnLettre";
+import { postData } from "../../services/sendDataService";
+import Alert from "../../components/ui/alert/Alert";
 
 export default function NewCmdFrnsPage() {
   const emptyBC: BC = {
@@ -111,6 +114,12 @@ export default function NewCmdFrnsPage() {
       label: item.enu_nom,
     }),
   );
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
 
   const inputClass = `
     h-10 w-full rounded-md border border-gray-300 px-3 text-sm
@@ -529,12 +538,116 @@ export default function NewCmdFrnsPage() {
     }
   }, []);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const ligne_ok: boolean[] = [];
+      if (ligneArticle.length == 0 || !form || !frns) {
+        throw Error("Vous avz laisser des champs vides");
+      }
+      const total_remise = ligneArticle.reduce(
+        (total, article) => total + Number(article.cmfl_montant_remise || 0),
+        0,
+      );
+      const ht =
+        ligneArticle.reduce(
+          (total, article) => total + Number(article.cmfl_TotalHT || 0),
+          0,
+        ) - total_remise || 0;
+      const ttc = ligneArticle.reduce(
+        (total, article) =>
+          total +
+          Number(article.cmfl_TotalHT || 0) +
+          Number(article.cmfl_montant_tva || 0),
+        0,
+      );
+      if (ttc === 0) {
+        setAlert({
+          open: true,
+          message: "Le montant total HT doit être supérieur à 0.",
+          title: "Montant invalide",
+          variant: "error",
+        });
+        return;
+      }
+      const today = new Date().toISOString().split("T")[0];
+      const res = await postData("/api/insert-database/", "t_cmd_fournis", {
+        cmf_code: form.cmf_code,
+        cmf_modecmd: form.cmf_modecmd,
+        cmf_dateliv: form.cmf_dateliv,
+        cmf_montant_ht: ht,
+        cmf_montant_ttc: ttc,
+        cmf_islivre: false,
+        cmf_fou_code: form.cmf_fou_code,
+        cmf_date: today,
+        cmf_lettre: montantTTCEnLettres(ttc),
+        cmf_enabled: true,
+      });
+      if (res.status) {
+        ligneArticle.map(async (value) => {
+          const send = await postData(
+            "/api/insert-database/",
+            "t_ligne_cmd_fournis",
+            {
+              cmfl_quantite: value.cmfl_Quantite,
+              cmfl_pri_id: value.cmfl_pri_id,
+              cmfl_cmf_code: value.cmfl_cmf_code,
+              cmfl_prixachat: value.cmfl_PrixAchat,
+              cmfl_tva: value.cmfl_montant_tva,
+              cmfl_totalht: value.cmfl_TotalHT,
+              cmfl_art_code: value.cmfl_Art_Code,
+              cmfl_fou_code: value.cmfl_fou_Code,
+            },
+          );
+          if (send.status) {
+            ligne_ok.push(true);
+          } else ligne_ok.push(false);
+        });
+      } else {
+        setAlert({
+          open: true,
+          message: res.error,
+          title: "Une erreur survenue",
+          variant: "error",
+        });
+        return;
+      }
+      if (!ligne_ok.find((val) => val == false)) {
+        fetchCode("t_cmd_fournis", true);
+        setAlert({
+          open: true,
+          variant: "success",
+          title: "Opération réussie",
+          message: "Commande enregistrer avec succès",
+        });
+        clear();
+        return;
+      } else {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur est survenue",
+          message: "Erreur lors de l'enregistrement dans la base de donnée",
+        });
+      }
+
+      setAlert({
+        open: true,
+        message: "Vous avez laisser un (des) champ(s) vide(s)",
+        title: "Une erreur survenue",
+        variant: "error",
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const clear = () => {
     setSearchFrns("");
     setFrns(emptyFrns);
     setLigneArticle([]);
     setForm(emptyBC);
-    fetchCode("t_entree", false);
+    fetchCode("t_cmd_fournis", false);
   };
 
   useEffect(() => {
@@ -569,7 +682,7 @@ export default function NewCmdFrnsPage() {
               {Date().split(" ")[3]}
             </span>
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
               <div>
                 <Label>Piece N°</Label>
@@ -881,6 +994,21 @@ export default function NewCmdFrnsPage() {
         isOpen={openModalFrns}
         onClose={() => setOpenModalFrns(false)}
       ></NewFrns>
+      <Alert
+        open={alert.open}
+        variant={alert.variant}
+        title={alert.title}
+        message={alert.message}
+        showLink={false}
+        onClose={() =>
+          setAlert({
+            open: false,
+            variant: alert.variant,
+            message: alert.message,
+            title: alert.title,
+          })
+        }
+      />
     </>
   );
 }

@@ -747,7 +747,6 @@ export default function NewLivFrnsPage() {
     e.preventDefault();
 
     try {
-      calculateTotal();
       if (!form.ligne || form.ligne.length === 0) {
         setAlert({
           open: true,
