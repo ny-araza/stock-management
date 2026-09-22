@@ -4,6 +4,8 @@ import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import UserDropdown from "../components/header/UserDropdown";
+import NotificationPaiement from "../components/header/notificationPaiements";
+import { apiFetch } from "../services/api";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -82,7 +84,7 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="#" className="lg:hidden" style={{width: "50px"}}>
+          <Link to="#" className="lg:hidden" style={{ width: "50px" }}>
             <img
               className="hidden dark:block"
               src="./images/logo-stock.png"
@@ -118,6 +120,8 @@ const AppHeader: React.FC = () => {
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
+
+            <NotificationPaiement apiFetch={apiFetch} />
           </div>
           {/* <!-- User Area --> */}
           <UserDropdown />
