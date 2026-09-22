@@ -161,6 +161,27 @@ export interface CFLigneArticle {
   cmfl_quantite_stock?: number;
 }
 
+export interface ProLigneArticle {
+  prol_id?: number;
+  prol_pro_code: string;
+  prol_Quantite: number;
+  prol_prixunit: number;
+  prol_Tva: number;
+  prol_TotalHT: number;
+  prol_Art_Code: string;
+  prol_cli_Code: string;
+  prol_TotalTTC: number;
+  prol_pri_id: number;
+  art_nom: string;
+  prol_uid?: string;
+  prol_remise?: number;
+  prol_montant_remise?: number;
+  prol_montant_tva?: number;
+  prol_lot: "";
+  prol_datePer?: "";
+  prol_quantite_stock?: number;
+}
+
 export interface Fourniseur {
   fou_id: number;
   fou_code: string;

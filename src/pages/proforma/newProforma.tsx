@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArticleApi,
-  CFLigneArticle,
+  ProLigneArticle,
   Client,
   Enumeration,
   EnumerationOption,
@@ -26,6 +26,9 @@ import GenericArticleModal, {
   ArticleField,
   ArticleSearchConfig,
 } from "../Home/modal/utils/articleGenericModal";
+import { postData } from "../../services/sendDataService";
+import montantTTCEnLettres from "../../utils/montantEnLettre";
+import Alert from "../../components/ui/alert/Alert";
 
 export default function NewProformaPage() {
   const emptyForm: Proforma = {
@@ -68,25 +71,25 @@ export default function NewProformaPage() {
     cli_usermdf: "",
   };
 
-  const emptyArticle: CFLigneArticle = {
+  const emptyArticle: ProLigneArticle = {
     art_nom: "",
-    cmfl_Art_Code: "",
-    cmfl_PrixAchat: 0,
-    cmfl_Quantite: 0,
-    cmfl_TotalHT: 0,
-    cmfl_TotalTTC: 0,
-    cmfl_Tva: 0,
-    cmfl_cmf_code: "",
-    cmfl_fou_Code: "",
-    cmfl_pri_id: 0,
-    cmfl_id: 0,
-    cmfl_remise: 0,
-    cmfl_uid: "",
-    cmfl_lot: "",
-    cmfl_datePer: "",
-    cmfl_montant_remise: 0,
-    cmfl_montant_tva: 0,
-    cmfl_quantite_stock: 0,
+    prol_Art_Code: "",
+    prol_prixunit: 0,
+    prol_Quantite: 0,
+    prol_TotalHT: 0,
+    prol_TotalTTC: 0,
+    prol_Tva: 0,
+    prol_pro_code: "",
+    prol_fou_Code: "",
+    prol_pri_id: 0,
+    prol_id: 0,
+    prol_remise: 0,
+    prol_uid: "",
+    prol_lot: "",
+    prol_datePer: "",
+    prol_montant_remise: 0,
+    prol_montant_tva: 0,
+    prol_quantite_stock: 0,
   };
 
   const [form, setForm] = useState<Proforma>(emptyForm);
@@ -102,7 +105,12 @@ export default function NewProformaPage() {
   );
 
   // searchableSelect client
-
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
   const [searchClt, setSearchClt] = useState("");
   const [openModalClt, setOpenMOdalClt] = useState(false);
   const [showSuggestionsClient, setShowSuggestionsClient] =
@@ -132,13 +140,13 @@ export default function NewProformaPage() {
     setHighlight(-1);
   };
 
-  const articleColumns: ListColumn<CFLigneArticle>[] = [
+  const articleColumns: ListColumn<ProLigneArticle>[] = [
     {
       label: "Code Article",
       mobilePrimary: true,
       render: (article) => (
         <div>
-          <strong>{article.cmfl_Art_Code}</strong>
+          <strong>{article.prol_Art_Code}</strong>
 
           <div className="text-sm text-gray-500">{article.art_nom}</div>
         </div>
@@ -147,25 +155,25 @@ export default function NewProformaPage() {
 
     {
       label: "Quantité",
-      render: (article) => article.cmfl_Quantite,
+      render: (article) => article.prol_Quantite,
     },
 
     {
       label: "TVA (Ar)",
       render: (article) =>
-        Number(article.cmfl_montant_tva).toLocaleString("fr-FR"),
+        Number(article.prol_montant_tva).toLocaleString("fr-FR"),
     },
 
     {
       label: "P.U",
       render: (article) => (
-        <>{Number(article.cmfl_PrixAchat).toLocaleString("fr-FR")} Ar</>
+        <>{Number(article.prol_prixunit).toLocaleString("fr-FR")} Ar</>
       ),
     },
 
     {
       label: "Date Per",
-      render: (article) => (article.cmfl_datePer ? article.cmfl_datePer : "-"),
+      render: (article) => (article.prol_datePer ? article.prol_datePer : "-"),
     },
 
     {
@@ -173,7 +181,7 @@ export default function NewProformaPage() {
       mobilePrimary: true,
       render: (article) => (
         <strong>
-          {Number(article.cmfl_TotalHT).toLocaleString("fr-FR")} Ar
+          {Number(article.prol_TotalHT).toLocaleString("fr-FR")} Ar
         </strong>
       ),
     },
@@ -182,8 +190,8 @@ export default function NewProformaPage() {
       mobilePrimary: true,
       render: (article) => (
         <strong>
-          {article.cmfl_montant_remise
-            ? Number(article.cmfl_montant_remise).toLocaleString("fr-FR")
+          {article.prol_montant_remise
+            ? Number(article.prol_montant_remise).toLocaleString("fr-FR")
             : "0"}{" "}
           Ar
         </strong>
@@ -191,16 +199,16 @@ export default function NewProformaPage() {
     },
   ];
 
-  const modifierArticle = (articleSelectionne: CFLigneArticle) => {
+  const modifierArticle = (articleSelectionne: ProLigneArticle) => {
     setArticle({ ...articleSelectionne });
-    setEditingUid(articleSelectionne.cmfl_uid ?? null);
+    setEditingUid(articleSelectionne.prol_uid ?? null);
     setModalOpen(true);
   };
 
   const supprimerArticle = (uid: string) => {
     // setLigneArticle((prev) => ({
     //   ...prev,
-    //   ligne: prev.filter((item) => item.cmfl_uid !== uid),
+    //   ligne: prev.filter((item) => item.prol_uid !== uid),
     // }));
     // // Si on supprimait l'article actuellement en modification
     // if (editingUid === uid) {
@@ -210,7 +218,7 @@ export default function NewProformaPage() {
     // }
   };
 
-  const ajouterArticle = (nouvelArticle: CFLigneArticle) => {
+  const ajouterArticle = (nouvelArticle: ProLigneArticle) => {
     console.log("Article reçu :", nouvelArticle);
     console.log("Mode :", editingUid ? "MODIFICATION" : "AJOUT");
     console.log("UID :", editingUid);
@@ -221,29 +229,29 @@ export default function NewProformaPage() {
       // =====================================================
       if (editingUid) {
         return prev.map((item) =>
-          item.cmfl_uid === editingUid
+          item.prol_uid === editingUid
             ? {
                 ...item,
                 ...nouvelArticle,
 
                 // Conserver l'UID de la ligne existante
-                cmfl_uid: editingUid,
+                prol_uid: editingUid,
 
                 // Normalisation
-                cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
-                cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
-                cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
-                cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
-                cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
-                cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+                prol_pri_id: Number(nouvelArticle.prol_pri_id || 0),
+                prol_Quantite: Number(nouvelArticle.prol_Quantite || 0),
+                prol_prixunit: Number(nouvelArticle.prol_prixunit || 0),
+                prol_Tva: Number(nouvelArticle.prol_Tva || 0),
+                prol_TotalHT: Number(nouvelArticle.prol_TotalHT || 0),
+                prol_TotalTTC: Number(nouvelArticle.prol_TotalTTC || 0),
 
-                cmfl_datePer: nouvelArticle.cmfl_datePer || "",
-                cmfl_remise: nouvelArticle.cmfl_remise || 0,
-                cmfl_montant_remise: nouvelArticle.cmfl_montant_remise || 0,
-                cmfl_quantite_stock: nouvelArticle.cmfl_quantite_stock || 0,
+                prol_datePer: nouvelArticle.prol_datePer || "",
+                prol_remise: nouvelArticle.prol_remise || 0,
+                prol_montant_remise: nouvelArticle.prol_montant_remise || 0,
+                prol_quantite_stock: nouvelArticle.prol_quantite_stock || 0,
 
                 // Valeur par défaut du lot
-                cmfl_lot: nouvelArticle.cmfl_lot || "",
+                prol_lot: nouvelArticle.prol_lot || "",
               }
             : item,
         );
@@ -253,30 +261,30 @@ export default function NewProformaPage() {
       // 2. AJOUT D'UNE NOUVELLE LIGNE
       // =====================================================
 
-      const newArticle: CFLigneArticle = {
+      const newArticle: ProLigneArticle = {
         ...nouvelArticle,
 
         // Générer un nouvel UID
-        cmfl_uid:
+        prol_uid:
           typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
             : `${Date.now()}-${Math.random()}`,
 
         // Normalisation
-        cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
-        cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
-        cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
-        cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
-        cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
-        cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+        prol_pri_id: Number(nouvelArticle.prol_pri_id || 0),
+        prol_Quantite: Number(nouvelArticle.prol_Quantite || 0),
+        prol_prixunit: Number(nouvelArticle.prol_prixunit || 0),
+        prol_Tva: Number(nouvelArticle.prol_Tva || 0),
+        prol_TotalHT: Number(nouvelArticle.prol_TotalHT || 0),
+        prol_TotalTTC: Number(nouvelArticle.prol_TotalTTC || 0),
 
-        cmfl_datePer: nouvelArticle.cmfl_datePer || "",
-        cmfl_remise: nouvelArticle.cmfl_remise || 0,
-        cmfl_montant_remise: nouvelArticle.cmfl_montant_remise || 0,
-        cmfl_quantite_stock: nouvelArticle.cmfl_quantite_stock || 0,
+        prol_datePer: nouvelArticle.prol_datePer || "",
+        prol_remise: nouvelArticle.prol_remise || 0,
+        prol_montant_remise: nouvelArticle.prol_montant_remise || 0,
+        prol_quantite_stock: nouvelArticle.prol_quantite_stock || 0,
 
         // Valeur par défaut
-        cmfl_lot: nouvelArticle.cmfl_lot || "",
+        prol_lot: nouvelArticle.prol_lot || "",
       };
 
       return [...prev, newArticle];
@@ -292,85 +300,86 @@ export default function NewProformaPage() {
   };
 
   // searchConfig
-  const articleSearchConfig: ArticleSearchConfig<CFLigneArticle, ArticleApi> = {
-    search: async (value) => {
-      const query = new URLSearchParams();
+  const articleSearchConfig: ArticleSearchConfig<ProLigneArticle, ArticleApi> =
+    {
+      search: async (value) => {
+        const query = new URLSearchParams();
 
-      query.set("search", value);
+        query.set("search", value);
 
-      const res = await apiFetch(
-        `/api/articles-autocomplete/?${query.toString()}`,
-      );
+        const res = await apiFetch(
+          `/api/articles-autocomplete/?${query.toString()}`,
+        );
 
-      return res.status ? (res.articles ?? []) : [];
-    },
-    getKey: (article) => article.id,
+        return res.status ? (res.articles ?? []) : [];
+      },
+      getKey: (article) => article.id,
 
-    getSearchValue: (article) => article.code,
+      getSearchValue: (article) => article.code,
 
-    getLots: (article) => [],
+      getLots: (article) => [],
 
-    getStock: (article) => article.quantite_stock,
+      getStock: (article) => article.quantite_stock,
 
-    renderItem: (article) => (
-      <div className="px-3 py-2">
-        <div
-          className="
+      renderItem: (article) => (
+        <div className="px-3 py-2">
+          <div
+            className="
             text-sm font-medium
             text-gray-800
             dark:text-white
           "
-        >
-          {article.code}
-        </div>
+          >
+            {article.code}
+          </div>
 
-        <div
-          className="
+          <div
+            className="
             truncate text-xs
             text-gray-500
           "
-        >
-          {article.nom_article}
+          >
+            {article.nom_article}
+          </div>
+
+          <div className="text-xs text-gray-400">
+            {Number(article.prix_ht).toLocaleString("fr-FR")} Ar · TVA{" "}
+            {article.pri_tva}%
+          </div>
         </div>
+      ),
+      mapToForm: (article, previous) => ({
+        ...previous,
 
-        <div className="text-xs text-gray-400">
-          {Number(article.prix_ht).toLocaleString("fr-FR")} Ar · TVA{" "}
-          {article.pri_tva}%
-        </div>
-      </div>
-    ),
-    mapToForm: (article, previous) => ({
-      ...previous,
+        prol_id: article.id,
 
-      cmfl_id: article.id,
+        prol_Art_Code: article.code,
 
-      cmfl_Art_Code: article.code,
+        art_nom: article.nom_article,
 
-      art_nom: article.nom_article,
+        prol_prixunit: article.prix_vte ?? 0,
 
-      cmfl_PrixAchat: article.prix_ht ?? 0,
+        prol_Tva: Number(article.pri_tva ?? 0),
 
-      cmfl_Tva: Number(article.pri_tva ?? 0),
+        prol_montant_tva:
+          (Number(article.pri_tva ?? 0) * Number(article.prix_vte ?? 0)) / 100,
 
-      cmfl_montant_tva:
-        (Number(article.pri_tva ?? 0) * Number(article.prix_ht ?? 0)) / 100,
+        prol_TotalHT: 0,
 
-      cmfl_TotalHT: 0,
+        prol_lot: "",
 
-      cmfl_lot: "",
+        prol_datePer: "",
+        prol_remise: 0,
+        prol_montant_remise: 0,
+        prol_quantite_stock: article.quantite_stock,
+        prol_uid:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
+      }),
+    };
 
-      cmfl_datePer: "",
-      cmfl_remise: 0,
-      cmfl_montant_remise: 0,
-      cmfl_quantite_stock: article.quantite_stock,
-      cmfl_uid:
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`,
-    }),
-  };
-
-  const articleFields: ArticleField<CFLigneArticle>[] = [
+  const articleFields: ArticleField<ProLigneArticle>[] = [
     {
       name: "art_nom",
       label: "Désignation",
@@ -380,7 +389,7 @@ export default function NewProformaPage() {
     },
 
     {
-      name: "cmfl_Quantite",
+      name: "prol_Quantite",
       label: "Quantité",
       type: "number",
       min: 0,
@@ -388,13 +397,13 @@ export default function NewProformaPage() {
     },
 
     {
-      name: "cmfl_PrixAchat",
+      name: "prol_prixunit",
       label: "Prix unitaire",
       type: "number",
       min: 0,
     },
     {
-      name: "cmfl_montant_tva",
+      name: "prol_montant_tva",
       label: "TVA (Ar)",
       type: "number",
       min: 0,
@@ -402,7 +411,7 @@ export default function NewProformaPage() {
       parseValue: Number,
     },
     {
-      name: "cmfl_remise",
+      name: "prol_remise",
       label: "Remise (%)",
       type: "number",
       min: 0,
@@ -410,28 +419,28 @@ export default function NewProformaPage() {
       parseValue: Number,
     },
     {
-      name: "cmfl_datePer",
+      name: "prol_datePer",
       label: "Date de Péremption",
       type: "date",
       parseValue: String,
     },
     {
-      name: "cmfl_TotalHT",
+      name: "prol_TotalHT",
       label: "Total HT",
       type: "text",
       readOnly: true,
-      getValue: (article: CFLigneArticle) =>
-        `${Number(article.cmfl_TotalHT).toLocaleString("fr-FR")} Ar`,
+      getValue: (article: ProLigneArticle) =>
+        `${Number(article.prol_TotalHT).toLocaleString("fr-FR")} Ar`,
     },
   ];
 
-  const calculation: ArticleCalculation<CFLigneArticle> = {
+  const calculation: ArticleCalculation<ProLigneArticle> = {
     calculate: (form) => {
-      const quantite = Number(form.cmfl_Quantite) || 0;
+      const quantite = Number(form.prol_Quantite) || 0;
 
-      const pua = Number(form.cmfl_PrixAchat) || 0;
+      const pua = Number(form.prol_prixunit) || 0;
 
-      const remise = Number(form.cmfl_remise) || 0;
+      const remise = Number(form.prol_remise) || 0;
 
       const totalBrut = quantite * pua;
 
@@ -439,15 +448,15 @@ export default function NewProformaPage() {
 
       const totalHT = totalBrut - montantRemise;
 
-      const tva = totalHT * (Number(form.cmfl_Tva) / 100);
+      const tva = totalHT * (Number(form.prol_Tva) / 100);
 
       const totalTTC = totalHT + tva;
 
       return {
-        cmfl_TotalHT: totalHT,
-        cmfl_montant_tva: tva,
-        cmfl_TotalTTC: totalTTC,
-        cmfl_montant_remise: montantRemise,
+        prol_TotalHT: totalHT,
+        prol_montant_tva: tva,
+        prol_TotalTTC: totalTTC,
+        prol_montant_remise: montantRemise,
       };
     },
   };
@@ -510,11 +519,121 @@ export default function NewProformaPage() {
   }, []);
 
   // SearchableSelect end client
+  const clear = () => {
+    setSearchClt("");
+    setClient(emptyClient);
+    setLigneArticle([]);
+    setForm(emptyForm);
+    fetchCode("t_proforma", false);
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const ligne_ok: boolean[] = [];
+      if (ligneArticle.length == 0 || !form || !client) {
+        throw Error("Vous avz laisser des champs vides");
+      }
+      const total_remise = ligneArticle.reduce(
+        (total, article) => total + Number(article.prol_montant_remise || 0),
+        0,
+      );
+      const ht =
+        ligneArticle.reduce(
+          (total, article) => total + Number(article.prol_TotalHT || 0),
+          0,
+        ) - total_remise || 0;
+      const ttc = ligneArticle.reduce(
+        (total, article) =>
+          total +
+          Number(article.prol_TotalHT || 0) +
+          Number(article.prol_montant_tva || 0),
+        0,
+      );
+      if (ttc === 0) {
+        setAlert({
+          open: true,
+          message: "Le montant total HT doit être supérieur à 0.",
+          title: "Montant invalide",
+          variant: "error",
+        });
+        return;
+      }
+      const today = new Date().toISOString().split("T")[0];
+      const res = await postData("/api/insert-database/", "t_proforma", {
+        pro_code: form.pro_code,
+        pro_modecmd: form.pro_modecmd,
+        pro_dateliv: form.pro_dateliv,
+        pro_montant_ht: ht,
+        pro_montant_ttc: ttc,
+        pro_islivre: false,
+        pro_cli_code: form.pro_cli_code,
+        pro_date: today,
+        pro_lettre: montantTTCEnLettres(ttc),
+        pro_enabled: true,
+      });
+      if (res.status) {
+        ligneArticle.map(async (value) => {
+          const send = await postData(
+            "/api/insert-database/",
+            "t_ligne_proforma",
+            {
+              prol_quantite: value.prol_Quantite,
+              prol_pri_id: value.prol_pri_id,
+              prol_pro_code: value.prol_pro_code,
+              prol_prixunit: value.prol_prixunit,
+              prol_tva: value.prol_montant_tva,
+              prol_totalht: value.prol_TotalHT,
+              prol_art_code: value.prol_Art_Code,
+              prol_cli_code: value.prol_cli_Code,
+            },
+          );
+          if (send.status) {
+            ligne_ok.push(true);
+          } else ligne_ok.push(false);
+        });
+      } else {
+        setAlert({
+          open: true,
+          message: res.error,
+          title: "Une erreur survenue",
+          variant: "error",
+        });
+        return;
+      }
+      if (!ligne_ok.find((val) => val == false)) {
+        fetchCode("t_proforma", true);
+        setAlert({
+          open: true,
+          variant: "success",
+          title: "Opération réussie",
+          message: "Commande enregistrer avec succès",
+        });
+        clear();
+        return;
+      } else {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur est survenue",
+          message: "Erreur lors de l'enregistrement dans la base de donnée",
+        });
+      }
 
-  const [article, setArticle] = useState<CFLigneArticle | null>(null);
+      setAlert({
+        open: true,
+        message: "Vous avez laisser un (des) champ(s) vide(s)",
+        title: "Une erreur survenue",
+        variant: "error",
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const [article, setArticle] = useState<ProLigneArticle | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUid, setEditingUid] = useState<string | null>(null);
-  const [ligneArticle, setLigneArticle] = useState<CFLigneArticle[]>([]);
+  const [ligneArticle, setLigneArticle] = useState<ProLigneArticle[]>([]);
 
   const openGenericModal = () => {
     setArticle(null);
@@ -554,12 +673,12 @@ export default function NewProformaPage() {
               {Date().split(" ")[3]}
             </span>
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
               <div>
                 <Label>Piece N°</Label>
                 <Input
-                  name="pieces"
+                  name="pro_code"
                   type="text"
                   value={form.pro_code}
                   onChange={(e) =>
@@ -572,15 +691,15 @@ export default function NewProformaPage() {
                 />
               </div>
               <div>
-                <Label>Date de vente</Label>
+                <Label>Date de livraison</Label>
                 <Input
-                  name="date_vente"
+                  name="pro_dateliv"
                   type="date"
-                  value={form.pro_date}
+                  value={form.pro_dateliv}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      pro_code: e.target.value,
+                      pro_dateliv: e.target.value,
                     }))
                   }
                   required={true}
@@ -634,7 +753,7 @@ export default function NewProformaPage() {
               <div>
                 <Label>Adrèsse</Label>
                 <Input
-                  name="adresse"
+                  name="cli_adresse"
                   type="text"
                   placeholder="L'adrèsse du client"
                   value={client.cli_adresse}
@@ -652,7 +771,7 @@ export default function NewProformaPage() {
               <div>
                 <Label>Contact 1</Label>
                 <Input
-                  name="contact1"
+                  name="cli_tel1"
                   type="text"
                   value={client.cli_tel1}
                   onChange={(e) =>
@@ -668,7 +787,7 @@ export default function NewProformaPage() {
               <div>
                 <Label>Contact 2</Label>
                 <Input
-                  name="contact2"
+                  name="cli_tel2"
                   type="text"
                   value={client.cli_tel2}
                   placeholder="N° de tel 2"
@@ -686,7 +805,7 @@ export default function NewProformaPage() {
               <div>
                 <Label>Mail</Label>
                 <Input
-                  name="mail"
+                  name="cli_mail"
                   type="text"
                   value={client.cli_email}
                   onChange={(e) =>
@@ -731,50 +850,50 @@ export default function NewProformaPage() {
                 </Button>
               </div>
 
-              <ListItems<CFLigneArticle>
+              <ListItems<ProLigneArticle>
                 items={ligneArticle}
                 columns={articleColumns}
 
-                getKey={(article: CFLigneArticle) => article.cmfl_Art_Code}
+                getKey={(article: ProLigneArticle) => article.prol_Art_Code}
 
                 onEdit={modifierArticle}
 
-                onDelete={(item) => supprimerArticle(item.cmfl_uid!)}
+                onDelete={(item) => supprimerArticle(item.prol_uid!)}
 
                 onItemsChange={setLigneArticle}
 
                 totals={[
                   {
                     label: "TOTAL HT",
-                    value: (items: CFLigneArticle[]) =>
+                    value: (items: ProLigneArticle[]) =>
                       items.reduce(
                         (total, article) =>
-                          total + Number(article.cmfl_TotalHT || 0),
+                          total + Number(article.prol_TotalHT || 0),
                         0,
                       ) -
                       items.reduce(
                         (total, article) =>
-                          total + Number(article.cmfl_montant_remise || 0),
+                          total + Number(article.prol_montant_remise || 0),
                         0,
                       ),
                     suffix: "Ar",
                   },
                   {
                     label: "TOTAL REMISE",
-                    value: (items: CFLigneArticle[]) =>
+                    value: (items: ProLigneArticle[]) =>
                       items.reduce(
                         (total, article) =>
-                          total + Number(article.cmfl_montant_remise || 0),
+                          total + Number(article.prol_montant_remise || 0),
                         0,
                       ),
                     suffix: "Ar",
                   },
                   {
                     label: "TOTAL TVA",
-                    value: (items: CFLigneArticle[]) =>
+                    value: (items: ProLigneArticle[]) =>
                       items.reduce(
                         (total, article) =>
-                          total + Number(article.cmfl_montant_tva || 0),
+                          total + Number(article.prol_montant_tva || 0),
                         0,
                       ),
                     suffix: "Ar",
@@ -782,12 +901,12 @@ export default function NewProformaPage() {
 
                   {
                     label: "TOTAL TTC",
-                    value: (items: CFLigneArticle[]) =>
+                    value: (items: ProLigneArticle[]) =>
                       items.reduce(
                         (total, article) =>
                           total +
-                          Number(article.cmfl_TotalHT || 0) +
-                          Number(article.cmfl_montant_tva || 0),
+                          Number(article.prol_TotalHT || 0) +
+                          Number(article.prol_montant_tva || 0),
                         0,
                       ),
                     suffix: "Ar",
@@ -795,9 +914,21 @@ export default function NewProformaPage() {
                 ]}
               />
             </div>
+            <div className="flex justify-center w-full">
+              <Button
+                className="md:w-50 sm:w-auto md:mr-3"
+                variant="primary"
+                type="submit"
+              >
+                Valider
+              </Button>
+              <Button variant="outline" onClick={clear}>
+                Effacer tout
+              </Button>
+            </div>
           </form>
         </div>
-        <GenericArticleModal<CFLigneArticle, ArticleApi>
+        <GenericArticleModal<ProLigneArticle, ArticleApi>
           open={modalOpen}
           article={article}
           emptyValue={emptyArticle}
@@ -811,18 +942,18 @@ export default function NewProformaPage() {
 
           calculation={calculation}
 
-          getArticleCode={(article) => article.cmfl_Art_Code}
-          getStock={(article) => article.cmfl_quantite_stock ?? 0}
+          getArticleCode={(article) => article.prol_Art_Code}
+          getStock={(article) => article.prol_quantite_stock ?? 0}
           validate={(form) => {
-            if (!form.cmfl_Art_Code || !form.cmfl_uid) {
+            if (!form.prol_Art_Code || !form.prol_uid) {
               return "Veuillez sélectionner un article dans la liste.";
             }
 
-            if (Number(form.cmfl_Quantite) <= 0) {
+            if (Number(form.prol_Quantite) <= 0) {
               return "La quantité doit être supérieure à 0.";
             }
 
-            if (Number(form.cmfl_PrixAchat) < 0) {
+            if (Number(form.prol_prixunit) < 0) {
               return "Le prix unitaire est invalide.";
             }
 
@@ -835,7 +966,7 @@ export default function NewProformaPage() {
 
               <span className="text-green-600">
                 <strong>
-                  {Number(form.cmfl_TotalTTC).toLocaleString("fr-FR")} Ar
+                  {Number(form.prol_TotalTTC).toLocaleString("fr-FR")} Ar
                 </strong>
               </span>
 
@@ -843,13 +974,28 @@ export default function NewProformaPage() {
 
               <span className="ml-2 text-red-600">
                 <strong>
-                  {Number(form.cmfl_montant_remise).toLocaleString("fr-FR")} Ar
+                  {Number(form.prol_montant_remise).toLocaleString("fr-FR")} Ar
                 </strong>
               </span>
             </div>
           )}
         />
         <NewClts isOpen={openModalClt} onClose={() => setOpenMOdalClt(false)} />
+        <Alert
+          open={alert.open}
+          variant={alert.variant}
+          title={alert.title}
+          message={alert.message}
+          showLink={false}
+          onClose={() =>
+            setAlert({
+              open: false,
+              variant: alert.variant,
+              message: alert.message,
+              title: alert.title,
+            })
+          }
+        />
       </div>
     </>
   );
