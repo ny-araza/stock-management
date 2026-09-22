@@ -143,7 +143,7 @@ const Alert: React.FC<AlertProps> = ({
       fixed
       left-1/2
       top-[10px]
-      z-[9999]
+      z-99999
       w-[420px]
       max-w-[95vw]
       -translate-x-1/2

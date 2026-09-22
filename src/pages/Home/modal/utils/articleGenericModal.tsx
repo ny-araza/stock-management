@@ -600,7 +600,7 @@ export default function GenericArticleModal<T, S>({
                 LOT
             ================================================ */}
 
-            {searchConfig?.getLots && (
+            {/*{searchConfig?.getLots && (
               <div
                 className="
                   col-span-12
@@ -636,7 +636,7 @@ export default function GenericArticleModal<T, S>({
                   />
                 )}
               </div>
-            )}
+            )}*/}
           </div>
         </div>
 

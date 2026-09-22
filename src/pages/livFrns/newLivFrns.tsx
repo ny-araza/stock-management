@@ -174,9 +174,7 @@ export default function NewLivFrnsPage() {
 
   const modifierArticle = (articleSelectionne: CFLigneArticle) => {
     setArticle({ ...articleSelectionne });
-    console.log("article selct=> ", articleSelectionne);
     setEditingUid(articleSelectionne.cmfl_uid ?? null);
-    console.log(articleSelectionne.cmfl_uid);
     setModalOpen(true);
   };
 
@@ -251,6 +249,7 @@ export default function NewLivFrnsPage() {
           typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
             : `${Date.now()}-${Math.random()}`,
+        cmfl_datePer: "",
       })),
     }));
 
@@ -385,7 +384,6 @@ export default function NewLivFrnsPage() {
 
       const newArticle: CFLigneArticle = {
         ...nouvelArticle,
-
         // Nouvel UID uniquement pour cette nouvelle ligne
         cmfl_uid:
           typeof crypto !== "undefined" && crypto.randomUUID
@@ -465,6 +463,12 @@ export default function NewLivFrnsPage() {
       parseValue: Number,
     },
     {
+      name: "cmfl_datePer",
+      label: "Date de Péremption",
+      type: "date",
+      parseValue: String,
+    },
+    {
       name: "cmfl_TotalHT",
       label: "Total HT",
       type: "text",
@@ -490,7 +494,7 @@ export default function NewLivFrnsPage() {
 
     getSearchValue: (article) => article.code,
 
-    getLots: (article) => article.lots ?? [],
+    getLots: (article) => [],
 
     getStock: (article) => article.quantite_stock,
 
@@ -658,20 +662,10 @@ export default function NewLivFrnsPage() {
 
       const today = new Date().toISOString().split("T")[0];
 
-      // Mode de commande par défaut
-      const modeCmd = form.cmf_modecmd || "1";
-
-      /*
-       * 1. Création de l'entrée principale
-       *
-       * Le fournisseur n'est pas pris depuis chaque ligne ici.
-       * Il reste au niveau du document principal si t_entree
-       * possède toujours ent_fou_code.
-       */
       const res = await postData("/api/insert-database/", "t_entree", {
         ent_code: values.codeBl,
-        ent_modepaye: modeCmd,
-        ent_datepay: form.cmf_dateliv,
+        ent_modepaye: values.modeCmd ?? "0",
+        ent_datepay: values.datePaiement,
         ent_montant_ht: Math.round(form.cmf_montant_ht),
         ent_montant_ttc: Math.round(form.cmf_montant_ttc),
         ent_fou_code: form.cmf_fou_code,
@@ -700,15 +694,14 @@ export default function NewLivFrnsPage() {
              * Création du lot
              */
             const lot_id = await stockLot({
-              pri_lot: value.cmfl_lot || "",
+              pri_lot: value.cmfl_uid || "",
               pri_datePeremption: value.cmfl_datePer || "",
               pri_quantite: value.cmfl_Quantite,
               pri_article: value.cmfl_Art_Code,
             });
-
-            /*
-             * Création de la ligne d'entrée
-             */
+            // /*
+            //  * Création de la ligne d'entrée
+            //  */
             const send = await postData(
               "/api/insert-database/",
               "t_ligne_entree",
@@ -717,7 +710,7 @@ export default function NewLivFrnsPage() {
                 entl_pri_id: value.cmfl_pri_id,
 
                 // Code de l'entrée principale
-                entl_ent_code: form.cmf_code,
+                entl_ent_code: values.codeBl,
 
                 entl_prixunit: value.cmfl_PrixAchat,
                 entl_tva: value.cmfl_Tva,
@@ -833,6 +826,7 @@ export default function NewLivFrnsPage() {
   const openGenericModal = () => {
     setArticle(emptyArticle);
     setModalOpen(true);
+    setEditingUid(null);
   };
 
   // on submit end
@@ -846,6 +840,7 @@ export default function NewLivFrnsPage() {
   useEffect(() => {
     fetchCode("t_entree", false);
     fetchPaye("MODE_PAY");
+    setField("modeCmd", "1");
   }, []);
 
   useEffect(() => {
@@ -1116,7 +1111,6 @@ export default function NewLivFrnsPage() {
         getArticleCode={(article) => article.cmfl_Art_Code}
         getStock={(article) => article.cmfl_quantite_stock ?? 0}
         validate={(form) => {
-          console.log("***", form);
           if (!form.cmfl_Art_Code || !form.cmfl_uid) {
             return "Veuillez sélectionner un article dans la liste.";
           }
