@@ -11,6 +11,7 @@ import {
   faCaravan,
   faCartArrowDown,
   faCartShopping,
+  faFileAlt,
   faTruckArrowRight,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
@@ -37,6 +38,7 @@ type ModalType =
   | "facture_comptant"
   | "client"
   | "frns"
+  | "proforma"
   | null;
 
 // Codes de menu associés à chaque bouton.
@@ -52,6 +54,7 @@ const MENU_CODES: Partial<Record<Exclude<ModalType, null>, number>> = {
   rtf: 103,
   client: 101,
   frns: 102,
+  proforma: 108,
 };
 
 export default function PageAccueil() {
@@ -223,6 +226,22 @@ export default function PageAccueil() {
               onClose={close}
               className="max-w-[900px] m-4"
             />
+          </>
+        )}
+        {hasAccess("proforma") && (
+          <>
+            <Link to={"/new-proforma"}>
+              <AnimatedButton
+                icon={
+                  <FontAwesomeIcon
+                    icon={faFileAlt}
+                    className="text-6xl"
+                  />
+                }
+              >
+                Nouveau Proforma
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {/* facture_comptant n'a pas de code de menu -> automatiquement indisponible */}

@@ -62,6 +62,26 @@ export interface ListeVente {
   ve_proforma: string;
 }
 
+export interface Proforma {
+  pro_id: number;
+  pro_code: string;
+  pro_datecre: string;
+  pro_datemdf: string;
+  pro_usercre: string;
+  pro_usermdf: string;
+  pro_date: string;
+  pro_modecmd: string;
+  pro_dateliv: string;
+  pro_islivre: boolean;
+  pro_montant_ht: number;
+  pro_montant_ttc: number;
+  pro_cli_code: string;
+  pro_enabled: boolean;
+  pro_lettre: string;
+  pro_tva: number;
+  pro_remise: number;
+}
+
 export interface Articles {
   art_id: number;
   art_code: string;
@@ -135,10 +155,10 @@ export interface CFLigneArticle {
   cmfl_uid?: string;
   cmfl_remise?: number;
   cmfl_montant_remise?: number;
-  cmfl_montant_tva?: number
-  cmfl_lot: "",
-  cmfl_datePer?: "",
-  cmfl_quantite_stock?: number
+  cmfl_montant_tva?: number;
+  cmfl_lot: "";
+  cmfl_datePer?: "";
+  cmfl_quantite_stock?: number;
 }
 
 export interface Fourniseur {

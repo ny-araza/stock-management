@@ -19,6 +19,7 @@ import RetourFrnsListeTables from "./pages/rtf/listeRetourFrnsTables";
 import RetourClientListeTables from "./pages/rtc/listeRetourCltsTables";
 import NewLivFrnsPage from "./pages/livFrns/newLivFrns";
 import NewCmdFrnsPage from "./pages/Bc/newCommandFrns";
+import NewProformaPage from "./pages/proforma/newProforma";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/bc" element={<ListBcTables />} />
             <Route path="/new-liv" element={<NewLivFrnsPage />} />
             <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
+            <Route path="/new-proforma" element={<NewProformaPage />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />
             <Route path="/liv-frns" element={<LivFrnsListeTables />} />
