@@ -381,6 +381,7 @@ export default function NewCmdFrnsPage() {
       cmfl_datePer: "",
       cmfl_remise: 0,
       cmfl_montant_remise: 0,
+      cmfl_pri_id: article.id,
       cmfl_quantite_stock: article.quantite_stock,
       cmfl_uid:
         typeof crypto !== "undefined" && crypto.randomUUID
@@ -428,12 +429,12 @@ export default function NewCmdFrnsPage() {
       step: 0.01,
       parseValue: Number,
     },
-    {
-      name: "cmfl_datePer",
-      label: "Date de Péremption",
-      type: "date",
-      parseValue: String,
-    },
+    // {
+    //   name: "cmfl_datePer",
+    //   label: "Date de Péremption",
+    //   type: "date",
+    //   parseValue: String,
+    // },
     {
       name: "cmfl_TotalHT",
       label: "Total HT",
@@ -541,6 +542,9 @@ export default function NewCmdFrnsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log("form ==> ", form);
+      console.log("ligneArticle ==> ", ligneArticle);
+      console.log("frns ==> ", frns);
       const ligne_ok: boolean[] = [];
       if (ligneArticle.length == 0 || !form || !frns) {
         throw Error("Vous avz laisser des champs vides");
@@ -578,7 +582,7 @@ export default function NewCmdFrnsPage() {
         cmf_montant_ht: ht,
         cmf_montant_ttc: ttc,
         cmf_islivre: false,
-        cmf_fou_code: form.cmf_fou_code,
+        cmf_fou_code: frns.fou_code,
         cmf_date: today,
         cmf_lettre: montantTTCEnLettres(ttc),
         cmf_enabled: true,
@@ -591,12 +595,12 @@ export default function NewCmdFrnsPage() {
             {
               cmfl_quantite: value.cmfl_Quantite,
               cmfl_pri_id: value.cmfl_pri_id,
-              cmfl_cmf_code: value.cmfl_cmf_code,
+              cmfl_cmf_code: form.cmf_code,
               cmfl_prixachat: value.cmfl_PrixAchat,
-              cmfl_tva: value.cmfl_montant_tva,
+              cmfl_tva: value.cmfl_Tva,
               cmfl_totalht: value.cmfl_TotalHT,
               cmfl_art_code: value.cmfl_Art_Code,
-              cmfl_fou_code: value.cmfl_fou_Code,
+              cmfl_fou_code: frns.fou_code,
             },
           );
           if (send.status) {
@@ -653,6 +657,10 @@ export default function NewCmdFrnsPage() {
   useEffect(() => {
     fetchCode("t_cmd_fournis", false);
     fetchCommande("MODE_COM");
+    setForm((prev) => ({
+      ...prev,
+      cmf_modecmd: "8",
+    }));
   }, []);
 
   useEffect(() => {
@@ -820,7 +828,7 @@ export default function NewCmdFrnsPage() {
                     onChange={(e) =>
                       setFrns((prev) => ({
                         ...prev,
-                        fou_tel1: e.target.value,
+                        fou_mail: e.target.value,
                       }))
                     }
                     placeholder="fournisseurs@gmail.com"

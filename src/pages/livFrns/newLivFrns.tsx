@@ -245,7 +245,7 @@ export default function NewLivFrnsPage() {
   const choisirArticle = (a: BCAutoComplete) => {
     skipSearch.current = true;
     setSearch(a.cmf_code);
-
+    setSearchFrns(a.fournisseur.fou_nom);
     setForm((prev) => ({
       ...prev,
 
@@ -745,7 +745,6 @@ export default function NewLivFrnsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       if (!form.ligne || form.ligne.length === 0) {
         setAlert({
@@ -854,7 +853,6 @@ export default function NewLivFrnsPage() {
                 entl_prix: value.cmfl_PrixAchat,
 
                 entl_remise: value.cmfl_remise ?? 0,
-
                 entl_lot: lot_id,
               },
             );

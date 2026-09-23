@@ -691,7 +691,7 @@ export default function NewProformaPage() {
                 />
               </div>
               <div>
-                <Label>Date de livraison</Label>
+                {/*<Label>Date de livraison</Label>
                 <Input
                   name="pro_dateliv"
                   type="date"
@@ -703,7 +703,7 @@ export default function NewProformaPage() {
                     }))
                   }
                   required={true}
-                />
+                />*/}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
