@@ -80,7 +80,7 @@ export default function NewProformaPage() {
     prol_TotalTTC: 0,
     prol_Tva: 0,
     prol_pro_code: "",
-    prol_fou_Code: "",
+    prol_cli_Code: "",
     prol_pri_id: 0,
     prol_id: 0,
     prol_remise: 0,
@@ -317,7 +317,7 @@ export default function NewProformaPage() {
 
       getSearchValue: (article) => article.code,
 
-      getLots: (article) => [],
+      getLots: (article) => article.lots ?? [],
 
       getStock: (article) => article.quantite_stock,
 
@@ -418,12 +418,12 @@ export default function NewProformaPage() {
       step: 0.01,
       parseValue: Number,
     },
-    {
-      name: "prol_datePer",
-      label: "Date de Péremption",
-      type: "date",
-      parseValue: String,
-    },
+    // {
+    //   name: "prol_datePer",
+    //   label: "Date de Péremption",
+    //   type: "date",
+    //   parseValue: String,
+    // },
     {
       name: "prol_TotalHT",
       label: "Total HT",
@@ -948,15 +948,22 @@ export default function NewProformaPage() {
             if (!form.prol_Art_Code || !form.prol_uid) {
               return "Veuillez sélectionner un article dans la liste.";
             }
-
-            if (Number(form.prol_Quantite) <= 0) {
+          
+            const quantite = Number(form.prol_Quantite);
+            const stock = Number(form.prol_quantite_stock ?? 0);
+          
+            if (quantite <= 0) {
               return "La quantité doit être supérieure à 0.";
             }
-
+          
+            if (quantite > stock) {
+              return `Stock insuffisant. Disponible : ${stock}.`;
+            }
+          
             if (Number(form.prol_prixunit) < 0) {
               return "Le prix unitaire est invalide.";
             }
-
+          
             return null;
           }}
 

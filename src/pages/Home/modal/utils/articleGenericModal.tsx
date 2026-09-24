@@ -9,6 +9,7 @@ import {
 import { Modal } from "../../../../components/ui/modal";
 import Button from "../../../../components/ui/button/Button";
 import SearchableSelect from "./searchableSelect";
+import Alert from "../../../../components/ui/alert/Alert";
 // ============================================================
 // TYPES
 // ============================================================
@@ -245,7 +246,12 @@ export default function GenericArticleModal<T, S>({
   const [lots, setLots] = useState<LotBase[]>([]);
 
   const [lotMode, setLotMode] = useState<"existant" | "nouveau">("nouveau");
-
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
   // ==========================================================
   // INITIALISATION
   // ==========================================================
@@ -463,12 +469,17 @@ export default function GenericArticleModal<T, S>({
   // ==========================================================
 
   const handleSubmit = () => {
-    console.log(form)
+    console.log(form);
     if (validate) {
       const error = validate(form);
 
       if (error) {
-        alert(error);
+        setAlert({
+          open: true,
+          message: error,
+          title: "Une erreur survenue",
+          variant: "error",
+        });
         return;
       }
     }
@@ -598,8 +609,7 @@ export default function GenericArticleModal<T, S>({
             {/* ================================================
                 LOT
             ================================================ */}
-
-            {/*{searchConfig?.getLots && (
+            {/*{searchConfig?.getLots && searchConfig.getLots.length > 0 && (
               <div
                 className="
                   col-span-12
@@ -608,32 +618,22 @@ export default function GenericArticleModal<T, S>({
               >
                 <label className={labelClass}>Date Per</label>
 
-                {lots.length > 0 && (
-                  <select
-                    className={`${inputClass} mb-2 bg-white`}
-                    onChange={(e) => choisirLot(e.target.value)}
-                  >
-                    <option value="__new__">— Nouveau lot —</option>
+                <select
+                  className={`${inputClass} mb-2 bg-white`}
+                  onChange={(e) => choisirLot(e.target.value)}
+                >
+                  <option value="__new__">— Nouveau lot —</option>
 
-                    {lots.map((lot) => (
-                      <option key={lot.lot_id} value={lot.lot_id}>
-                        {lot.lot_code || `Lot #${lot.lot_id}`}
+                  {lots.map((lot) => (
+                    <option key={lot.lot_id} value={lot.lot_id}>
+                      {lot.lot_code || `Lot #${lot.lot_id}`}
 
-                        {lot.lot_datePeremption
-                          ? ` (exp. ${lot.lot_datePeremption})`
-                          : ""}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                {(lotMode === "nouveau" || lots.length === 0) && (
-                  <input
-                    type="text"
-                    placeholder="Ex : 2026-001"
-                    className={inputClass}
-                  />
-                )}
+                      {lot.lot_datePeremption
+                        ? ` (exp. ${lot.lot_datePeremption})`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}*/}
           </div>
@@ -753,6 +753,21 @@ export default function GenericArticleModal<T, S>({
           </div>
         </div>
       </div>
+      <Alert
+        open={alert.open}
+        variant={alert.variant}
+        title={alert.title}
+        message={alert.message}
+        showLink={false}
+        onClose={() =>
+          setAlert({
+            open: false,
+            variant: alert.variant,
+            message: alert.message,
+            title: alert.title,
+          })
+        }
+      />
     </Modal>
   );
 }
