@@ -1,15 +1,18 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
+  type KeyboardEvent,
 } from "react";
 
 import { Modal } from "../../../../components/ui/modal";
 import Button from "../../../../components/ui/button/Button";
 import SearchableSelect from "./searchableSelect";
 import Alert from "../../../../components/ui/alert/Alert";
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -19,6 +22,17 @@ export interface LotBase {
   lot_code: string;
   lot_datePeremption: string | null;
   lot_quantite?: number;
+}
+
+/**
+ * Lot avec la quantité qui sera réellement utilisée
+ * pour la ligne article.
+ */
+export interface LotAllocation extends LotBase {
+  /**
+   * Quantité prélevée dans ce lot
+   */
+  quantiteUtilisee: number;
 }
 
 /**
@@ -97,11 +111,6 @@ export interface ArticleSearchConfig<T, S> {
   renderItem: (item: S) => ReactNode;
 
   /**
-   * Récupération des lots
-   */
-  getLots?: (item: S) => LotBase[];
-
-  /**
    * Récupération du stock
    */
   getStock?: (item: S) => number;
@@ -127,9 +136,20 @@ export interface GenericArticleModalProps<T, S> {
    */
   emptyValue: T;
 
-  onClose: () => void;
-
+  /**
+   * Sauvegarde d'une seule ligne
+   */
   onSave: (article: T) => void;
+
+  /**
+   * Sauvegarde de plusieurs lignes.
+   *
+   * Utilisé lorsque la quantité demandée doit être
+   * répartie sur plusieurs lots.
+   */
+  onSaveMultiple?: (articles: T[]) => void;
+
+  onClose: () => void;
 
   /**
    * Configuration de recherche
@@ -166,10 +186,58 @@ export interface GenericArticleModalProps<T, S> {
    */
   renderFooter?: (form: T) => ReactNode;
 
+  /**
+   * Récupération des lots disponibles.
+   *
+   * Cette fonction doit retourner les lots dans l'ordre
+   * dans lequel ils doivent être consommés.
+   *
+   * Exemple :
+   *
+   * [
+   *   {
+   *     lot_id: 1,
+   *     lot_code: "LOT-001",
+   *     lot_datePeremption: "2027-01-22",
+   *     lot_quantite: 6,
+   *     quantiteUtilisee: 6
+   *   },
+   *   {
+   *     lot_id: 2,
+   *     lot_code: "LOT-002",
+   *     lot_datePeremption: "2028-12-12",
+   *     lot_quantite: 8,
+   *     quantiteUtilisee: 4
+   *   }
+   * ]
+   */
+  getLots?: (article: S, form: T) => LotAllocation[];
+
+  /**
+   * Transforme une allocation de lot en ligne article.
+   *
+   * Cette fonction permet au GenericArticleModal de rester
+   * complètement générique.
+   *
+   * Exemple pour ProLigneArticle :
+   *
+   * mapLotToLine={(form, lot) => ({
+   *   ...form,
+   *   prol_Quantite: lot.quantiteUtilisee,
+   *   prol_lot: lot.lot_code,
+   *   prol_datePer: lot.lot_datePeremption || "",
+   * })}
+   */
+  mapLotToLine?: (form: T, lot: LotAllocation) => T;
+
   className?: string;
 
   titleCreate?: string;
   titleEdit?: string;
+
+  /**
+   * Stock de l'article sélectionné
+   */
   getStock?: (article: T) => number;
 }
 
@@ -195,7 +263,9 @@ export default function GenericArticleModal<T, S>({
   article,
   emptyValue,
   onClose,
+
   onSave,
+  onSaveMultiple,
 
   searchConfig,
   fields,
@@ -207,10 +277,14 @@ export default function GenericArticleModal<T, S>({
 
   renderFooter,
 
+  getLots,
+  mapLotToLine,
+
   className,
 
   titleCreate = "Ajouter un article",
   titleEdit = "Modifier l'article",
+
   getStock,
 }: GenericArticleModalProps<T, S>) {
   // ==========================================================
@@ -237,27 +311,70 @@ export default function GenericArticleModal<T, S>({
 
   const requestId = useRef(0);
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
   // ==========================================================
-  // LOTS
+  // ARTICLE SELECTIONNE
   // ==========================================================
 
-  const [lots, setLots] = useState<LotBase[]>([]);
+  /**
+   * Article API réellement sélectionné.
+   *
+   * On le garde séparément de `form` car `form` contient
+   * uniquement la ligne à sauvegarder.
+   */
+  const [selectedArticle, setSelectedArticle] = useState<S | null>(null);
 
-  const [lotMode, setLotMode] = useState<"existant" | "nouveau">("nouveau");
+  // ==========================================================
+  // ALERT
+  // ==========================================================
+
   const [alert, setAlert] = useState({
     open: false,
     variant: "success" as "success" | "error" | "warning" | "info",
     title: "",
     message: "",
   });
+
+  // ==========================================================
+  // LOTS
+  // ==========================================================
+
+  /**
+   * Les lots sont calculés automatiquement à partir :
+   *
+   * - de l'article sélectionné
+   * - du formulaire actuel
+   * - de getLots()
+   *
+   * Il n'est donc plus nécessaire d'avoir un état `lots`.
+   */
+  const lots = useMemo<LotAllocation[]>(() => {
+    if (!selectedArticle || !getLots) {
+      return [];
+    }
+
+    try {
+      const result = getLots(selectedArticle, form);
+
+      if (!Array.isArray(result)) {
+        return [];
+      }
+
+      return result.filter((lot) => Number(lot.quantiteUtilisee || 0) > 0);
+    } catch (error) {
+      console.error("Erreur lors du calcul des lots :", error);
+
+      return [];
+    }
+  }, [selectedArticle, form, getLots]);
+
   // ==========================================================
   // INITIALISATION
   // ==========================================================
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     const initialValue = article ? { ...article } : { ...emptyValue };
 
@@ -266,13 +383,14 @@ export default function GenericArticleModal<T, S>({
     setSearch(article && getArticleCode ? getArticleCode(article) : "");
 
     setSuggestions([]);
+
     setShowSuggestions(false);
+
     setHighlight(-1);
 
-    skipSearch.current = true;
+    setSelectedArticle(null);
 
-    setLots([]);
-    setLotMode("nouveau");
+    skipSearch.current = true;
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, article]);
@@ -283,7 +401,9 @@ export default function GenericArticleModal<T, S>({
 
   const rechercherArticle = useCallback(
     async (value: string) => {
-      if (!searchConfig) return;
+      if (!searchConfig) {
+        return;
+      }
 
       const currentId = ++requestId.current;
 
@@ -298,6 +418,10 @@ export default function GenericArticleModal<T, S>({
 
         const result = await searchConfig.search(value);
 
+        /**
+         * Protection contre les réponses
+         * asynchrones dans le mauvais ordre.
+         */
         if (currentId !== requestId.current) {
           return;
         }
@@ -327,7 +451,9 @@ export default function GenericArticleModal<T, S>({
   // ==========================================================
 
   useEffect(() => {
-    if (!open || !searchConfig) return;
+    if (!open || !searchConfig) {
+      return;
+    }
 
     if (skipSearch.current) {
       skipSearch.current = false;
@@ -352,21 +478,12 @@ export default function GenericArticleModal<T, S>({
 
     setHighlight(-1);
 
-    setForm((prev) => {
-      if (!getArticleCode) {
-        return prev;
-      }
-
-      const currentCode = getArticleCode(prev);
-
-      if (currentCode === value) {
-        return prev;
-      }
-
-      return prev;
-    });
-
-    setLots([]);
+    /**
+     * Dès que l'utilisateur modifie la recherche,
+     * l'article sélectionné n'est plus considéré
+     * comme actif.
+     */
+    setSelectedArticle(null);
   };
 
   // ==========================================================
@@ -374,20 +491,24 @@ export default function GenericArticleModal<T, S>({
   // ==========================================================
 
   const choisirArticle = (item: S) => {
-    if (!searchConfig) return;
+    if (!searchConfig) {
+      return;
+    }
 
     skipSearch.current = true;
 
     const searchValue = searchConfig.getSearchValue(item);
+
     setSearch(searchValue);
 
+    /**
+     * On garde l'article API sélectionné.
+     * getLots() pourra ensuite calculer les lots
+     * en fonction de la quantité présente dans `form`.
+     */
+    setSelectedArticle(item);
+
     setForm((prev) => searchConfig.mapToForm(item, prev));
-
-    const itemLots = searchConfig.getLots?.(item) ?? [];
-
-    setLots(itemLots);
-
-    setLotMode(itemLots.length > 0 ? "existant" : "nouveau");
 
     setSuggestions([]);
 
@@ -400,7 +521,7 @@ export default function GenericArticleModal<T, S>({
   // KEYBOARD
   // ==========================================================
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions || suggestions.length === 0) {
       return;
     }
@@ -426,6 +547,10 @@ export default function GenericArticleModal<T, S>({
     }
   };
 
+  // ==========================================================
+  // CHANGE FORM
+  // ==========================================================
+
   const handleChange = <K extends keyof T>(field: K, value: T[K]) => {
     setForm((prev) => {
       const updated = {
@@ -447,29 +572,16 @@ export default function GenericArticleModal<T, S>({
   };
 
   // ==========================================================
-  // LOT
-  // ==========================================================
-
-  const choisirLot = (lotId: string) => {
-    if (lotId === "__new__") {
-      setLotMode("nouveau");
-
-      return;
-    }
-
-    const lot = lots.find((item) => String(item.lot_id) === lotId);
-
-    if (!lot) return;
-
-    setLotMode("existant");
-  };
-
-  // ==========================================================
   // SUBMIT
   // ==========================================================
 
   const handleSubmit = () => {
-    console.log(form);
+    console.log("Formulaire :", form);
+
+    // ======================================================
+    // VALIDATION
+    // ======================================================
+
     if (validate) {
       const error = validate(form);
 
@@ -477,13 +589,118 @@ export default function GenericArticleModal<T, S>({
         setAlert({
           open: true,
           message: error,
-          title: "Une erreur survenue",
+          title: "Une erreur est survenue",
           variant: "error",
         });
+
         return;
       }
     }
-    onSave(form);
+
+    // ======================================================
+    // AUCUN LOT
+    // ======================================================
+
+    /**
+     * Si aucun lot n'est disponible,
+     * on sauvegarde normalement une seule ligne.
+     */
+    if (!getLots || !selectedArticle || lots.length === 0) {
+      onSave(form);
+
+      onClose();
+
+      return;
+    }
+
+    // ======================================================
+    // UN SEUL LOT
+    // ======================================================
+
+    if (lots.length === 1) {
+      /**
+       * Si mapLotToLine existe, on injecte :
+       *
+       * - la quantité utilisée
+       * - le lot
+       * - la date de péremption
+       *
+       * dans la ligne finale.
+       */
+      if (mapLotToLine) {
+        const ligne = mapLotToLine(form, lots[0]);
+
+        onSave(ligne);
+      } else {
+        /**
+         * Sans mapLotToLine, on conserve
+         * le comportement classique.
+         */
+        onSave(form);
+      }
+
+      onClose();
+
+      return;
+    }
+
+    // ======================================================
+    // PLUSIEURS LOTS
+    // ======================================================
+
+    /**
+     * Plusieurs lots sont nécessaires.
+     *
+     * Exemple :
+     *
+     * quantité demandée = 10
+     *
+     * lot 1 = 6
+     * lot 2 = 4
+     *
+     * lots =
+     *
+     * [
+     *   { lot: "LOT1", quantiteUtilisee: 6 },
+     *   { lot: "LOT2", quantiteUtilisee: 4 }
+     * ]
+     *
+     * On transforme chaque lot en une ligne article.
+     */
+
+    if (!mapLotToLine) {
+      setAlert({
+        open: true,
+        message:
+          "Plusieurs lots sont nécessaires mais mapLotToLine n'est pas configuré.",
+        title: "Configuration des lots",
+        variant: "error",
+      });
+
+      return;
+    }
+
+    if (!onSaveMultiple) {
+      setAlert({
+        open: true,
+        message:
+          "Plusieurs lots sont nécessaires mais onSaveMultiple n'est pas configuré.",
+        title: "Configuration des lots",
+        variant: "error",
+      });
+
+      return;
+    }
+
+    const articles = lots.map((lot) => mapLotToLine(form, lot));
+
+    console.log("Articles générés depuis les lots :", articles);
+
+    // ======================================================
+    // SAUVEGARDE DES MULTIPLES LIGNES
+    // ======================================================
+
+    onSaveMultiple(articles);
 
     onClose();
   };
@@ -496,12 +713,22 @@ export default function GenericArticleModal<T, S>({
     return null;
   }
 
+  // ==========================================================
+  // TOTAL LOTS UTILISES
+  // ==========================================================
+
+  const totalLotsUtilises = lots.reduce(
+    (total, lot) => total + Number(lot.quantiteUtilisee || 0),
+    0,
+  );
+
   return (
     <Modal isOpen={open} onClose={onClose} className={className}>
       <div className="max-h-[700px] overflow-auto">
         {/* ==================================================
             HEADER
         ================================================== */}
+
         <div
           className="
             flex h-14 items-center justify-center
@@ -607,35 +834,230 @@ export default function GenericArticleModal<T, S>({
               })}
 
             {/* ================================================
-                LOT
+                LOTS UTILISES
             ================================================ */}
-            {/*{searchConfig?.getLots && searchConfig.getLots.length > 0 && (
-              <div
-                className="
-                  col-span-12
-                  md:col-span-6
-                "
-              >
-                <label className={labelClass}>Date Per</label>
 
-                <select
-                  className={`${inputClass} mb-2 bg-white`}
-                  onChange={(e) => choisirLot(e.target.value)}
+            {getLots && selectedArticle && lots.length > 0 && (
+              <div className="col-span-12">
+                <div
+                  className="
+                      rounded-lg
+                      border border-gray-200
+                      bg-gray-50
+                      p-3
+                      dark:border-gray-700
+                      dark:bg-gray-900/50
+                    "
                 >
-                  <option value="__new__">— Nouveau lot —</option>
+                  {/* ================================
+                        HEADER LOTS
+                    ================================= */}
 
-                  {lots.map((lot) => (
-                    <option key={lot.lot_id} value={lot.lot_id}>
-                      {lot.lot_code || `Lot #${lot.lot_id}`}
+                  <div
+                    className="
+                        mb-3
+                        flex
+                        items-center
+                        justify-between
+                        gap-3
+                      "
+                  >
+                    <div>
+                      <label
+                        className="
+                            block
+                            text-sm
+                            font-semibold
+                            text-gray-800
+                            dark:text-gray-200
+                          "
+                      >
+                        Lots utilisés
+                      </label>
 
-                      {lot.lot_datePeremption
-                        ? ` (exp. ${lot.lot_datePeremption})`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
+                      <p
+                        className="
+                            mt-0.5
+                            text-xs
+                            text-gray-500
+                            dark:text-gray-400
+                          "
+                      >
+                        La quantité est automatiquement répartie selon les lots
+                        disponibles.
+                      </p>
+                    </div>
+
+                    <div
+                      className="
+                          shrink-0
+                          rounded-full
+                          bg-brand-300
+                          px-3 py-1
+                          text-xs
+                          font-semibold
+                          text-white
+                        "
+                    >
+                      {totalLotsUtilises} unité
+                      {totalLotsUtilises > 1 ? "s" : ""}
+                    </div>
+                  </div>
+
+                  {/* ================================
+                        LISTE DES LOTS
+                    ================================= */}
+
+                  <div
+                    className="
+                        overflow-hidden
+                        rounded-md
+                        border
+                        border-gray-200
+                        dark:border-gray-700
+                      "
+                  >
+                    <div
+                      className="
+                          grid
+                          grid-cols-12
+                          gap-2
+                          border-b
+                          border-gray-200
+                          bg-gray-100
+                          px-3 py-2
+                          text-xs
+                          font-semibold
+                          text-gray-600
+                          dark:border-gray-700
+                          dark:bg-gray-800
+                          dark:text-gray-300
+                        "
+                    >
+                      <div className="col-span-4">Lot</div>
+
+                      <div className="col-span-4">Date péremption</div>
+
+                      <div className="col-span-2 text-center">Stock</div>
+
+                      <div className="col-span-2 text-center">Utilisé</div>
+                    </div>
+
+                    {lots.map((lot, index) => (
+                      <div
+                        key={`${lot.lot_id}-${index}`}
+                        className="
+                              grid
+                              grid-cols-12
+                              gap-2
+                              items-center
+                              border-b
+                              border-gray-200
+                              px-3 py-2
+                              last:border-b-0
+                              dark:border-gray-700
+                            "
+                      >
+                        {/* Lot */}
+
+                        <div
+                          className="
+                                col-span-4
+                                truncate
+                                text-sm
+                                font-medium
+                                text-gray-800
+                                dark:text-gray-200
+                              "
+                          title={lot.lot_code}
+                        >
+                          {lot.lot_code || `Lot #${lot.lot_id}`}
+                        </div>
+
+                        {/* Date */}
+
+                        <div
+                          className="
+                                col-span-4
+                                text-sm
+                                text-gray-600
+                                dark:text-gray-400
+                              "
+                        >
+                          {lot.lot_datePeremption || "—"}
+                        </div>
+
+                        {/* Stock */}
+
+                        <div
+                          className="
+                                col-span-2
+                                text-center
+                                text-sm
+                                text-gray-600
+                                dark:text-gray-400
+                              "
+                        >
+                          {Number(lot.lot_quantite || 0)}
+                        </div>
+
+                        {/* Quantité utilisée */}
+
+                        <div
+                          className="
+                                col-span-2
+                                text-center
+                              "
+                        >
+                          <span
+                            className="
+                                  inline-flex
+                                  min-w-8
+                                  items-center
+                                  justify-center
+                                  rounded-full
+                                  bg-brand-300
+                                  px-2
+                                  py-1
+                                  text-xs
+                                  font-bold
+                                  text-white
+                                "
+                          >
+                            {lot.quantiteUtilisee}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}*/}
+            )}
+
+            {/* ================================================
+                AUCUN LOT
+            ================================================ */}
+
+            {getLots && selectedArticle && lots.length === 0 && (
+              <div className="col-span-12">
+                <div
+                  className="
+                      rounded-md
+                      border
+                      border-gray-200
+                      bg-gray-50
+                      px-3 py-2
+                      text-sm
+                      text-gray-500
+                      dark:border-gray-700
+                      dark:bg-gray-900/50
+                      dark:text-gray-400
+                    "
+                >
+                  Aucun lot disponible pour la quantité demandée.
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -650,7 +1072,10 @@ export default function GenericArticleModal<T, S>({
             dark:border-gray-700
           "
         >
-          {/* Partie supérieure : stock + contenu personnalisé */}
+          {/* ================================================
+              STOCK + FOOTER PERSONNALISE
+          ================================================ */}
+
           <div
             className="
               flex items-center justify-between
@@ -661,6 +1086,7 @@ export default function GenericArticleModal<T, S>({
             "
           >
             {/* Stock */}
+
             {getStock && (
               <div className="relative group shrink-0">
                 <span
@@ -678,6 +1104,7 @@ export default function GenericArticleModal<T, S>({
                 </span>
 
                 {/* Popup */}
+
                 <div
                   className="
                     absolute left-0 bottom-7 z-50
@@ -702,12 +1129,16 @@ export default function GenericArticleModal<T, S>({
             )}
 
             {/* Footer personnalisé */}
+
             {renderFooter && (
               <div className="flex-1 min-w-0">{renderFooter(form)}</div>
             )}
           </div>
 
-          {/* Boutons */}
+          {/* ================================================
+              BOUTONS
+          ================================================ */}
+
           <div
             className="
               flex gap-2
@@ -753,6 +1184,11 @@ export default function GenericArticleModal<T, S>({
           </div>
         </div>
       </div>
+
+      {/* ====================================================
+          ALERT
+      ==================================================== */}
+
       <Alert
         open={alert.open}
         variant={alert.variant}

@@ -299,6 +299,44 @@ export default function NewProformaPage() {
     setEditingUid(null);
   };
 
+  const ajouterArticles = (articles: ProLigneArticle[]) => {
+    console.log("Articles reçus :", articles);
+
+    setLigneArticle((prev) => {
+      const nouveauxArticles = articles.map((article) => ({
+        ...article,
+
+        // Chaque lot doit avoir sa propre ligne
+        prol_uid:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
+
+        // Normalisation
+        prol_pri_id: Number(article.prol_pri_id || 0),
+        prol_Quantite: Number(article.prol_Quantite || 0),
+        prol_prixunit: Number(article.prol_prixunit || 0),
+        prol_Tva: Number(article.prol_Tva || 0),
+        prol_TotalHT: Number(article.prol_TotalHT || 0),
+        prol_TotalTTC: Number(article.prol_TotalTTC || 0),
+
+        prol_datePer: article.prol_datePer || "",
+        prol_remise: Number(article.prol_remise || 0),
+        prol_montant_remise: Number(article.prol_montant_remise || 0),
+        prol_quantite_stock: Number(article.prol_quantite_stock || 0),
+
+        // Lot différent pour chaque ligne
+        prol_lot: article.prol_lot || "",
+      }));
+
+      return [...prev, ...nouveauxArticles];
+    });
+
+    setModalOpen(false);
+    setArticle(null);
+    setEditingUid(null);
+  };
+
   // searchConfig
   const articleSearchConfig: ArticleSearchConfig<ProLigneArticle, ArticleApi> =
     {
@@ -317,7 +355,10 @@ export default function NewProformaPage() {
 
       getSearchValue: (article) => article.code,
 
-      getLots: (article) => article.lots ?? [],
+      getLots: (article) => {
+        console.log(article.lots);
+        return article.lots ?? [];
+      },
 
       getStock: (article) => article.quantite_stock,
 
@@ -932,9 +973,16 @@ export default function NewProformaPage() {
           open={modalOpen}
           article={article}
           emptyValue={emptyArticle}
-          onClose={() => setModalOpen(false)}
+
+          onClose={() => {
+            setModalOpen(false);
+            setArticle(null);
+            setEditingUid(null);
+          }}
+
           onSave={ajouterArticle}
-          className="max-w-[900px] m-4 max-h-[700px]"
+
+          onSaveMultiple={ajouterArticles}
 
           searchConfig={articleSearchConfig}
 
@@ -943,49 +991,105 @@ export default function NewProformaPage() {
           calculation={calculation}
 
           getArticleCode={(article) => article.prol_Art_Code}
-          getStock={(article) => article.prol_quantite_stock ?? 0}
-          validate={(form) => {
-            if (!form.prol_Art_Code || !form.prol_uid) {
-              return "Veuillez sélectionner un article dans la liste.";
+
+          getStock={(article) => Number(article.prol_quantite_stock || 0)}
+
+          getLots={(article, form) => {
+            const quantiteDemandee = Number(form.prol_Quantite || 0);
+
+            if (quantiteDemandee <= 0) {
+              return [];
             }
-          
-            const quantite = Number(form.prol_Quantite);
-            const stock = Number(form.prol_quantite_stock ?? 0);
-          
-            if (quantite <= 0) {
-              return "La quantité doit être supérieure à 0.";
+
+            const aujourdHui = new Date();
+
+            const lotsDisponibles = (article.lots ?? [])
+              .filter((lot) => {
+                const quantite = Number(lot.lot_quantite || 0);
+
+                if (quantite <= 0) {
+                  return false;
+                }
+
+                if (!lot.lot_datePeremption) {
+                  return true;
+                }
+
+                return new Date(lot.lot_datePeremption) >= aujourdHui;
+              })
+              .sort((a, b) => {
+                if (!a.lot_datePeremption) {
+                  return 1;
+                }
+
+                if (!b.lot_datePeremption) {
+                  return -1;
+                }
+
+                return (
+                  new Date(a.lot_datePeremption).getTime() -
+                  new Date(b.lot_datePeremption).getTime()
+                );
+              });
+
+            let restant = quantiteDemandee;
+
+            const allocations: LotAllocation[] = [];
+
+            for (const lot of lotsDisponibles) {
+              if (restant <= 0) {
+                break;
+              }
+
+              const stock = Number(lot.lot_quantite || 0);
+
+              const quantiteUtilisee = Math.min(restant, stock);
+
+              if (quantiteUtilisee <= 0) {
+                continue;
+              }
+
+              allocations.push({
+                ...lot,
+                quantiteUtilisee,
+              });
+
+              restant -= quantiteUtilisee;
             }
-          
-            if (quantite > stock) {
-              return `Stock insuffisant. Disponible : ${stock}.`;
-            }
-          
-            if (Number(form.prol_prixunit) < 0) {
-              return "Le prix unitaire est invalide.";
-            }
-          
-            return null;
+
+            return allocations;
           }}
 
-          renderFooter={(form) => (
-            <div className="flex items-center">
-              <span className="mr-2 dark:text-white">TTC :</span>
+          mapLotToLine={(form, lot) => {
+            const quantite = Number(lot.quantiteUtilisee || 0);
 
-              <span className="text-green-600">
-                <strong>
-                  {Number(form.prol_TotalTTC).toLocaleString("fr-FR")} Ar
-                </strong>
-              </span>
+            const prixUnit = Number(form.prol_prixunit || 0);
 
-              <span className="ml-2 dark:text-white">| Remise :</span>
+            const tva = Number(form.prol_Tva || 0);
 
-              <span className="ml-2 text-red-600">
-                <strong>
-                  {Number(form.prol_montant_remise).toLocaleString("fr-FR")} Ar
-                </strong>
-              </span>
-            </div>
-          )}
+            const totalHT = quantite * prixUnit;
+
+            const totalTTC = totalHT * (1 + tva / 100);
+
+            return {
+              ...form,
+
+              prol_Quantite: quantite,
+
+              prol_lot: lot.lot_code || "",
+
+              prol_datePer: lot.lot_datePeremption || "",
+
+              prol_TotalHT: totalHT,
+
+              prol_TotalTTC: totalTTC,
+            };
+          }}
+
+          className="max-w-[900px] m-4 max-h-[700px]"
+
+          titleCreate="Ajouter un article"
+          titleEdit="Modifier l'article"
         />
         <NewClts isOpen={openModalClt} onClose={() => setOpenMOdalClt(false)} />
         <Alert
