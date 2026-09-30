@@ -322,7 +322,7 @@ export default function NewProformaPage() {
 
         prol_datePer: article.prol_datePer || "",
         prol_remise: Number(article.prol_remise || 0),
-        prol_montant_remise: Number(article.prol_montant_remise || 0),
+        prol_montant_remise: (Number(article.prol_TotalHT || 0) * Number(article.prol_remise || 0)) / 100,
         prol_quantite_stock: Number(article.prol_quantite_stock || 0),
 
         // Lot différent pour chaque ligne
@@ -459,12 +459,12 @@ export default function NewProformaPage() {
       step: 0.01,
       parseValue: Number,
     },
-    // {
-    //   name: "prol_datePer",
-    //   label: "Date de Péremption",
-    //   type: "date",
-    //   parseValue: String,
-    // },
+    {
+      name: "prol_datePer",
+      label: "Date de Péremption",
+      type: "date",
+      parseValue: String,
+    },
     {
       name: "prol_TotalHT",
       label: "Total HT",
