@@ -178,6 +178,7 @@ export interface ProLigneArticle {
   prol_montant_remise?: number;
   prol_montant_tva?: number;
   prol_lot: "";
+  prol_lot_id?: number;
   prol_datePer?: "";
   prol_quantite_stock?: number;
 }

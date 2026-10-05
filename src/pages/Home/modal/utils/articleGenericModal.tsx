@@ -817,12 +817,12 @@ export default function GenericArticleModal<T, S>({
                         readOnly={field.readOnly}
                         onChange={(e) => {
                           const raw = e.target.value;
-
                           const parsed = field.parseValue
                             ? field.parseValue(raw)
                             : field.type === "number"
                               ? Number(raw)
                               : raw;
+                          if (Number(raw) < 0) return 0;
 
                           handleChange(field.name, parsed);
                         }}

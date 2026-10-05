@@ -25,6 +25,7 @@ import GenericArticleModal, {
   ArticleCalculation,
   ArticleField,
   ArticleSearchConfig,
+  LotAllocation,
 } from "../Home/modal/utils/articleGenericModal";
 import { postData } from "../../services/sendDataService";
 import montantTTCEnLettres from "../../utils/montantEnLettre";
@@ -90,6 +91,7 @@ export default function NewProformaPage() {
     prol_montant_remise: 0,
     prol_montant_tva: 0,
     prol_quantite_stock: 0,
+    prol_lot_id: 0,
   };
 
   const [form, setForm] = useState<Proforma>(emptyForm);
@@ -322,11 +324,16 @@ export default function NewProformaPage() {
 
         prol_datePer: article.prol_datePer || "",
         prol_remise: Number(article.prol_remise || 0),
-        prol_montant_remise: (Number(article.prol_TotalHT || 0) * Number(article.prol_remise || 0)) / 100,
+        prol_montant_remise:
+          (Number(article.prol_TotalHT || 0) *
+            Number(article.prol_remise || 0)) /
+          100,
         prol_quantite_stock: Number(article.prol_quantite_stock || 0),
 
         // Lot différent pour chaque ligne
         prol_lot: article.prol_lot || "",
+        prol_id: article.prol_lot_id
+        
       }));
 
       return [...prev, ...nouveauxArticles];
@@ -356,7 +363,7 @@ export default function NewProformaPage() {
       getSearchValue: (article) => article.code,
 
       getLots: (article) => {
-        console.log(article.lots);
+        console.log("article.lots => ", article.lots);
         return article.lots ?? [];
       },
 
@@ -493,6 +500,16 @@ export default function NewProformaPage() {
 
       const totalTTC = totalHT + tva;
 
+      console.log(
+        pua,
+        remise,
+        totalBrut,
+        montantRemise,
+        totalHT,
+        tva,
+        totalTTC,
+      );
+
       return {
         prol_TotalHT: totalHT,
         prol_montant_tva: tva,
@@ -567,6 +584,37 @@ export default function NewProformaPage() {
     setForm(emptyForm);
     fetchCode("t_proforma", false);
   };
+
+  const stockLot = async (data: any) => {
+    const res = await postData("/api/insert-database/", "t_lot", {
+      lot_enabled: true,
+      lot_code: data.pri_lot,
+      lot_dateper: data.pri_datePeremption,
+      lot_art_quantite: data.pri_quantite,
+      lot_art_code: data.pri_article,
+    });
+    return res.id;
+  };
+
+  const handleStock = async (stk: any) => {
+    try {
+      const quantity = stk.old_stock + parseInt(stk.quantite);
+
+      const res = await postData("/api/insert-database/", "t_stock", {
+        stk_quantite: quantity,
+        stk_pri_id: stk.pri_id,
+        stk_art_code: stk.article,
+        stk_lot_code: stk.lot_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Stoké avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -583,6 +631,10 @@ export default function NewProformaPage() {
           (total, article) => total + Number(article.prol_TotalHT || 0),
           0,
         ) - total_remise || 0;
+      const total_tva = ligneArticle.reduce(
+        (total, article) => total + Number(article.prol_montant_tva || 0),
+        0,
+      );
       const ttc = ligneArticle.reduce(
         (total, article) =>
           total +
@@ -603,71 +655,123 @@ export default function NewProformaPage() {
       const res = await postData("/api/insert-database/", "t_proforma", {
         pro_code: form.pro_code,
         pro_modecmd: form.pro_modecmd,
-        pro_dateliv: form.pro_dateliv,
+        pro_dateliv: form.pro_dateliv || null,
         pro_montant_ht: ht,
         pro_montant_ttc: ttc,
+        pro_tva: total_tva,
         pro_islivre: false,
-        pro_cli_code: form.pro_cli_code,
+        pro_cli_code: client.cli_code,
         pro_date: today,
         pro_lettre: montantTTCEnLettres(ttc),
         pro_enabled: true,
+        pro_remise: total_remise,
       });
-      if (res.status) {
-        ligneArticle.map(async (value) => {
-          const send = await postData(
-            "/api/insert-database/",
-            "t_ligne_proforma",
-            {
-              prol_quantite: value.prol_Quantite,
-              prol_pri_id: value.prol_pri_id,
-              prol_pro_code: value.prol_pro_code,
-              prol_prixunit: value.prol_prixunit,
-              prol_tva: value.prol_montant_tva,
-              prol_totalht: value.prol_TotalHT,
-              prol_art_code: value.prol_Art_Code,
-              prol_cli_code: value.prol_cli_Code,
-            },
-          );
-          if (send.status) {
-            ligne_ok.push(true);
-          } else ligne_ok.push(false);
-        });
-      } else {
-        setAlert({
-          open: true,
-          message: res.error,
-          title: "Une erreur survenue",
-          variant: "error",
-        });
-        return;
-      }
-      if (!ligne_ok.find((val) => val == false)) {
-        fetchCode("t_proforma", true);
-        setAlert({
-          open: true,
-          variant: "success",
-          title: "Opération réussie",
-          message: "Commande enregistrer avec succès",
-        });
-        clear();
-        return;
-      } else {
+      
+      if (!res.status) {
         setAlert({
           open: true,
           variant: "error",
           title: "Une erreur est survenue",
-          message: "Erreur lors de l'enregistrement dans la base de donnée",
+          message: "Une erreur lors de l'enregistrement du proforma",
         });
+
+        return;
       }
+      const resultats = await Promise.all(
+        ligneArticle.map(async (value) => {
+          console.log(value);
+          try {
+            /*
+             * Création du lot
+             */
+            const lot_id = await stockLot({
+              pri_lot: value.prol_uid || "",
+              pri_datePeremption: value.prol_datePer || "",
+              pri_quantite: value.prol_Quantite,
+              pri_article: value.prol_Art_Code,
+            });
+            // /*
+            //  * Création de la ligne d'entrée
+            //  */
+            const send = await postData(
+              "/api/insert-database/",
+              "t_ligne_proforma",
+              {
+                prol_quantite: value.prol_Quantite,
+                prol_pri_id: value.prol_pri_id,
+                prol_pro_code: value.prol_pro_code,
+                prol_prixunit: value.prol_prixunit,
+                prol_tva: value.prol_montant_tva,
+                prol_totalht: value.prol_TotalHT,
+                prol_art_code: value.prol_Art_Code,
+                prol_cli_code: value.prol_cli_Code,
+                prol_totalttc: value.prol_TotalTTC,
+                prol_lot_id: lot_id,
+                prol_lot_code: value.prol_uid,
+                prol_lot_dateper: value.prol_datePer,
+              },
+            );
+
+            if (!send.status) {
+              return false;
+            }
+
+            await handleStock({
+              quantite: value.prol_Quantite,
+              pri_id: value.prol_pri_id,
+              date: today,
+              lot_code: lot_id,
+              article: value.prol_Art_Code,
+              old_stock: value.prol_Quantite ?? 0,
+            });
+
+            return true;
+          } catch (error) {
+            console.error(
+              "Erreur lors de l'enregistrement de la ligne :",
+              value,
+              error,
+            );
+
+            return false;
+          }
+        }),
+      );
+      const toutesLesLignesOK = resultats.every((result) => result === true);
+      if (!toutesLesLignesOK) {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur est survenue",
+          message:
+            "Le proforma a été enregistrer, mais une ou plusieurs lignes n'ont pas pu être enregistrées.",
+        });
+
+        return;
+      }
+
+      /*
+       * 4. Succès
+       */
+      fetchCode("t_proforma", true);
 
       setAlert({
         open: true,
-        message: "Vous avez laisser un (des) champ(s) vide(s)",
-        title: "Une erreur survenue",
-        variant: "error",
+        variant: "success",
+        title: "Opération réussie",
+        message: "Proforma enregistrée avec succès",
       });
+
+      clear();
     } catch (error) {
-      console.error(error);
+      console.error("Erreur handleSubmit :", error);
+
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Une erreur est survenue",
+        message: "Erreur lors de l'enregistrement dans la base de données.",
+      });
     }
   };
 
@@ -859,19 +963,21 @@ export default function NewProformaPage() {
                   className="w-full bg-transparent placeholder-white/70 outline-none"
                 />
               </div>
-              <div>
-                <Label>Mode de commande</Label>
-                <Select
-                  options={enumerationPaye}
-                  onChange={(value) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      pro_modecmd: value,
-                    }))
-                  }
-                  defaultValue="16"
-                />
-              </div>
+              {client.cli_nom != "MAGASIN" && (
+                <div>
+                  <Label>Mode de commande</Label>
+                  <Select
+                    options={enumerationPaye}
+                    onChange={(value) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        pro_modecmd: value,
+                      }))
+                    }
+                    defaultValue="16"
+                  />
+                </div>
+              )}
             </div>
             <Label>Articles</Label>
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
@@ -945,9 +1051,7 @@ export default function NewProformaPage() {
                     value: (items: ProLigneArticle[]) =>
                       items.reduce(
                         (total, article) =>
-                          total +
-                          Number(article.prol_TotalHT || 0) +
-                          Number(article.prol_montant_tva || 0),
+                          total + Number(article.prol_TotalTTC || 0),
                         0,
                       ),
                     suffix: "Ar",
@@ -996,7 +1100,7 @@ export default function NewProformaPage() {
 
           getLots={(article, form) => {
             const quantiteDemandee = Number(form.prol_Quantite || 0);
-
+            console.log("quantiteDemandee => ", quantiteDemandee);
             if (quantiteDemandee <= 0) {
               return [];
             }
@@ -1033,7 +1137,7 @@ export default function NewProformaPage() {
               });
 
             let restant = quantiteDemandee;
-
+            console.log("restant => ", restant);
             const allocations: LotAllocation[] = [];
 
             for (const lot of lotsDisponibles) {
@@ -1053,7 +1157,6 @@ export default function NewProformaPage() {
                 ...lot,
                 quantiteUtilisee,
               });
-
               restant -= quantiteUtilisee;
             }
 
@@ -1083,6 +1186,7 @@ export default function NewProformaPage() {
               prol_TotalHT: totalHT,
 
               prol_TotalTTC: totalTTC,
+              prol_lot_id: lot.lot_id
             };
           }}
 
