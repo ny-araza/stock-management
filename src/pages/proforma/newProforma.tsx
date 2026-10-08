@@ -30,6 +30,15 @@ import GenericArticleModal, {
 import { postData } from "../../services/sendDataService";
 import montantTTCEnLettres from "../../utils/montantEnLettre";
 import Alert from "../../components/ui/alert/Alert";
+import deduireQuantiteLot from "../../utils/updateLot";
+import ValidationProformaModal from "./validationProforma";
+
+interface TotauxProforma {
+  ht: number;
+  tva: number;
+  ttc: number;
+  remise: number;
+}
 
 export default function NewProformaPage() {
   const emptyForm: Proforma = {
@@ -96,7 +105,12 @@ export default function NewProformaPage() {
 
   const [form, setForm] = useState<Proforma>(emptyForm);
   const [client, setClient] = useState<Client>(emptyClient);
-
+  const [totaux, setTotaux] = useState<TotauxProforma>({
+    ht: 0,
+    tva: 0,
+    ttc: 0,
+    remise: 0,
+  });
   const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
   const enumerationPaye: EnumerationOption[] = payementEnum.map(
     (item: Enumeration) => ({
@@ -301,6 +315,50 @@ export default function NewProformaPage() {
     setEditingUid(null);
   };
 
+  const calculerTotaux = (lignes: ProLigneArticle[]): TotauxProforma => {
+    const remise = lignes.reduce(
+      (total, article) => total + Number(article.prol_montant_remise || 0),
+      0,
+    );
+
+    const htBrut = lignes.reduce(
+      (total, article) => total + Number(article.prol_TotalHT || 0),
+      0,
+    );
+
+    const ht = htBrut - remise;
+
+    const tva = lignes.reduce(
+      (total, article) => total + Number(article.prol_montant_tva || 0),
+      0,
+    );
+
+    const ttc = ht + tva;
+
+    return {
+      ht: Math.max(0, ht),
+      tva,
+      ttc: Math.max(0, ttc),
+      remise,
+    };
+  };
+
+  const calculerEtStockerTotaux = () => {
+    const result = calculerTotaux(ligneArticle);
+    console.log(result)
+
+    setForm((prev) => ({
+      ...prev,
+      pro_montant_ht: result.ht,
+      pro_montant_ttc: result.ttc,
+      pro_tva: result.tva,
+      pro_remise: result.remise,
+    }));
+
+
+    return result;
+  };
+
   const ajouterArticles = (articles: ProLigneArticle[]) => {
     console.log("Articles reçus :", articles);
 
@@ -332,8 +390,7 @@ export default function NewProformaPage() {
 
         // Lot différent pour chaque ligne
         prol_lot: article.prol_lot || "",
-        prol_id: article.prol_lot_id
-        
+        prol_id: article.prol_lot_id,
       }));
 
       return [...prev, ...nouveauxArticles];
@@ -467,12 +524,6 @@ export default function NewProformaPage() {
       parseValue: Number,
     },
     {
-      name: "prol_datePer",
-      label: "Date de Péremption",
-      type: "date",
-      parseValue: String,
-    },
-    {
       name: "prol_TotalHT",
       label: "Total HT",
       type: "text",
@@ -586,14 +637,17 @@ export default function NewProformaPage() {
   };
 
   const stockLot = async (data: any) => {
-    const res = await postData("/api/insert-database/", "t_lot", {
-      lot_enabled: true,
-      lot_code: data.pri_lot,
-      lot_dateper: data.pri_datePeremption,
-      lot_art_quantite: data.pri_quantite,
-      lot_art_code: data.pri_article,
-    });
-    return res.id;
+    try {
+      const result = await deduireQuantiteLot(
+        data.lot_id,
+        data.lot_art_code,
+        data.lot_quantite,
+      );
+
+      console.log("Déduction réussie :", result);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleStock = async (stk: any) => {
@@ -615,34 +669,13 @@ export default function NewProformaPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     try {
-      const ligne_ok: boolean[] = [];
       if (ligneArticle.length == 0 || !form || !client) {
         throw Error("Vous avz laisser des champs vides");
       }
-      const total_remise = ligneArticle.reduce(
-        (total, article) => total + Number(article.prol_montant_remise || 0),
-        0,
-      );
-      const ht =
-        ligneArticle.reduce(
-          (total, article) => total + Number(article.prol_TotalHT || 0),
-          0,
-        ) - total_remise || 0;
-      const total_tva = ligneArticle.reduce(
-        (total, article) => total + Number(article.prol_montant_tva || 0),
-        0,
-      );
-      const ttc = ligneArticle.reduce(
-        (total, article) =>
-          total +
-          Number(article.prol_TotalHT || 0) +
-          Number(article.prol_montant_tva || 0),
-        0,
-      );
-      if (ttc === 0) {
+
+      if (form.pro_montant_ttc === 0) {
         setAlert({
           open: true,
           message: "Le montant total HT doit être supérieur à 0.",
@@ -656,17 +689,17 @@ export default function NewProformaPage() {
         pro_code: form.pro_code,
         pro_modecmd: form.pro_modecmd,
         pro_dateliv: form.pro_dateliv || null,
-        pro_montant_ht: ht,
-        pro_montant_ttc: ttc,
-        pro_tva: total_tva,
+        pro_montant_ht: form.pro_montant_ht,
+        pro_montant_ttc: form.pro_montant_ttc,
+        pro_tva: form.pro_tva,
         pro_islivre: false,
         pro_cli_code: client.cli_code,
         pro_date: today,
-        pro_lettre: montantTTCEnLettres(ttc),
+        pro_lettre: montantTTCEnLettres(form.pro_montant_ttc),
         pro_enabled: true,
-        pro_remise: total_remise,
+        pro_remise: form.pro_remise,
       });
-      
+
       if (!res.status) {
         setAlert({
           open: true,
@@ -681,18 +714,6 @@ export default function NewProformaPage() {
         ligneArticle.map(async (value) => {
           console.log(value);
           try {
-            /*
-             * Création du lot
-             */
-            const lot_id = await stockLot({
-              pri_lot: value.prol_uid || "",
-              pri_datePeremption: value.prol_datePer || "",
-              pri_quantite: value.prol_Quantite,
-              pri_article: value.prol_Art_Code,
-            });
-            // /*
-            //  * Création de la ligne d'entrée
-            //  */
             const send = await postData(
               "/api/insert-database/",
               "t_ligne_proforma",
@@ -706,7 +727,7 @@ export default function NewProformaPage() {
                 prol_art_code: value.prol_Art_Code,
                 prol_cli_code: value.prol_cli_Code,
                 prol_totalttc: value.prol_TotalTTC,
-                prol_lot_id: lot_id,
+                prol_lot_id: value.prol_lot_id,
                 prol_lot_code: value.prol_uid,
                 prol_lot_dateper: value.prol_datePer,
               },
@@ -720,9 +741,15 @@ export default function NewProformaPage() {
               quantite: value.prol_Quantite,
               pri_id: value.prol_pri_id,
               date: today,
-              lot_code: lot_id,
+              lot_code: value.prol_lot_id,
               article: value.prol_Art_Code,
               old_stock: value.prol_Quantite ?? 0,
+            });
+
+            await stockLot({
+              lot_id: value.prol_lot_id,
+              lot_art_code: value.prol_Art_Code,
+              lot_quantite: value.prol_Quantite,
             });
 
             return true;
@@ -779,6 +806,7 @@ export default function NewProformaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUid, setEditingUid] = useState<string | null>(null);
   const [ligneArticle, setLigneArticle] = useState<ProLigneArticle[]>([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
 
   const openGenericModal = () => {
     setArticle(null);
@@ -1063,7 +1091,11 @@ export default function NewProformaPage() {
               <Button
                 className="md:w-50 sm:w-auto md:mr-3"
                 variant="primary"
-                type="submit"
+                type="button"
+                onClick={() => {
+                  calculerEtStockerTotaux();
+                  setShowValidationModal(true)
+                }}
               >
                 Valider
               </Button>
@@ -1186,7 +1218,7 @@ export default function NewProformaPage() {
               prol_TotalHT: totalHT,
 
               prol_TotalTTC: totalTTC,
-              prol_lot_id: lot.lot_id
+              prol_lot_id: lot.lot_id,
             };
           }}
 
@@ -1196,6 +1228,19 @@ export default function NewProformaPage() {
           titleEdit="Modifier l'article"
         />
         <NewClts isOpen={openModalClt} onClose={() => setOpenMOdalClt(false)} />
+        <ValidationProformaModal
+          isOpen={showValidationModal}
+          onClose={() => setShowValidationModal(false)}
+          form={form}
+          ligneArticle={ligneArticle}
+          onGeneratePdf={() => {
+            console.log("Génération PDF", form.pro_code);
+          }}
+          onValidate={() => {
+            handleSubmit();
+            setShowValidationModal(false);
+          }}
+        />
         <Alert
           open={alert.open}
           variant={alert.variant}

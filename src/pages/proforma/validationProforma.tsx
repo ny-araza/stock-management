@@ -93,6 +93,24 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
                 {ligneArticle.length}
               </p>
             </div>
+
+            <div>
+              <span className="text-gray-500 dark:text-gray-400">Total HT</span>
+
+              <p className="font-medium text-gray-800 dark:text-white">
+                {form.pro_montant_ht.toLocaleString("fr-FR")}
+              </p>
+            </div>
+
+            <div>
+              <span className="text-gray-500 dark:text-gray-400">
+                Total TTC
+              </span>
+
+              <p className="font-medium text-gray-800 dark:text-white">
+                {form.pro_montant_ttc.toLocaleString("fr-FR")}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -113,7 +131,7 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
             onClick={onValidate}
             className="w-full"
           >
-            Enregistrer le proforma
+           Enregistrer le proforma
           </Button>
 
           <Button
