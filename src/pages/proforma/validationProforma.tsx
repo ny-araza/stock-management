@@ -4,6 +4,9 @@ import Button from "../../components/ui/button/Button";
 import ProformaPrint from "../Home/modal/utils/printFacture";
 import { Proforma, Client, ProLigneArticle } from "../../interfaces/interfaces";
 import ProformaPdfButton from "./buttonGenerateProforma";
+import html2canvas from "html2canvas";
+import { useRef } from "react";
+import { generateProformaPdf } from "./generatePdf";
 
 interface ValidationProformaModalProps {
   isOpen: boolean;
@@ -25,12 +28,40 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
   /**
    * Impression directe de la page
    */
-  const handlePrint = () => {
-    window.print();
+  const handleExportPng = async () => {
+    if (!proformaRef.current) return;
+
+    const canvas = await html2canvas(proformaRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+
+    const link = document.createElement("a");
+
+    link.download = `Proforma_${form.pro_code}.png`;
+    link.href = canvas.toDataURL("image/png");
+
+    link.click();
+
+    onValidate();
   };
 
+  const generatePdf = async () => {
+    const company = {
+      nom: "AUTRE SOCIÉTÉ",
+      adresse: "Toamasina, Madagascar",
+      tel: "+261 34 00 000 00",
+      email: "info@autre.mg",
+    };
+    const fileName = `Proforma_${form.pro_code}`;
+    generateProformaPdf({ form, client, ligneArticle, company, fileName });
 
-  
+    onValidate();
+  };
+
+  const proformaRef = useRef<HTMLDivElement>(null);
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[1200px] m-4">
       <div className="relative flex max-h-[95vh] w-full flex-col overflow-hidden rounded-3xl bg-white dark:bg-gray-900">
@@ -53,11 +84,13 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
         {/* ========================================================= */}
 
         <div className="flex-1 overflow-y-auto bg-gray-100 p-4 dark:bg-gray-950 print:overflow-visible print:bg-white print:p-0">
-          <ProformaPrint
-            form={form}
-            client={client}
-            ligneArticle={ligneArticle}
-          />
+          <div ref={proformaRef} className="bg-white">
+            <ProformaPrint
+              form={form}
+              client={client}
+              ligneArticle={ligneArticle}
+            />
+          </div>
         </div>
 
         {/* ========================================================= */}
@@ -66,29 +99,26 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
 
         <div className="shrink-0 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 print:hidden">
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-            {/* Imprimer */}
-            <Button size="sm" type="button" onClick={handlePrint}>
-              Imprimer
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={handleExportPng}
+            >
+              Exporter PNG
             </Button>
 
-            {/* Générer PDF */}
-            <ProformaPdfButton
-              form={form}
-              client={client}
-              ligneArticle={ligneArticle}
-              company={{
-                nom: "AUTRE SOCIÉTÉ",
-                adresse: "Toamasina, Madagascar",
-                tel: "+261 34 00 000 00",
-                email: "info@autre.mg",
-              }}
-              fileName={`Proforma_${form.pro_code}`}
-              label="Exporter en PDF"
-            />
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={generatePdf}
+            >
+              Exporter PDF
+            </Button>
 
-            {/* Enregistrer */}
             <Button size="sm" type="button" onClick={onValidate}>
-              💾 Enregistrer le proforma
+              Enregistrer le proforma
             </Button>
 
             {/* Annuler */}
