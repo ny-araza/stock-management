@@ -32,6 +32,9 @@ import montantTTCEnLettres from "../../utils/montantEnLettre";
 import Alert from "../../components/ui/alert/Alert";
 import deduireQuantiteLot from "../../utils/updateLot";
 import ValidationProformaModal from "./validationProforma";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { generateProformaPdf } from "./generatePdf";
 
 interface TotauxProforma {
   ht: number;
@@ -316,36 +319,28 @@ export default function NewProformaPage() {
   };
 
   const calculerTotaux = (lignes: ProLigneArticle[]): TotauxProforma => {
-    const remise = lignes.reduce(
-      (total, article) => total + Number(article.prol_montant_remise || 0),
-      0,
-    );
+    const sum = (fn: (a: ProLigneArticle) => number) =>
+      lignes.reduce((t, a) => t + (Number(fn(a)) || 0), 0);
 
-    const htBrut = lignes.reduce(
-      (total, article) => total + Number(article.prol_TotalHT || 0),
-      0,
-    );
-
-    const ht = htBrut - remise;
-
-    const tva = lignes.reduce(
-      (total, article) => total + Number(article.prol_montant_tva || 0),
-      0,
-    );
-
-    const ttc = ht + tva;
+    const ht = sum((a) => a.prol_TotalHT); // déjà net de remise
+    const remise = sum((a) => a.prol_montant_remise);
+    const tva = sum((a) => a.prol_montant_tva);
 
     return {
-      ht: Math.max(0, ht),
-      tva,
-      ttc: Math.max(0, ttc),
-      remise,
+      htBrut: Math.round(ht + remise), // pour affichage
+      remise: Math.round(remise),
+      ht: Math.round(ht),
+      tva: Math.round(tva),
+      ttc: Math.round(ht + tva),
     };
   };
 
   const calculerEtStockerTotaux = () => {
     const result = calculerTotaux(ligneArticle);
-    console.log(result)
+    console.log(result);
+    const today = new Date().toISOString().split("T")[0];
+
+    setTotaux(result);
 
     setForm((prev) => ({
       ...prev,
@@ -353,8 +348,9 @@ export default function NewProformaPage() {
       pro_montant_ttc: result.ttc,
       pro_tva: result.tva,
       pro_remise: result.remise,
+      pro_lettre: montantTTCEnLettres(result.ttc),
+      pro_date: today,
     }));
-
 
     return result;
   };
@@ -536,36 +532,20 @@ export default function NewProformaPage() {
   const calculation: ArticleCalculation<ProLigneArticle> = {
     calculate: (form) => {
       const quantite = Number(form.prol_Quantite) || 0;
-
       const pua = Number(form.prol_prixunit) || 0;
-
-      const remise = Number(form.prol_remise) || 0;
+      const remise = Math.min(100, Math.max(0, Number(form.prol_remise) || 0));
+      const tauxTva = Number(form.prol_Tva) || 0;
 
       const totalBrut = quantite * pua;
-
       const montantRemise = totalBrut * (remise / 100);
-
       const totalHT = totalBrut - montantRemise;
-
-      const tva = totalHT * (Number(form.prol_Tva) / 100);
-
-      const totalTTC = totalHT + tva;
-
-      console.log(
-        pua,
-        remise,
-        totalBrut,
-        montantRemise,
-        totalHT,
-        tva,
-        totalTTC,
-      );
+      const tva = totalHT * (tauxTva / 100);
 
       return {
-        prol_TotalHT: totalHT,
-        prol_montant_tva: tva,
-        prol_TotalTTC: totalTTC,
-        prol_montant_remise: montantRemise,
+        prol_TotalHT: Math.round(totalHT),
+        prol_montant_tva: Math.round(tva),
+        prol_TotalTTC: Math.round(totalHT + tva),
+        prol_montant_remise: Math.round(montantRemise),
       };
     },
   };
@@ -1041,47 +1021,26 @@ export default function NewProformaPage() {
                   {
                     label: "TOTAL HT",
                     value: (items: ProLigneArticle[]) =>
-                      items.reduce(
-                        (total, article) =>
-                          total + Number(article.prol_TotalHT || 0),
-                        0,
-                      ) -
-                      items.reduce(
-                        (total, article) =>
-                          total + Number(article.prol_montant_remise || 0),
-                        0,
-                      ),
+                      calculerTotaux(items).ht,
                     suffix: "Ar",
                   },
                   {
                     label: "TOTAL REMISE",
                     value: (items: ProLigneArticle[]) =>
-                      items.reduce(
-                        (total, article) =>
-                          total + Number(article.prol_montant_remise || 0),
-                        0,
-                      ),
+                      calculerTotaux(items).remise * -1,
                     suffix: "Ar",
                   },
                   {
                     label: "TOTAL TVA",
                     value: (items: ProLigneArticle[]) =>
-                      items.reduce(
-                        (total, article) =>
-                          total + Number(article.prol_montant_tva || 0),
-                        0,
-                      ),
+                      calculerTotaux(items).tva,
                     suffix: "Ar",
                   },
 
                   {
                     label: "TOTAL TTC",
                     value: (items: ProLigneArticle[]) =>
-                      items.reduce(
-                        (total, article) =>
-                          total + Number(article.prol_TotalTTC || 0),
-                        0,
-                      ),
+                      calculerTotaux(items).ttc,
                     suffix: "Ar",
                   },
                 ]}
@@ -1094,7 +1053,7 @@ export default function NewProformaPage() {
                 type="button"
                 onClick={() => {
                   calculerEtStockerTotaux();
-                  setShowValidationModal(true)
+                  setShowValidationModal(true);
                 }}
               >
                 Valider
@@ -1232,10 +1191,8 @@ export default function NewProformaPage() {
           isOpen={showValidationModal}
           onClose={() => setShowValidationModal(false)}
           form={form}
+          client={client}
           ligneArticle={ligneArticle}
-          onGeneratePdf={() => {
-            console.log("Génération PDF", form.pro_code);
-          }}
           onValidate={() => {
             handleSubmit();
             setShowValidationModal(false);
