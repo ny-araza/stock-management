@@ -32,9 +32,6 @@ import montantTTCEnLettres from "../../utils/montantEnLettre";
 import Alert from "../../components/ui/alert/Alert";
 import deduireQuantiteLot from "../../utils/updateLot";
 import ValidationProformaModal from "./validationProforma";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { generateProformaPdf } from "./generatePdf";
 
 interface TotauxProforma {
   ht: number;
@@ -323,8 +320,8 @@ export default function NewProformaPage() {
       lignes.reduce((t, a) => t + (Number(fn(a)) || 0), 0);
 
     const ht = sum((a) => a.prol_TotalHT); // déjà net de remise
-    const remise = sum((a) => a.prol_montant_remise);
-    const tva = sum((a) => a.prol_montant_tva);
+    const remise = sum((a) => a.prol_montant_remise || 0);
+    const tva = sum((a) => a.prol_montant_tva || 0);
 
     return {
       htBrut: Math.round(ht + remise), // pour affichage
@@ -700,9 +697,9 @@ export default function NewProformaPage() {
               {
                 prol_quantite: value.prol_Quantite,
                 prol_pri_id: value.prol_pri_id,
-                prol_pro_code: value.prol_pro_code,
+                prol_pro_code: form.pro_code,
                 prol_prixunit: value.prol_prixunit,
-                prol_tva: value.prol_montant_tva,
+                prol_tva: value.prol_Tva,
                 prol_totalht: value.prol_TotalHT,
                 prol_art_code: value.prol_Art_Code,
                 prol_cli_code: value.prol_cli_Code,
@@ -726,11 +723,11 @@ export default function NewProformaPage() {
               old_stock: value.prol_Quantite ?? 0,
             });
 
-            await stockLot({
-              lot_id: value.prol_lot_id,
-              lot_art_code: value.prol_Art_Code,
-              lot_quantite: value.prol_Quantite,
-            });
+            // await stockLot({
+            //   lot_id: value.prol_lot_id,
+            //   lot_art_code: value.prol_Art_Code,
+            //   lot_quantite: value.prol_Quantite,
+            // });
 
             return true;
           } catch (error) {
@@ -790,7 +787,6 @@ export default function NewProformaPage() {
 
   const openGenericModal = () => {
     setArticle(null);
-    console.log(emptyArticle);
     setModalOpen(true);
     setEditingUid(null);
   };

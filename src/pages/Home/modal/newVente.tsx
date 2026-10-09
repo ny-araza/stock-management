@@ -874,7 +874,6 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
     fetchModePaye("MODE_PAY");
     fetchPayeClt("PAYE_CLIENT");
     setField("payeClient", "16");
-    console.log(values.payeClient);
     setField("modePaye", "1");
     setField("dateEcheance", "");
   }, [isOpen]);

@@ -1,6 +1,5 @@
 import Entry from "./modal/newEntry";
 import { useState } from "react";
-import NewCommandFrns from "./modal/newCommandFrns";
 import Sortit from "./modal/newSortit";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -16,7 +15,6 @@ import {
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import AnimatedButton from "./animeButton";
-import NewVente from "./modal/newVente";
 import NewRetourFrns from "./modal/newRetourFrns";
 import NewRetourClient from "./modal/newRetourClient";
 import { useAuth } from "../../services/authLogin";
@@ -172,19 +170,15 @@ export default function PageAccueil() {
         )}
         {hasAccess("vente") && (
           <>
-            <AnimatedButton
-              onClick={() => open("vente")}
-              icon={
-                <FontAwesomeIcon icon={faCartShopping} className="text-6xl" />
-              }
-            >
-              Nouvelle commande client
-            </AnimatedButton>
-            <NewVente
-              isOpen={openModal == "vente"}
-              onClose={close}
-              className="max-w-[900px] m-4"
-            />
+            <Link to={"/new-vente"}>
+              <AnimatedButton
+                icon={
+                  <FontAwesomeIcon icon={faCartShopping} className="text-6xl" />
+                }
+              >
+                Nouvelle commande client
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {/* <!-- Metric Item Start --> */}
@@ -232,12 +226,7 @@ export default function PageAccueil() {
           <>
             <Link to={"/new-proforma"}>
               <AnimatedButton
-                icon={
-                  <FontAwesomeIcon
-                    icon={faFileAlt}
-                    className="text-6xl"
-                  />
-                }
+                icon={<FontAwesomeIcon icon={faFileAlt} className="text-6xl" />}
               >
                 Nouveau Proforma
               </AnimatedButton>

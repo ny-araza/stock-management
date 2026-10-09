@@ -428,84 +428,94 @@ export default function NewLivFrnsPage() {
     console.log("Mode :", editingUid ? "MODIFICATION" : "AJOUT");
     console.log(editingUid);
 
-    setForm((prev) => {
-      // =====================================================
-      // 1. MODIFICATION D'UNE LIGNE EXISTANTE
-      // =====================================================
-      if (editingUid) {
+    if (nouvelArticle.cmfl_datePer) {
+      setForm((prev) => {
+        // =====================================================
+        // 1. MODIFICATION D'UNE LIGNE EXISTANTE
+        // =====================================================
+        if (editingUid) {
+          return {
+            ...prev,
+            ligne: prev.ligne.map((item) =>
+              item.cmfl_uid === editingUid
+                ? {
+                    ...item,
+                    ...nouvelArticle,
+
+                    // On conserve l'UID de la ligne existante
+                    cmfl_uid: editingUid,
+
+                    // On conserve les informations du BC
+                    cmfl_cmf_code: prev.cmf_code,
+                    cmfl_fou_Code: prev.cmf_fou_code,
+                    cmfl_id: nouvelArticle.cmfl_id,
+
+                    // Normalisation
+                    cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
+                    cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
+                    cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
+                    cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
+                    cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
+                    cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+                    cmfl_datePer: nouvelArticle.cmfl_datePer || "",
+                    cmfl_remise: nouvelArticle.cmfl_remise,
+                  }
+                : item,
+            ),
+          };
+        }
+
+        // =====================================================
+        // 2. AJOUT D'UNE NOUVELLE LIGNE
+        // =====================================================
+
+        const newArticle: CFLigneArticle = {
+          ...nouvelArticle,
+          // Nouvel UID uniquement pour cette nouvelle ligne
+          cmfl_uid:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random()}`,
+
+          // Informations du BC
+          cmfl_cmf_code: prev.cmf_code,
+          cmfl_fou_Code: prev.cmf_fou_code,
+          cmfl_id: nouvelArticle.cmfl_id,
+
+          // Normalisation
+          cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
+          cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
+          cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
+          cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
+          cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
+          cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
+          cmfl_datePer: nouvelArticle.cmfl_datePer || "",
+          cmfl_remise: nouvelArticle.cmfl_remise || 0,
+        };
+
         return {
           ...prev,
-          ligne: prev.ligne.map((item) =>
-            item.cmfl_uid === editingUid
-              ? {
-                  ...item,
-                  ...nouvelArticle,
-
-                  // On conserve l'UID de la ligne existante
-                  cmfl_uid: editingUid,
-
-                  // On conserve les informations du BC
-                  cmfl_cmf_code: prev.cmf_code,
-                  cmfl_fou_Code: prev.cmf_fou_code,
-                  cmfl_id: nouvelArticle.cmfl_id,
-
-                  // Normalisation
-                  cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
-                  cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
-                  cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
-                  cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
-                  cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
-                  cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
-                  cmfl_datePer: nouvelArticle.cmfl_datePer || "",
-                  cmfl_remise: nouvelArticle.cmfl_remise,
-                }
-              : item,
-          ),
+          ligne: [...prev.ligne, newArticle],
         };
-      }
+      });
 
-      // =====================================================
-      // 2. AJOUT D'UNE NOUVELLE LIGNE
-      // =====================================================
+      // Fermer le modal
+      setModalOpen(false);
 
-      const newArticle: CFLigneArticle = {
-        ...nouvelArticle,
-        // Nouvel UID uniquement pour cette nouvelle ligne
-        cmfl_uid:
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random()}`,
+      // Réinitialiser l'article sélectionné
+      setArticle(null);
 
-        // Informations du BC
-        cmfl_cmf_code: prev.cmf_code,
-        cmfl_fou_Code: prev.cmf_fou_code,
-        cmfl_id: nouvelArticle.cmfl_id,
-
-        // Normalisation
-        cmfl_pri_id: Number(nouvelArticle.cmfl_pri_id || 0),
-        cmfl_Quantite: Number(nouvelArticle.cmfl_Quantite || 0),
-        cmfl_PrixAchat: Number(nouvelArticle.cmfl_PrixAchat || 0),
-        cmfl_Tva: Number(nouvelArticle.cmfl_Tva || 0),
-        cmfl_TotalHT: Number(nouvelArticle.cmfl_TotalHT || 0),
-        cmfl_TotalTTC: Number(nouvelArticle.cmfl_TotalTTC || 0),
-        cmfl_datePer: nouvelArticle.cmfl_datePer || "",
-        cmfl_remise: nouvelArticle.cmfl_remise || 0,
-      };
-
-      return {
-        ...prev,
-        ligne: [...prev.ligne, newArticle],
-      };
-    });
-
-    // Fermer le modal
-    setModalOpen(false);
-
-    // Réinitialiser l'article sélectionné
-    setArticle(null);
-
-    // IMPORTANT : réinitialiser le mode édition
-    setEditingUid(null);
+      // IMPORTANT : réinitialiser le mode édition
+      setEditingUid(null);
+    } else {
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Une erreur est survenue",
+        message:
+          "La date de peremption doit être rempli",
+      });
+    }
   };
 
   // Article Modal

@@ -3,7 +3,6 @@ import { Modal } from "../../components/ui/modal";
 import Button from "../../components/ui/button/Button";
 import ProformaPrint from "../Home/modal/utils/printFacture";
 import { Proforma, Client, ProLigneArticle } from "../../interfaces/interfaces";
-import ProformaPdfButton from "./buttonGenerateProforma";
 import html2canvas from "html2canvas";
 import { useRef } from "react";
 import { generateProformaPdf } from "./generatePdf";
@@ -25,9 +24,7 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
   ligneArticle,
   onValidate,
 }) => {
-  /**
-   * Impression directe de la page
-   */
+
   const handleExportPng = async () => {
     if (!proformaRef.current) return;
 
@@ -65,9 +62,6 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[1200px] m-4">
       <div className="relative flex max-h-[95vh] w-full flex-col overflow-hidden rounded-3xl bg-white dark:bg-gray-900">
-        {/* ========================================================= */}
-        {/* EN-TÊTE DU MODAL */}
-        {/* ========================================================= */}
 
         <div className="shrink-0 border-b border-gray-200 px-6 py-4 dark:border-gray-800 print:hidden">
           <h4 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
@@ -79,10 +73,6 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
           </p>
         </div>
 
-        {/* ========================================================= */}
-        {/* PAGE PRINT */}
-        {/* ========================================================= */}
-
         <div className="flex-1 overflow-y-auto bg-gray-100 p-4 dark:bg-gray-950 print:overflow-visible print:bg-white print:p-0">
           <div ref={proformaRef} className="bg-white">
             <ProformaPrint
@@ -92,10 +82,6 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
             />
           </div>
         </div>
-
-        {/* ========================================================= */}
-        {/* ACTIONS */}
-        {/* ========================================================= */}
 
         <div className="shrink-0 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 print:hidden">
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -121,7 +107,6 @@ const ValidationProformaModal: React.FC<ValidationProformaModalProps> = ({
               Enregistrer le proforma
             </Button>
 
-            {/* Annuler */}
             <Button size="sm" variant="outline" type="button" onClick={onClose}>
               Annuler
             </Button>

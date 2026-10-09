@@ -62,6 +62,28 @@ export interface ListeVente {
   ve_proforma: string;
 }
 
+export interface ListeVenteProforma {
+  pro_id: number;
+  pro_code: string;
+  pro_datecre: string;
+  pro_datemdf: string;
+  pro_usercre: string;
+  pro_usermdf: string;
+  pro_date: string;
+  pro_modecmd: string;
+  pro_dateliv: string;
+  pro_enabled: 1;
+  pro_montant_ht: number;
+  pro_montant_ttc: number;
+  pro_islivre: boolean;
+  pro_cli_code: string;
+  pro_lettre: string;
+  pro_tva: number;
+  pro_remise: number;
+  client: Client;
+  ligne: ProLigneArticle[];
+}
+
 export interface Proforma {
   pro_id: number;
   pro_code: string;

@@ -24,19 +24,19 @@ import { useModal } from "../../hooks/useModal";
 import { Modal } from "../../components/ui/modal";
 
 export interface VenteLigne {
+  art_nom?: string;
   vtel_id: number;
   vtel_datecre: string;
   vtel_datemdf: string | null;
   vtel_usercre: string;
   vtel_usermdf: string | null;
   vtel_quantite: number;
-  vtel_prixunit: string;
-  vtel_ttc: string;
+  vtel_prixunit: number;
+  vtel_ttc: number;
   vtel_art_code: string;
   vtel_pri_id: number;
-  vtel_tva: string;
-  vtel_vte_code: string;
-  vtel_ht: string;
+  vtel_tva: number;
+  vtel_ht: number;
   vtel_fou_code: string;
   vtel_lot_id: string;
   vtel_lot_code: string;
@@ -45,7 +45,12 @@ export interface VenteLigne {
   vtel_prix: string;
   vtel_cli_code: string;
   vtel_vte_code: string;
-  vtel_remise: string;
+  vtel_remise: number;
+  vtel_montant_tva?: number;
+  vtel_montant_remise?: number;
+  vtel_uid?: string;
+  vtel_quantite_stock?: number;
+  vtel_lot?: string;
 }
 
 export interface ListeVente {
@@ -518,8 +523,6 @@ export default function VentesTable() {
     }),
     [],
   );
-
-  
 
   // fetch avec search + filtres AgGrid (envoyes au backend)
   const fetchVentes = useCallback(
