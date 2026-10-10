@@ -38,7 +38,7 @@ export interface VenteLigne {
   vtel_tva: number;
   vtel_ht: number;
   vtel_fou_code: string;
-  vtel_lot_id: string;
+  vtel_lot_id: number;
   vtel_lot_code: string;
   vtel_lot_dateper: string;
   vtel_dateper: string | null;

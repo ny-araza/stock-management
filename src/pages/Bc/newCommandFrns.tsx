@@ -405,6 +405,9 @@ export default function NewCmdFrnsPage() {
       type: "number",
       min: 0,
       parseValue: Number,
+      getValue: (article: CFLigneArticle) =>
+        article.cmfl_Quantite || "",
+      placeholder: "Quantité à commander"
     },
 
     {

@@ -512,8 +512,7 @@ export default function NewLivFrnsPage() {
         open: true,
         variant: "error",
         title: "Une erreur est survenue",
-        message:
-          "La date de peremption doit être rempli",
+        message: "La date de peremption doit être rempli",
       });
     }
   };
@@ -534,6 +533,8 @@ export default function NewLivFrnsPage() {
       type: "number",
       min: 0,
       parseValue: Number,
+      getValue: (article: CFLigneArticle) => article.cmfl_Quantite || "",
+      placeholder: "Quantité à entrer",
     },
 
     {
@@ -793,32 +794,6 @@ export default function NewLivFrnsPage() {
 
       const today = new Date().toISOString().split("T")[0];
 
-      const res = await postData("/api/insert-database/", "t_entree", {
-        ent_code: values.codeBl,
-        ent_modepaye: values.modeCmd ?? "0",
-        ent_datepay: values.datePaiement,
-        ent_montant_ht: Math.round(ht),
-        ent_montant_ttc: Math.round(ttc),
-        ent_fou_code: form.fournisseur.fou_code,
-        ent_date: today,
-        ent_facture: values.facture,
-        ent_cmf_code: form.cmf_code,
-        ent_is_paye: false,
-      });
-
-      if (!res.status) {
-        setAlert({
-          open: true,
-          message: res.error,
-          title: "Une erreur est survenue",
-          variant: "error",
-        });
-        return;
-      }
-
-      /*
-       * 2. Enregistrement de toutes les lignes
-       */
       const resultats = await Promise.all(
         form.ligne.map(async (value) => {
           console.log(value);
@@ -826,6 +801,10 @@ export default function NewLivFrnsPage() {
             /*
              * Création du lot
              */
+            if (!value.cmfl_datePer) {
+              throw Error("La date de peremeption est obligatoire");
+              return false
+            }
             const lot_id = await stockLot({
               pri_lot: value.cmfl_uid || "",
               pri_datePeremption: value.cmfl_datePer || "",
@@ -918,12 +897,37 @@ export default function NewLivFrnsPage() {
           open: true,
           variant: "error",
           title: "Une erreur est survenue",
-          message:
-            "La livraison a été créée, mais une ou plusieurs lignes n'ont pas pu être enregistrées.",
+          message: "Une erreur est survenue dans la liste des articles",
         });
 
         return;
       }
+      const res = await postData("/api/insert-database/", "t_entree", {
+        ent_code: values.codeBl,
+        ent_modepaye: values.modeCmd ?? "0",
+        ent_datepay: values.datePaiement,
+        ent_montant_ht: Math.round(ht),
+        ent_montant_ttc: Math.round(ttc),
+        ent_fou_code: form.fournisseur.fou_code,
+        ent_date: today,
+        ent_facture: values.facture,
+        ent_cmf_code: form.cmf_code,
+        ent_is_paye: false,
+      });
+
+      if (!res.status) {
+        setAlert({
+          open: true,
+          message: res.error,
+          title: "Une erreur est survenue",
+          variant: "error",
+        });
+        return;
+      }
+
+      /*
+       * 2. Enregistrement de toutes les lignes
+       */
 
       /*
        * 4. Succès

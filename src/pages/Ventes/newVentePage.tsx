@@ -28,8 +28,20 @@ import GenericArticleModal, {
   LotAllocation,
 } from "../Home/modal/utils/articleGenericModal";
 import montantTTCEnLettres from "../../utils/montantEnLettre";
+import { postData } from "../../services/sendDataService";
+import deduireQuantiteLot from "../../utils/updateLot";
+import Alert from "../../components/ui/alert/Alert";
 
 export default function NewVentePage() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const [alert, setAlert] = useState({
+    open: false,
+    variant: "success" as "success" | "error" | "warning" | "info",
+    title: "",
+    message: "",
+  });
+
   const emptyVente: ListeVente = {
     vte_id: 0,
     vte_code: "",
@@ -37,15 +49,15 @@ export default function NewVentePage() {
     vte_datemd: "",
     vte_usercre: "",
     vte_usermdf: "",
-    vte_date: "",
-    vte_modepaye: "",
+    vte_date: today,
+    vte_modepaye: "1",
     vte_montant_ht: "",
     vte_montant_ttc: "",
     vte_tva: 0,
     vte_cli_code: "",
     vte_cli_nom: "",
     vte_cli_contact: "",
-    vte_payeclient: "",
+    vte_payeclient: "16",
     vte_datepay: "",
     vte_telmoney: "",
     vte_valide: false,
@@ -54,7 +66,7 @@ export default function NewVentePage() {
     vte_livreur: "",
     vet_operateur: "",
     vte_lettremontant: "",
-    ve_dateecheance: "",
+    ve_dateecheance: today,
     ve_code_bl: "",
     ve_adresse_liv: "",
     ve_remise: 0,
@@ -105,7 +117,7 @@ export default function NewVentePage() {
     vtel_remise: 0,
   };
 
-  const emptyForm: Proforma = {
+  const emptyForm: ListeVenteProforma = {
     pro_cli_code: "",
     pro_code: "",
     pro_date: "",
@@ -195,7 +207,6 @@ export default function NewVentePage() {
     skipSearch.current = true;
     setSearchProforma(a.pro_code);
     console.log(a);
-    a.ligne.map((item) => console.log(item.prol_tva, item.prol_montant_tva))
     setProforma(a);
     setSearchClt(a.client.cli_nom);
     setClient(a.client);
@@ -216,7 +227,7 @@ export default function NewVentePage() {
         vtel_ht: ligne.prol_totalht,
         vtel_montant_tva: ligne.prol_montant_tva,
         vtel_fou_code: "",
-        vtel_lot_id: String(ligne.prol_lot_id ?? ""),
+        vtel_lot_id: ligne.prol_lot_id,
         vtel_lot_code: ligne.prol_lot ?? "",
         vtel_lot_dateper: ligne.prol_datePer ?? "",
         vtel_dateper: ligne.prol_datePer ?? null,
@@ -272,6 +283,7 @@ export default function NewVentePage() {
       );
       if (res.status) {
         setSuggestionsProforma(res.proforma);
+        console.log(res.proforma);
         setShowSuggestionsProforma(true);
       }
     } catch (err) {
@@ -390,8 +402,15 @@ export default function NewVentePage() {
     const remise = sum((a) => a.vtel_montant_remise || 0);
     const tva = sum((a) => a.vtel_montant_tva || 0);
 
+    console.log(
+      Math.round(ht + remise),
+      Math.round(remise),
+      Math.round(ht),
+      Math.round(tva),
+      Math.round(ht + tva),
+    );
+
     return {
-      htBrut: Math.round(ht + remise), // pour affichage
       remise: Math.round(remise),
       ht: Math.round(ht),
       tva: Math.round(tva),
@@ -617,6 +636,8 @@ export default function NewVentePage() {
       type: "number",
       min: 0,
       parseValue: Number,
+      getValue: (article: VenteLigne) => article.vtel_quantite || "",
+      placeholder: "Quantité à vendre",
     },
 
     {
@@ -795,23 +816,229 @@ export default function NewVentePage() {
     const today = new Date().toISOString().split("T")[0];
 
     setTotaux(result);
+    console.log("here hre hre rerere =>", result);
 
     setVente((prev) => ({
       ...prev,
-      vte_montant_ht: result.ht,
-      vte_montant_ttc: result.ttc,
+      vte_montant_ht: String(result.ht),
+      vte_montant_ttc: String(result.ttc),
       vte_tva: result.tva,
-      ve_remise: result.remise,
       vte_date: today,
     }));
 
     return result;
   };
 
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "delete",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: mvt.origine,
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
+  const handleStock = async (stk: any) => {
+    try {
+      const quantity = stk.old_stock + parseInt(stk.quantite);
+
+      const res = await postData("/api/insert-database/", "t_stock", {
+        stk_quantite: quantity,
+        stk_pri_id: stk.pri_id,
+        stk_art_code: stk.article,
+        stk_lot_code: stk.lot_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Stoké avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
+    }
+  };
+
+  const stockLot = async (data: any) => {
+    try {
+      const result = await deduireQuantiteLot(
+        data.lot_id,
+        data.lot_art_code,
+        data.lot_quantite,
+      );
+
+      console.log("Déduction réussie :", result);
+    } catch (error) {
+      console.error(error);
+      throw Error(`${error}`);
+      calculerTotaux;
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      console.log("here => ", vente);
+      const totauxCalcules = calculerTotaux(ligneArticle);
+      console.log("totaux calcue => ", totauxCalcules);
+      if (ligneArticle.length == 0 || !vente || !client) {
+        throw Error("Vous avz laisser des champs vides");
+      }
+
+      if (parseInt(totauxCalcules.ttc) === 0) {
+        setAlert({
+          open: true,
+          message: "Le montant total HT doit être supérieur à 0.",
+          title: "Montant invalide",
+          variant: "error",
+        });
+        return;
+      }
+      const today = new Date().toISOString().split("T")[0];
+      const resultats = await Promise.all(
+        ligneArticle.map(async (value) => {
+          console.log(value);
+          try {
+            const send = await postData(
+              "/api/insert-database/",
+              "t_ligne_vente",
+              {
+                vtel_quantite: value.vtel_quantite,
+                vtel_pri_id: value.vtel_pri_id,
+                vtel_vte_code: vente.vte_code,
+                vtel_prixunit: value.vtel_prixunit,
+                vtel_tva: value.vtel_tva,
+                vtel_ht: value.vtel_ht,
+                vtel_art_code: value.vtel_art_code,
+                vtel_cli_code: client.cli_code,
+                vtel_ttc: value.vtel_ttc,
+                vtel_lot_dateper: value.vtel_dateper,
+                vtel_lot_id: value.vtel_lot_id,
+                vtel_remise: value.vtel_montant_remise,
+              },
+            );
+
+            if (!send.status) {
+              return false;
+            }
+            try {
+              await handleStock({
+                quantite: value.vtel_quantite,
+                pri_id: value.vtel_pri_id,
+                date: today,
+                lot_code: value.vtel_lot_id,
+                article: value.vtel_art_code,
+                old_stock: value.vtel_quantite ?? 0,
+              });
+
+              await stockLot({
+                lot_id: value.vtel_lot_id,
+                lot_art_code: value.vtel_art_code,
+                lot_quantite: value.vtel_quantite,
+              });
+            } catch (error) {
+              console.error(error);
+              return false;
+            }
+            return true;
+          } catch (error) {
+            console.error(
+              "Erreur lors de l'enregistrement de la ligne :",
+              value,
+              error,
+            );
+
+            return false;
+          }
+        }),
+      );
+      const toutesLesLignesOK = resultats.every((result) => result === true);
+      console.log("here => ", client);
+      console.log("here => ", totaux);
+      if (!toutesLesLignesOK) {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur est survenue",
+          message:
+            "La vente a été enregistrer, mais une ou plusieurs lignes n'ont pas pu être enregistrées.",
+        });
+        return;
+      }
+
+      const res = await postData("/api/insert-database/", "t_vente", {
+        vte_code: vente.vte_code,
+        vte_date: vente.vte_date,
+        vte_modepaye: vente.vte_modepaye,
+        vte_montant_ht: totauxCalcules.ht,
+        vte_montant_ttc: totauxCalcules.ttc,
+        vte_tva: totauxCalcules.tva,
+        vte_cli_code: client.cli_code,
+        vte_cli_nom: client.cli_nom,
+        vte_cli_contact: client.cli_tel1,
+        vte_payeclient: vente.vte_payeclient || "16",
+        vte_datepay: vente.vte_datepay || null,
+        vte_telmoney: vente.vte_telmoney,
+        vte_valide: false,
+        vte_datevalide: null,
+        vte_paye: false,
+        vte_livreur: vente.vte_livreur,
+        vet_operateur: vente.vet_operateur,
+        vte_lettremontant: montantTTCEnLettres(totauxCalcules.ttc),
+        ve_dateecheance: vente.vte_datepay || null,
+        ve_code_bl: vente.ve_code_bl,
+        ve_adresse_liv: vente.ve_adresse_liv,
+      });
+
+      if (!res.status) {
+        setAlert({
+          open: true,
+          variant: "error",
+          title: "Une erreur est survenue",
+          message: "Une erreur lors de l'enregistrement de la vente",
+        });
+
+        return;
+      }
+
+      /*
+       * 4. Succès
+       */
+      fetchCode("t_vente", true);
+
+      setAlert({
+        open: true,
+        variant: "success",
+        title: "Opération réussie",
+        message: "Vente enregistrée avec succès",
+      });
+
+      clear();
+    } catch (error) {
+      console.error("Erreur handleSubmit :", error);
+
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Une erreur est survenue",
+        message: "Erreur lors de l'enregistrement dans la base de données.",
+      });
+    }
+  };
+
   useEffect(() => {
     setVente((prev) => ({
       ...prev,
-      vte_datepay: calculerDate(parseInt(vente.vte_payeclient)),
+      vte_datepay: calculerDate(parseInt(vente.vte_payeclient)) || null,
     }));
   }, [vente.vte_payeclient]);
 
@@ -819,6 +1046,12 @@ export default function NewVentePage() {
     fetchCode("t_vente", false);
     fetchPaye("PAYE_CLIENT");
     fetchModePaye("MODE_PAY");
+    setVente((prev) => ({
+      ...prev,
+      vte_modepaye: "1",
+      vte_datepay: today,
+      ve_dateecheance: today,
+    }));
   }, []);
 
   return (
@@ -871,19 +1104,18 @@ export default function NewVentePage() {
               noResultsText="Aucun proforma trouvé"
               getKey={(pro: ListeVenteProforma) => pro.pro_id}
               inputClassName={inputClass}
-              required={true}
               renderItem={(pro: ListeVenteProforma) => (
                 <div className="px-3 py-2">
                   <div className="text-sm font-medium text-gray-800 dark:text-white">
-                    {pro.client.cli_nom}
+                    {pro?.client.cli_nom || ""}
                   </div>
 
                   <div className="truncate text-xs text-gray-500">
-                    {pro.pro_code}
+                    {pro?.pro_code || ""}
                   </div>
 
                   <div className="text-xs text-gray-400">
-                    Crée le: {formatDate(pro.pro_datecre)}
+                    Crée le: {formatDate(pro?.pro_datecre) || ""}
                   </div>
                 </div>
               )}
@@ -1068,7 +1300,7 @@ export default function NewVentePage() {
                   onChange={(e) => {
                     setVente((prev) => ({
                       ...prev,
-                      vte_modepaye: e.target.value,
+                      vte_telmoney: e.target.value,
                     }));
                   }}
                   placeholder="Numéro Mobile Money"
@@ -1160,6 +1392,7 @@ export default function NewVentePage() {
             type="button"
             onClick={() => {
               calculerEtStockerTotaux();
+              handleSubmit();
             }}
           >
             Enregistrer
@@ -1290,6 +1523,21 @@ export default function NewVentePage() {
 
         titleCreate="Ajouter un article"
         titleEdit="Modifier l'article"
+      />
+      <Alert
+        open={alert.open}
+        variant={alert.variant}
+        title={alert.title}
+        message={alert.message}
+        showLink={false}
+        onClose={() =>
+          setAlert({
+            open: false,
+            variant: alert.variant,
+            message: alert.message,
+            title: alert.title,
+          })
+        }
       />
     </div>
   );
