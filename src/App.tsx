@@ -21,6 +21,7 @@ import NewLivFrnsPage from "./pages/livFrns/newLivFrns";
 import NewCmdFrnsPage from "./pages/Bc/newCommandFrns";
 import NewProformaPage from "./pages/proforma/newProforma";
 import NewVentePage from "./pages/Ventes/newVentePage";
+import NewEntryPage from "./pages/stock/entree/newEntreePage";
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
             <Route path="/new-proforma" element={<NewProformaPage />} />
             <Route path="/new-vente" element={<NewVentePage />} />
+            <Route path="/new-entry" element={<NewEntryPage />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />
             <Route path="/liv-frns" element={<LivFrnsListeTables />} />

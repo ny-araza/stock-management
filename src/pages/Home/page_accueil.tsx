@@ -81,17 +81,13 @@ export default function PageAccueil() {
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-5 md:gap-6">
         {hasAccess("entry") && (
           <>
-            <AnimatedButton
-              onClick={() => open("entry")}
-              icon={<FontAwesomeIcon icon={faBox} className="text-6xl" />}
-            >
-              Entrée en stock
-            </AnimatedButton>
-            <Entry
-              isOpen={openModal == "entry"}
-              onClose={close}
-              className="max-h-[900px] m-4"
-            ></Entry>
+            <Link to={"/new-entry"}>
+              <AnimatedButton
+                icon={<FontAwesomeIcon icon={faBox} className="text-6xl" />}
+              >
+                Entree
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {hasAccess("sortit") && (

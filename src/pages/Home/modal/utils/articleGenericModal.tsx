@@ -578,10 +578,7 @@ export default function GenericArticleModal<T, S>({
   const handleSubmit = () => {
     console.log("Formulaire :", form);
 
-    // ======================================================
-    // VALIDATION
-    // ======================================================
-
+    // 1. VALIDATION
     if (validate) {
       const error = validate(form);
 
@@ -592,82 +589,29 @@ export default function GenericArticleModal<T, S>({
           title: "Une erreur est survenue",
           variant: "error",
         });
-
         return;
       }
     }
 
-    // ======================================================
-    // AUCUN LOT
-    // ======================================================
-
-    /**
-     * Si aucun lot n'est disponible,
-     * on sauvegarde normalement une seule ligne.
-     */
+    // 2. AUCUN LOT DISPONIBLE
     if (!getLots || !selectedArticle || lots.length === 0) {
       onSave(form);
-
-      onClose();
-
       return;
     }
 
-    // ======================================================
-    // UN SEUL LOT
-    // ======================================================
-
+    // 3. UN SEUL LOT
     if (lots.length === 1) {
-      /**
-       * Si mapLotToLine existe, on injecte :
-       *
-       * - la quantité utilisée
-       * - le lot
-       * - la date de péremption
-       *
-       * dans la ligne finale.
-       */
       if (mapLotToLine) {
         const ligne = mapLotToLine(form, lots[0]);
-
         onSave(ligne);
       } else {
-        /**
-         * Sans mapLotToLine, on conserve
-         * le comportement classique.
-         */
         onSave(form);
       }
 
-      onClose();
-
       return;
     }
 
-    // ======================================================
-    // PLUSIEURS LOTS
-    // ======================================================
-
-    /**
-     * Plusieurs lots sont nécessaires.
-     *
-     * Exemple :
-     *
-     * quantité demandée = 10
-     *
-     * lot 1 = 6
-     * lot 2 = 4
-     *
-     * lots =
-     *
-     * [
-     *   { lot: "LOT1", quantiteUtilisee: 6 },
-     *   { lot: "LOT2", quantiteUtilisee: 4 }
-     * ]
-     *
-     * On transforme chaque lot en une ligne article.
-     */
-
+    // 4. PLUSIEURS LOTS : VÉRIFIER LA CONFIGURATION
     if (!mapLotToLine) {
       setAlert({
         open: true,
@@ -676,7 +620,6 @@ export default function GenericArticleModal<T, S>({
         title: "Configuration des lots",
         variant: "error",
       });
-
       return;
     }
 
@@ -688,21 +631,16 @@ export default function GenericArticleModal<T, S>({
         title: "Configuration des lots",
         variant: "error",
       });
-
       return;
     }
 
+    // 5. GÉNÉRER LES LIGNES
     const articles = lots.map((lot) => mapLotToLine(form, lot));
 
     console.log("Articles générés depuis les lots :", articles);
 
-    // ======================================================
-    // SAUVEGARDE DES MULTIPLES LIGNES
-    // ======================================================
-
+    // 6. SAUVEGARDER LES LIGNES
     onSaveMultiple(articles);
-
-    onClose();
   };
 
   // ==========================================================

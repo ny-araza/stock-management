@@ -956,6 +956,7 @@ const NewVente: React.FC<newVente> = ({ isOpen, onClose, className }) => {
                     </div>
                   )}
                 </div>
+                
                 <div>
                   <Label>Adrèsse</Label>
                   <Input

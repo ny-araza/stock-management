@@ -27,8 +27,12 @@ import GenericArticleModal, {
 import { postData } from "../../services/sendDataService";
 import Alert from "../../components/ui/alert/Alert";
 import NewFrns from "../Fournisseurs/newFrns";
+import mettreAJourDocument, { DataUpdate } from "../../services/update";
+import { useAuth } from "../../services/authLogin";
 
 export default function NewLivFrnsPage() {
+  const { user } = useAuth();
+
   const emptyFrns: Fourniseur = {
     fou_adresse: "",
     fou_code: "",
@@ -249,7 +253,7 @@ export default function NewLivFrnsPage() {
     setForm((prev) => ({
       ...prev,
 
-      cmf_id_id: String(a.cmf_id),
+      cmf_id: a.cmf_id,
       cmf_code: a.cmf_code,
       cmf_datecre: a.cmf_datecre,
       cmf_datemdf: a.cmf_datemdf,
@@ -803,7 +807,7 @@ export default function NewLivFrnsPage() {
              */
             if (!value.cmfl_datePer) {
               throw Error("La date de peremeption est obligatoire");
-              return false
+              return false;
             }
             const lot_id = await stockLot({
               pri_lot: value.cmfl_uid || "",
@@ -915,6 +919,21 @@ export default function NewLivFrnsPage() {
         ent_is_paye: false,
       });
 
+      if (res.status && form.cmf_code) {
+        const data: DataUpdate = {
+          pro_enabled: true,
+          pro_islivre: true,
+          pro_usermdf: user?.use_login ?? "",
+        };
+        try {
+          await mettreAJourDocument("cmf-fournis", form.cmf_id, data);
+        } catch (error: any) {
+          console.error(
+            `Une erreur est survenue lors de l'update de commad ${error}`,
+          );
+        }
+      }
+
       if (!res.status) {
         setAlert({
           open: true,
@@ -925,13 +944,6 @@ export default function NewLivFrnsPage() {
         return;
       }
 
-      /*
-       * 2. Enregistrement de toutes les lignes
-       */
-
-      /*
-       * 4. Succès
-       */
       fetchCode("t_entree", true);
 
       setAlert({

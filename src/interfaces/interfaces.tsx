@@ -205,6 +205,19 @@ export interface ProLigneArticle {
   prol_quantite_stock?: number;
 }
 
+export interface InStock {
+  in_id: number;
+  in_quantite: number;
+  in_pri_id: number;
+  in_art_code: string;
+  in_lot_code: string;
+  in_motif: string;
+  in_autre_motif: string;
+  in_lot_id: number;
+  in_date: string;
+  in_code: string;
+}
+
 export interface Fourniseur {
   fou_id: number;
   fou_code: string;

@@ -673,7 +673,7 @@ export default function NewProformaPage() {
         pro_cli_code: client.cli_code,
         pro_date: today,
         pro_lettre: montantTTCEnLettres(form.pro_montant_ttc),
-        pro_enabled: true,
+        pro_enabled: false,
         pro_remise: form.pro_remise,
       });
 

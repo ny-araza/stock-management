@@ -31,6 +31,9 @@ import montantTTCEnLettres from "../../utils/montantEnLettre";
 import { postData } from "../../services/sendDataService";
 import deduireQuantiteLot from "../../utils/updateLot";
 import Alert from "../../components/ui/alert/Alert";
+import mettreAJourProforma, { DataUpdate } from "../../services/update";
+import { useAuth } from "../../services/authLogin";
+import mettreAJourDocument from "../../services/update";
 
 export default function NewVentePage() {
   const today = new Date().toISOString().split("T")[0];
@@ -41,6 +44,7 @@ export default function NewVentePage() {
     title: "",
     message: "",
   });
+  const { user } = useAuth();
 
   const emptyVente: ListeVente = {
     vte_id: 0,
@@ -228,9 +232,9 @@ export default function NewVentePage() {
         vtel_montant_tva: ligne.prol_montant_tva,
         vtel_fou_code: "",
         vtel_lot_id: ligne.prol_lot_id,
-        vtel_lot_code: ligne.prol_lot ?? "",
-        vtel_lot_dateper: ligne.prol_datePer ?? "",
-        vtel_dateper: ligne.prol_datePer ?? null,
+        vtel_lot_code: ligne.prol_lot_id,
+        vtel_lot_dateper: ligne.prol_lot_dateper ?? "",
+        vtel_dateper: ligne.prol_lot_dateper,
         vtel_prix: String(ligne.prol_prixunit),
         vtel_cli_code: a.client.cli_code,
         vtel_vte_code: vente.vte_cli_code,
@@ -996,8 +1000,24 @@ export default function NewVentePage() {
         vte_lettremontant: montantTTCEnLettres(totauxCalcules.ttc),
         ve_dateecheance: vente.vte_datepay || null,
         ve_code_bl: vente.ve_code_bl,
-        ve_adresse_liv: vente.ve_adresse_liv,
+        ve_adresse_liv: client.cli_adresse,
+        ve_proforma: proforma.pro_code || null,
       });
+
+      if (proforma.pro_code) {
+        const data: DataUpdate = {
+          pro_enabled: true,
+          pro_islivre: true,
+          pro_usermdf: user?.use_login ?? "",
+        };
+        try {
+          await mettreAJourDocument("proforma", proforma.pro_id, data);
+        } catch (error: any) {
+          console.error(
+            `Une erreur est survenue lors de l'update de proforma ${error}`,
+          );
+        }
+      }
 
       if (!res.status) {
         setAlert({
@@ -1153,89 +1173,94 @@ export default function NewVentePage() {
               )}
             />
           </div>
-          <div>
-            <Label>Adrèsse</Label>
-            <Input
-              name="adresse"
-              type="text"
-              placeholder="L'adrèsse du client"
-              value={client.cli_adresse}
-              onChange={(e) => {
-                setClient((prev) => ({
-                  ...prev,
-                  cli_adresse: e.target.value,
-                }));
-              }}
-              className="w-full bg-transparent placeholder-white/70 outline-none"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
-          <div>
-            <Label>Contact 1</Label>
-            <Input
-              name="cli_tel1"
-              type="text"
-              value={client.cli_tel1}
-              onChange={(e) => {
-                setClient((prev) => ({
-                  ...prev,
-                  cli_tel1: e.target.value,
-                }));
-              }}
-              placeholder="N° de tel 1"
-              className="w-full bg-transparent placeholder-white/70 outline-none"
-            />
-          </div>
-          <div>
-            <Label>Contact 2</Label>
-            <Input
-              name="cli_tel2"
-              type="text"
-              value={client.cli_tel2}
-              placeholder="N° de tel 2"
-              onChange={(e) => {
-                setClient((prev) => ({
-                  ...prev,
-                  cli_tel2: e.target.value,
-                }));
-              }}
-              className="w-full bg-transparent placeholder-white/70 outline-none"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
-          <div>
-            <Label>Mail</Label>
-            <Input
-              name="email"
-              type="text"
-              value={client.cli_email}
-              onChange={(e) => {
-                setClient((prev) => ({
-                  ...prev,
-                  cli_email: e.target.value,
-                }));
-              }}
-              placeholder="client@gmail.com"
-              className="w-full bg-transparent placeholder-white/70 outline-none"
-            />
-          </div>
-          {client.cli_nom != "MAGASIN" && (
+          {client.cli_id != 2 && (
             <div>
-              <Label>Paiement client</Label>
-              <Select
-                options={enumerationPaye}
-                onChange={(value) =>
-                  setVente((prev) => ({
+              <Label>Adrèsse</Label>
+              <Input
+                name="adresse"
+                type="text"
+                placeholder="L'adrèsse du client"
+                value={client.cli_adresse}
+                onChange={(e) => {
+                  setClient((prev) => ({
                     ...prev,
-                    vte_payeclient: value,
-                  }))
-                }
-                defaultValue="16"
+                    cli_adresse: e.target.value,
+                  }));
+                }}
+                className="w-full bg-transparent placeholder-white/70 outline-none"
               />
             </div>
           )}
+        </div>
+        {client.cli_id != 2 && (
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
+            <div>
+              <Label>Contact 1</Label>
+              <Input
+                name="cli_tel1"
+                type="text"
+                value={client.cli_tel1}
+                onChange={(e) => {
+                  setClient((prev) => ({
+                    ...prev,
+                    cli_tel1: e.target.value,
+                  }));
+                }}
+                placeholder="N° de tel 1"
+                className="w-full bg-transparent placeholder-white/70 outline-none"
+              />
+            </div>
+            <div>
+              <Label>Contact 2</Label>
+              <Input
+                name="cli_tel2"
+                type="text"
+                value={client.cli_tel2}
+                placeholder="N° de tel 2"
+                onChange={(e) => {
+                  setClient((prev) => ({
+                    ...prev,
+                    cli_tel2: e.target.value,
+                  }));
+                }}
+                className="w-full bg-transparent placeholder-white/70 outline-none"
+              />
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
+          {client.cli_id != 2 && (
+            <div>
+              <Label>Mail</Label>
+              <Input
+                name="email"
+                type="text"
+                value={client.cli_email}
+                onChange={(e) => {
+                  setClient((prev) => ({
+                    ...prev,
+                    cli_email: e.target.value,
+                  }));
+                }}
+                placeholder="client@gmail.com"
+                className="w-full bg-transparent placeholder-white/70 outline-none"
+              />
+            </div>
+          )}
+
+          <div>
+            <Label>Paiement client</Label>
+            <Select
+              options={enumerationPaye}
+              onChange={(value) =>
+                setVente((prev) => ({
+                  ...prev,
+                  vte_payeclient: value,
+                }))
+              }
+              defaultValue="16"
+            />
+          </div>
         </div>
         <div className="mb-4">
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
