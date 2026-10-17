@@ -92,19 +92,13 @@ export default function PageAccueil() {
         )}
         {hasAccess("sortit") && (
           <>
-            <AnimatedButton
-              onClick={() => open("sortit")}
-              icon={
-                <FontAwesomeIcon icon={faBoxArchive} className="text-6xl" />
-              }
-            >
-              Sortit en stock
-            </AnimatedButton>
-            <Sortit
-              isOpen={openModal == "sortit"}
-              onClose={close}
-              className="max-w-[900px] m-4"
-            />
+            <Link to={"/new-sortit"}>
+              <AnimatedButton
+                icon={<FontAwesomeIcon icon={faBoxArchive} className="text-6xl" />}
+              >
+                Sortie
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {hasAccess("client") && (

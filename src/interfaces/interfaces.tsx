@@ -181,6 +181,8 @@ export interface CFLigneArticle {
   cmfl_lot: "";
   cmfl_datePer?: "";
   cmfl_quantite_stock?: number;
+  cmfl_lot_id?: number;
+  cmfl_lot_code?: string;
 }
 
 export interface ProLigneArticle {
@@ -216,6 +218,19 @@ export interface InStock {
   in_lot_id: number;
   in_date: string;
   in_code: string;
+}
+
+export interface OutStock {
+  out_id: number;
+  out_quantite: number;
+  out_pri_id: number;
+  out_art_code: string;
+  out_lot_code: string;
+  out_motif: string;
+  out_autre_motif: string;
+  out_lot_id: number;
+  out_date: string;
+  out_code: string;
 }
 
 export interface Fourniseur {

@@ -885,7 +885,6 @@ export default function NewVentePage() {
     } catch (error) {
       console.error(error);
       throw Error(`${error}`);
-      calculerTotaux;
     }
   };
 
