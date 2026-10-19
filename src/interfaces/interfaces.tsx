@@ -15,10 +15,10 @@ export interface Client {
   cli_id: number;
   cli_code: string;
   cli_nom: string;
-  cli_datecre: string;
-  cli_datemdf: string;
-  cli_usercre: string;
-  cli_usermdf: string;
+  cli_datecre?: string;
+  cli_datemdf?: string;
+  cli_usercre?: string;
+  cli_usermdf?: string;
   cli_tel1: string;
   cli_tel2: string;
   cli_adresse: string;
@@ -35,7 +35,7 @@ export interface ListeVente {
   vte_id: number;
   vte_code: string;
   vte_datecre: string;
-  vte_datemd: string;
+  vte_datemdf: string;
   vte_usercre: string;
   vte_usermdf: string;
   vte_date: string;
@@ -60,6 +60,50 @@ export interface ListeVente {
   ve_adresse_liv: string;
   ve_remise: number;
   ve_proforma: string;
+}
+
+export interface VenteLigne {
+  art_nom?: string;
+  vtel_id: number;
+  vtel_quantite: number;
+  vtel_prixunit: number;
+  vtel_ttc: number;
+  vtel_art_code: string;
+  vtel_pri_id: number;
+  vtel_tva: number;
+  vtel_ht: number;
+  vtel_fou_code: string;
+  vtel_lot_id: number;
+  vtel_lot_code: string;
+  vtel_lot_dateper: string;
+  vtel_dateper: string | null;
+  vtel_prix: string;
+  vtel_cli_code: string;
+  vtel_vte_code: string;
+  vtel_remise: number;
+  vtel_montant_tva?: number;
+  vtel_montant_remise?: number;
+  vtel_uid?: string;
+  vtel_quantite_stock?: number;
+  vtel_lot?: string;
+}
+
+
+export interface FactureAutocomplete {
+  rtc_code: string;
+  vte_id: string;
+  vte_code: string;
+  vte_date: string;
+  vte_vte_code: string;
+  vte_montant_ht: number;
+  vte_montant_ttc: number;
+  vte_tva: number;
+  vte_cli_code: string;
+  vte_cli_nom: string;
+  rtc_motif: string;
+  rtc_observation: string;
+  client: Client
+  ligne: VenteLigne[]
 }
 
 export interface ListeVenteProforma {

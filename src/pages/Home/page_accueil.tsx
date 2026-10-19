@@ -194,22 +194,15 @@ export default function PageAccueil() {
         )}
         {hasAccess("rtc") && (
           <>
-            <AnimatedButton
-              onClick={() => open("rtc")}
-              icon={
-                <FontAwesomeIcon
-                  icon={faArrowRightToBracket}
-                  className="text-6xl"
-                />
-              }
-            >
-              Retour client
-            </AnimatedButton>
-            <NewRetourClient
-              isOpen={openModal == "rtc"}
-              onClose={close}
-              className="max-w-[900px] m-4"
-            />
+            <Link to={"/new-rtc"}>
+              <AnimatedButton
+                icon={
+                  <FontAwesomeIcon icon={faArrowRightToBracket} className="text-6xl" />
+                }
+              >
+                Nouvelle retour client
+              </AnimatedButton>
+            </Link>
           </>
         )}
         {hasAccess("proforma") && (
@@ -223,7 +216,6 @@ export default function PageAccueil() {
             </Link>
           </>
         )}
-        {/* facture_comptant n'a pas de code de menu -> automatiquement indisponible */}
       </div>
     </>
   );

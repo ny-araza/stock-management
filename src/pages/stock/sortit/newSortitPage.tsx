@@ -713,7 +713,7 @@ export default function NewSortitPage() {
                     out_motif: value,
                   }))
                 }
-                defaultValue="26"
+                defaultValue="21"
               ></Select>
             </div>
           </div>

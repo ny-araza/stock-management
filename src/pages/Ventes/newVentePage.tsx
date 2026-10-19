@@ -50,7 +50,7 @@ export default function NewVentePage() {
     vte_id: 0,
     vte_code: "",
     vte_datecre: "",
-    vte_datemd: "",
+    vte_datemdf: "",
     vte_usercre: "",
     vte_usermdf: "",
     vte_date: today,
