@@ -34,6 +34,7 @@ import Alert from "../../components/ui/alert/Alert";
 import mettreAJourProforma, { DataUpdate } from "../../services/update";
 import { useAuth } from "../../services/authLogin";
 import mettreAJourDocument from "../../services/update";
+import NewClts from "../Clients/newClts";
 
 export default function NewVentePage() {
   const today = new Date().toISOString().split("T")[0];
@@ -171,6 +172,7 @@ export default function NewVentePage() {
       label: item.enu_nom,
     }),
   );
+  const [openModalClt, setOpenModalClt] = useState<boolean>(false);
   //modePaye
 
   // searchableSelect
@@ -879,7 +881,7 @@ export default function NewVentePage() {
         data.lot_id,
         data.lot_art_code,
         data.lot_quantite,
-        data.operation
+        data.operation,
       );
 
       console.log("Déduction réussie :", result);
@@ -948,7 +950,7 @@ export default function NewVentePage() {
                 lot_id: value.vtel_lot_id,
                 lot_art_code: value.vtel_art_code,
                 lot_quantite: value.vtel_quantite,
-                operation: "sortie"
+                operation: "sortie",
               });
             } catch (error) {
               console.error(error);
@@ -1145,33 +1147,46 @@ export default function NewVentePage() {
         <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-2">
           <div>
             <Label>Client</Label>
-            <SearchableSelect<Client>
-              value={searchClt}
-              onChange={handleSearchChangeClient}
-              suggestions={suggestionsClient}
-              loading={loading}
-              onSelect={choisirClient}
-              placeholder="Rechercher un client"
-              noResultsText="Aucun article trouvé"
-              getKey={(clt: Client) => clt.cli_id}
-              inputClassName={inputClass}
-              required={true}
-              renderItem={(clt: Client) => (
-                <div className="px-3 py-2">
-                  <div className="text-sm font-medium text-gray-800 dark:text-white">
-                    {clt.cli_nom}
-                  </div>
+            <div className="flex items-center w-full gap-2 flex-nowrap">
+              <div className="grid grid-cols-[1fr_auto] gap-2 w-full">
+                <div>
+                  <SearchableSelect<Client>
+                    value={searchClt}
+                    onChange={handleSearchChangeClient}
+                    suggestions={suggestionsClient}
+                    loading={loading}
+                    onSelect={choisirClient}
+                    placeholder="Rechercher un client"
+                    noResultsText="Aucun article trouvé"
+                    getKey={(clt: Client) => clt.cli_id}
+                    inputClassName={inputClass}
+                    required={true}
+                    renderItem={(clt: Client) => (
+                      <div className="px-3 py-2">
+                        <div className="text-sm font-medium text-gray-800 dark:text-white">
+                          {clt.cli_nom}
+                        </div>
 
-                  <div className="truncate text-xs text-gray-500">
-                    {clt.cli_code}
-                  </div>
+                        <div className="truncate text-xs text-gray-500">
+                          {clt.cli_code}
+                        </div>
 
-                  <div className="text-xs text-gray-400">
-                    Crée le: {formatDate(clt.cli_datecre)}
-                  </div>
+                        <div className="text-xs text-gray-400">
+                          Crée le: {formatDate(clt.cli_datecre)}
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
-              )}
-            />
+                <Button
+                  variant="outline"
+                  title="Ajouter nouveau fournisseur"
+                  onClick={() => setOpenModalClt(true)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
           </div>
           {client.cli_id != 2 && (
             <div>
@@ -1549,6 +1564,7 @@ export default function NewVentePage() {
         titleCreate="Ajouter un article"
         titleEdit="Modifier l'article"
       />
+      <NewClts isOpen={openModalClt} onClose={() => setOpenModalClt(false)} />
       <Alert
         open={alert.open}
         variant={alert.variant}

@@ -1,4 +1,6 @@
 import { BaseOption } from "../components/form/form-elements/inputSearch";
+import { EntreeLigne } from "../pages/livFrns/livFrnsTable";
+import { EntreeType } from "../pages/stock/entree/entreeTable";
 
 export interface UserFull {
   use_id: number;
@@ -103,6 +105,23 @@ export interface FactureAutocomplete {
   rtc_observation: string;
   client: Client
   ligne: VenteLigne[]
+}
+
+export interface EntreeAutocomplete {
+  rtf_code: string;
+  ent_id: string;
+  ent_code: string;
+  ent_date: string;
+  ent_entl_code: string;
+  ent_montant_ht: number;
+  ent_montant_ttc: number;
+  ent_tva: number;
+  ent_fou_code: string;
+  ent_fou_nom: string;
+  rtf_motif: string;
+  rtf_observation: string;
+  fournisseur: Fourniseur
+  ligne: EntreeLigne[]
 }
 
 export interface ListeVenteProforma {

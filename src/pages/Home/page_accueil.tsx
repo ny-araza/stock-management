@@ -94,7 +94,9 @@ export default function PageAccueil() {
           <>
             <Link to={"/new-sortit"}>
               <AnimatedButton
-                icon={<FontAwesomeIcon icon={faBoxArchive} className="text-6xl" />}
+                icon={
+                  <FontAwesomeIcon icon={faBoxArchive} className="text-6xl" />
+                }
               >
                 Sortie
               </AnimatedButton>
@@ -174,22 +176,20 @@ export default function PageAccueil() {
         {/* <!-- Metric Item Start --> */}
         {hasAccess("rtf") && (
           <>
-            <AnimatedButton
-              onClick={() => open("rtf")}
-              icon={
-                <FontAwesomeIcon
-                  icon={faTruckArrowRight}
-                  className="text-6xl"
-                />
-              }
-            >
-              Retour fournisseur
-            </AnimatedButton>
-            <NewRetourFrns
-              isOpen={openModal == "rtf"}
-              onClose={close}
-              className="max-w-[900px] m-4"
-            />
+            <>
+              <Link to={"/new-rtf"}>
+                <AnimatedButton
+                  icon={
+                    <FontAwesomeIcon
+                      icon={faTruckArrowRight}
+                      className="text-6xl"
+                    />
+                  }
+                >
+                  Retour fournisseur
+                </AnimatedButton>
+              </Link>
+            </>
           </>
         )}
         {hasAccess("rtc") && (
@@ -197,7 +197,10 @@ export default function PageAccueil() {
             <Link to={"/new-rtc"}>
               <AnimatedButton
                 icon={
-                  <FontAwesomeIcon icon={faArrowRightToBracket} className="text-6xl" />
+                  <FontAwesomeIcon
+                    icon={faArrowRightToBracket}
+                    className="text-6xl"
+                  />
                 }
               >
                 Nouvelle retour client

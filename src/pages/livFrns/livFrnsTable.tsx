@@ -28,10 +28,10 @@ import SearchableSelect from "../Home/modal/utils/searchableSelect";
 // (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)
 export interface EntreeLigne {
   entl_id: number;
-  entl_datecre: string;
-  entl_datemdf: string | null;
-  entl_usercre: string;
-  entl_usermdf: string | null;
+  entl_datecre?: string;
+  entl_datemdf?: string | null;
+  entl_usercre?: string;
+  entl_usermdf?: string | null;
   entl_quantite: number;
   entl_prixunit: string;
   entl_ttc: string;
@@ -43,8 +43,9 @@ export interface EntreeLigne {
   entl_fou_code: string;
   entl_lot: string;
   entl_dateper: string | null;
-  entl_prix: string;
-  entl_remise: string;
+  entl_prix?: string;
+  entl_remise?: string;
+  entl_uid?: string
 }
 
 export interface Entree {

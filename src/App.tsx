@@ -24,6 +24,7 @@ import NewVentePage from "./pages/Ventes/newVentePage";
 import NewEntryPage from "./pages/stock/entree/newEntreePage";
 import NewSortitPage from "./pages/stock/sortit/newSortitPage";
 import NewRtcPage from "./pages/rtc/newRetourClient";
+import NewRtfPage from "./pages/rtf/newRetourFrns";
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/new-entry" element={<NewEntryPage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />
             <Route path="/new-rtc" element={<NewRtcPage />} />
+            <Route path="/new-rtf" element={<NewRtfPage />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />
             <Route path="/liv-frns" element={<LivFrnsListeTables />} />
