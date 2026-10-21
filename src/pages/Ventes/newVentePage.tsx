@@ -514,7 +514,7 @@ export default function NewVentePage() {
         vtel_uid:
           typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random()}`,
+            : `${Date.now()}-${Math.randomCF26100006()}`,
 
         // Normalisation
         vtel_pri_id: Number(article.vtel_pri_id || 0),
@@ -879,6 +879,7 @@ export default function NewVentePage() {
         data.lot_id,
         data.lot_art_code,
         data.lot_quantite,
+        data.operation
       );
 
       console.log("Déduction réussie :", result);
@@ -897,7 +898,7 @@ export default function NewVentePage() {
         throw Error("Vous avz laisser des champs vides");
       }
 
-      if (parseInt(totauxCalcules.ttc) === 0) {
+      if (totauxCalcules.ttc === 0) {
         setAlert({
           open: true,
           message: "Le montant total HT doit être supérieur à 0.",
@@ -947,6 +948,7 @@ export default function NewVentePage() {
                 lot_id: value.vtel_lot_id,
                 lot_art_code: value.vtel_art_code,
                 lot_quantite: value.vtel_quantite,
+                operation: "sortie"
               });
             } catch (error) {
               console.error(error);
@@ -959,7 +961,6 @@ export default function NewVentePage() {
               value,
               error,
             );
-
             return false;
           }
         }),

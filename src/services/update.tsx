@@ -4,6 +4,7 @@ export interface DataUpdate {
   pro_islivre: boolean;
   pro_enabled: boolean;
   pro_usermdf: string;
+  is_valid?: boolean;
 }
 
 export default async function mettreAJourDocument(

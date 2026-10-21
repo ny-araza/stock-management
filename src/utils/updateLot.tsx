@@ -4,6 +4,7 @@ const deduireQuantiteLot = async (
   lotId: number,
   artCode: string,
   quantite: number,
+  op: string
 ) => {
   try {
     const response = await apiFetch("/api/lots/deduire-quantite/", {
@@ -15,6 +16,7 @@ const deduireQuantiteLot = async (
         lot_id: lotId,
         art_code: artCode,
         quantite,
+        op: op
       }),
     });
 

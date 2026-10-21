@@ -943,7 +943,7 @@ export default function NewLivFrnsPage() {
         });
         return;
       }
-
+      
       fetchCode("t_entree", true);
 
       setAlert({

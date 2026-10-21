@@ -72,7 +72,6 @@ export interface VenteLigne {
   vtel_pri_id: number;
   vtel_tva: number;
   vtel_ht: number;
-  vtel_fou_code: string;
   vtel_lot_id: number;
   vtel_lot_code: string;
   vtel_lot_dateper: string;
