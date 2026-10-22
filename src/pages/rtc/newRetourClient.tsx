@@ -7,7 +7,6 @@ import {
   Enumeration,
   EnumerationOption,
   FactureAutocomplete,
-  ListeVente,
   VenteLigne,
 } from "../../interfaces/interfaces";
 import { apiFetch } from "../../services/api";
@@ -16,8 +15,6 @@ import { formatDate } from "../Home/modal/utils/utilsFucntions";
 import Select from "../../components/form/Select";
 import TextArea from "../../components/form/input/TextArea";
 import Button from "../../components/ui/button/Button";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import ListItems, { ListColumn } from "../Home/modal/utils/listItems";
 import { postData } from "../../services/sendDataService";
 import deduireQuantiteLot from "../../utils/updateLot";
@@ -231,13 +228,6 @@ export default function NewRtcPage() {
     }
   }, []);
 
-  const openGenericModal = () => {
-    setArticle(null);
-    console.log(emptyFactureAutocomplete);
-    setModalOpen(true);
-    setEditingUid(null);
-  };
-
   const articleColumns: ListColumn<VenteLigne>[] = [
     {
       label: "Code Article",
@@ -305,8 +295,7 @@ export default function NewRtcPage() {
   const [client, setClient] = useState<Client>(emptyClient);
   const [suggestionsClient, setSuggestionsClient] = useState<Client[]>([]);
   const [ligneArticle, setLigneArticle] = useState<VenteLigne[]>([]);
-  
-  
+
   const handleSearchChangeClient = (value: string) => {
     setSearchClt(value);
     setShowSuggestionsClient(true);
@@ -735,7 +724,6 @@ export default function NewRtcPage() {
         data.operation,
       );
 
-      console.log(`${op} réussie `, result);
     } catch (error) {
       console.error(error);
       throw Error(`${error}`);
@@ -1067,22 +1055,6 @@ export default function NewRtcPage() {
             </div>
             <Label>Articles</Label>
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 mt-5">
-              <div className="flex justify-center">
-                {/*<Button
-                  type="button"
-                  onClick={openGenericModal}
-                  className="
-                        rounded-md
-                        bg-blue-600
-                        px-4 py-2
-                        text-white
-                      "
-                  title="Ajouter nouvelle article"
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                </Button>*/}
-              </div>
-
               <ListItems<VenteLigne>
                 items={rtc.ligne}
                 columns={articleColumns}
@@ -1094,7 +1066,7 @@ export default function NewRtcPage() {
                 onDelete={(item) => supprimerArticle(item.vtel_uid!)}
 
                 onItemsChange={setArticles}
-
+                showActions={false}
                 totals={[
                   {
                     label: "TOTAL HT",

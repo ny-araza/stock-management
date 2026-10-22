@@ -33,19 +33,22 @@ export interface EntreeLigne {
   entl_usercre?: string;
   entl_usermdf?: string | null;
   entl_quantite: number;
-  entl_prixunit: string;
-  entl_ttc: string;
+  entl_prixunit: number;
+  entl_ttc: number;
   entl_art_code: string;
   entl_pri_id: number;
-  entl_tva: string;
+  entl_tva: number;
   entl_ent_code: string;
-  entl_ht: string;
+  entl_ht: number;
   entl_fou_code: string;
   entl_lot: string;
   entl_dateper: string | null;
   entl_prix?: string;
   entl_remise?: string;
-  entl_uid?: string
+  entl_uid?: string;
+  entl_montant_tva: number;
+  entl_lot_id?: number
+  entl_montant_remise?: number
 }
 
 export interface Entree {

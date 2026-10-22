@@ -164,6 +164,7 @@ const NewClts: React.FC<newCltProps> = ({ isOpen, onClose, className }) => {
           message: `Client ${values.denomination} enrigistrer avec succès`,
         });
         reset();
+        return
       } else {
         setAlert({
           open: true,
