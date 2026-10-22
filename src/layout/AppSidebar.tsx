@@ -7,6 +7,8 @@ import {
   faBriefcase,
   faHandshakeSimple,
   faHome,
+  faToolbox,
+  faTools,
 } from "@fortawesome/free-solid-svg-icons";
 // Assume these icons are imported from an icon library
 import { ChevronDownIcon, HorizontaLDots, PieChartIcon } from "../icons";
@@ -34,6 +36,46 @@ const navItems: NavItem[] = [
     name: "Accueil",
     path: "/accueil",
   },
+
+  {
+    name: "Actions",
+    icon: <FontAwesomeIcon icon={faTools} />,
+    subItems: [
+      { code: 107, name: "Entrée", path: "/new-entry" },
+      { code: 107, name: "Sortie", path: "/new-sortit" },
+      {
+        code: 103,
+        name: "Nouvelle commande fournisseur",
+        path: "/new-cmd_fournis",
+      },
+      {
+        code: 104,
+        name: "Nouvelle livraison fournisseur",
+        path: "/new-liv",
+      },
+      {
+        code: 109,
+        name: "Nouvelle commande client",
+        path: "/new-vente",
+      },
+      {
+        code: 103,
+        name: "Retour fournisseur",
+        path: "/new-rtf",
+      },
+      {
+        code: 104,
+        name: "Retour client",
+        path: "/new-rtc",
+      },
+      {
+        code: 108,
+        name: "Nouveau proforma",
+        path: "/new-proforma",
+      },
+    ],
+  },
+
   {
     name: "Commerciale",
     icon: <FontAwesomeIcon icon={faBriefcase} />,
@@ -158,8 +200,7 @@ const AppSidebar: React.FC = () => {
     }
   }, [openSubmenu]);
 
-  useEffect(() => {
-  }, [isExpanded, user]);
+  useEffect(() => {}, [isExpanded, user]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setOpenSubmenu((prevOpenSubmenu) => {
@@ -180,7 +221,6 @@ const AppSidebar: React.FC = () => {
         // Filtrer les sous-menus selon les autorisations
         const allowedSubItems = nav.subItems?.filter((subItem) =>
           hasAccess(subItem.code),
-          
         );
 
         // Si le menu possède des sous-menus
