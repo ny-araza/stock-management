@@ -1,12 +1,11 @@
 import Select, { SingleValue, ActionMeta } from "react-select";
+import Button from "../../ui/button/Button";
 
-// 1. Définir une interface de base obligatoire pour les options
 export interface BaseOption {
   value: string | number;
   label: string;
 }
 
-// 2. Définir les Props du composant en utilisant un type Générique <T>
 interface SelectFieldProps<T extends BaseOption> {
   label?: string;
   options: T[];
@@ -16,9 +15,11 @@ interface SelectFieldProps<T extends BaseOption> {
   isSearchable?: boolean;
   isDisabled?: boolean;
   className?: string;
+
+  // Callback pour ouvrir le modal du composant parent
+  onAddClick?: () => void;
 }
 
-// 3. Déclarer le composant avec le type générique <T extends BaseOption>
 export function SelectField<T extends BaseOption>({
   label,
   options,
@@ -28,8 +29,8 @@ export function SelectField<T extends BaseOption>({
   isSearchable = true,
   isDisabled = false,
   className,
+  onAddClick,
 }: SelectFieldProps<T>) {
-  // Gestionnaire de changement typé pour react-select
   const handleSelectChange = (
     newValue: SingleValue<T>,
     _actionMeta: ActionMeta<T>,
@@ -39,7 +40,7 @@ export function SelectField<T extends BaseOption>({
 
   return (
     <div
-      className={`dark:bg-dark-900 ${className}`}
+      className={`dark:bg-dark-900 ${className ?? ""}`}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -48,14 +49,26 @@ export function SelectField<T extends BaseOption>({
       }}
     >
       {label && <label className="dark:text-gray-400">{label}</label>}
-      <Select<T>
-        options={options}
-        value={value}
-        onChange={handleSelectChange}
-        placeholder={placeholder}
-        isSearchable={isSearchable}
-        isDisabled={isDisabled}
-      />
+
+      <div className="flex gap-2">
+        <div className="flex-1 min-w-0">
+          <Select<T>
+            options={options}
+            value={value}
+            onChange={handleSelectChange}
+            placeholder={placeholder}
+            isSearchable={isSearchable}
+            isDisabled={isDisabled}
+            className="w-full"
+          />
+        </div>
+
+        {onAddClick && (
+          <Button type="button" className="h-[40px]" onClick={onAddClick}>
+            +
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -43,6 +43,7 @@ const navItems: NavItem[] = [
     subItems: [
       { code: 107, name: "Entrée", path: "/new-entry" },
       { code: 107, name: "Sortie", path: "/new-sortit" },
+      { code: 107, name: "Nouvelle article", path: "/new-articles" },
       {
         code: 103,
         name: "Nouvelle commande fournisseur",

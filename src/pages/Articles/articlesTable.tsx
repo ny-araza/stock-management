@@ -746,7 +746,7 @@ export default function ArticleTable() {
   const handleSubmitFamilly = async () => {
     try {
       if (!newFamille) return;
-      const res = await postData("/api/create-client-fournis/", "t_famille", {
+      const res = await postData("/api/insert-database/", "t_famille", {
         fam_code: newFamille.code,
         fam_nom: newFamille.nom,
         fam_enabled: 1,
@@ -779,7 +779,7 @@ export default function ArticleTable() {
       }
       if (!newSousFamille) return;
       const res = await postData(
-        "/api/create-client-fournis/",
+        "/api/insert-database/",
         "t_sous_famille",
         {
           sof_code: newSousFamille.code,
