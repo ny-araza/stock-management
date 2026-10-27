@@ -208,6 +208,137 @@ export default function NewArticlePage() {
     }
   };
 
+  const buildLignesPrix = () =>
+    Object.values(prixUnites)
+      .filter((u) => u.actif)
+      .map((u) => {
+        const { marge, prixVente } = calculerPrix(u);
+        return {
+          pri_unitevente: u.unite === "GROS" ? "Gros" : "Pièce",
+          pri_achat: parseFloat(u.prix_achat) || 0,
+          pri_tauxmarge: parseFloat(u.taux_marge) || 0,
+          pri_marge: marge,
+          pri_vte: prixVente,
+          pri_tva: parseFloat(u.tva) || 0,
+          pri_nbcolis: u.colis || "1",
+        };
+      });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (
+        !article.art_code ||
+        !article.art_nom ||
+        !selectedFamille ||
+        !selectedSousFamille ||
+        !article.art_stockmini
+      ) {
+        setAlert({
+          open: true,
+          message:
+            "Les champs suivant sont requis: Code, designation, famille/sousfamille, stockmini",
+          title: "Une erreur s'est produit",
+          variant: "error",
+        });
+        return;
+      }
+      // Vérification des champs de prix (tous obligatoires sauf colis)
+      const champsRequis: {
+        key: "prix_achat" | "taux_marge" | "tva";
+        label: string;
+      }[] = [
+        { key: "prix_achat", label: "Prix d'achat" },
+        { key: "taux_marge", label: "Taux de marge" },
+        { key: "tva", label: "TVA" },
+      ];
+
+      const unitesActives = Object.values(prixUnites).filter((u) => u.actif);
+
+      const erreurs: string[] = [];
+      unitesActives.forEach((u) => {
+        const manquants = champsRequis
+          .filter(({ key }) => String(u[key]).trim() === "")
+          .map(({ label }) => label);
+        if (manquants.length > 0) {
+          erreurs.push(
+            `${u.unite === "GROS" ? "Gros" : "Pièce"} : ${manquants.join(", ")}`,
+          );
+        }
+      });
+
+      if (erreurs.length > 0) {
+        setAlert({
+          open: true,
+          title: "Champs obligatoires manquants",
+          message: erreurs.join(" | "),
+          variant: "error",
+        });
+        return; // aucun enregistrement n'est fait
+      }
+
+      const lignesPrix = buildLignesPrix();
+
+      const res = await postData("/api/insert-database/", "t_article", {
+        art_code: article.art_code,
+        art_nom: article.art_nom,
+        art_poids: parseFloat(article.art_poids),
+        art_taille: parseFloat(article.art_taille),
+        art_stockmini: parseInt(article.art_stockmini),
+        art_enabled: article.art_enabled,
+        art_fam_id: selectedFamille.fam_id,
+        art_sof_id: selectedSousFamille.sof_id,
+        art_codebarre: article.art_codebarre,
+        art_lot_id: 1,
+        art_stockable: article.art_stockable,
+        art_marque: article.art_marque,
+      });
+
+      if (lignesPrix.some((l) => l.pri_achat <= 0)) {
+        setAlert({
+          open: true,
+          title: "Une erreur s'est produit",
+          message: "Veuillez saisir le prix d'achat pour chaque unité de vente",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (res.status) {
+        // On enregistre les prix seulement si l'article est bien créé
+        await Promise.all(
+          lignesPrix.map((l) =>
+            postData("/api/insert-database/", "t_prix", {
+              pri_enabled: 1,
+              pri_art_code: article.art_code,
+              ...l,
+            }),
+          ),
+        );
+
+        setAlert({
+          open: true,
+          title: "Notification",
+          message: `Article ${article.art_code} enregistré`,
+          variant: "success",
+        });
+        setArticle(emptyArticle)
+        setSelectedFamille(null);
+        setSelectedSousFamille(null);
+        setPrixUnites(emptyPrixUnites); // remplace la boucle supprimerLigne
+      } else {
+        setAlert({
+          open: true,
+          title: "Une erreur s'est produit",
+          message: `${res.message}`,
+          variant: "error",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchFamille();
     fetchSousFamille(selectedFamille?.fam_id);
@@ -299,7 +430,7 @@ export default function NewArticlePage() {
             Ajouter un article
           </h4>
         </div>
-        <form className="flex flex-col">
+        <form className="flex flex-col" onSubmit={handleSubmit}>
           <div className="custom-scrollbar overflow-y-auto px-2 pb-3">
             <div>
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
@@ -423,7 +554,7 @@ export default function NewArticlePage() {
           </div>
           <PrixUnitesSection value={prixUnites} onChange={setPrixUnites} />
           <div className="flex justify-center mt-5">
-            <Button className="mr-2">Creer Article</Button>
+            <Button className="mr-2" type="submit">Creer Article</Button>
             <Button className="ml-2" variant="outline">
               Tout effacer
             </Button>

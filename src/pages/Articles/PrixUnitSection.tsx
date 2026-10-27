@@ -155,7 +155,7 @@ export default function PrixUnitesSection({ value, onChange }: Props) {
                     <Input
                       type="number"
                       name={`tva_${unite}`}
-                      value={u.tva || "20"}
+                      value={u.tva}
                       onChange={(e) => updateField(unite, "tva", e.target.value)}
                       placeholder="ex : 20"
                       min="0"

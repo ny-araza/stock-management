@@ -8,7 +8,7 @@ export const emptyPrixUnites: PrixUnites = {
     actif: true,
     prix_achat: "",
     taux_marge: "",
-    tva: "",
+    tva: "20",
     colis: "",
   },
   GROS: {
@@ -16,7 +16,7 @@ export const emptyPrixUnites: PrixUnites = {
     actif: false,
     prix_achat: "",
     taux_marge: "",
-    tva: "",
+    tva: "20",
     colis: "",
   },
 };
