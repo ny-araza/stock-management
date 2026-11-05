@@ -572,6 +572,7 @@ export default function ListeVentes({
                                     <th className="px-4 py-3 text-right">
                                       Prix unitaire
                                     </th>
+                                    <th></th>
                                     <th className="px-4 py-3 text-right">
                                       Total TTC
                                     </th>
@@ -590,7 +591,7 @@ export default function ListeVentes({
                                       </td>
 
                                       <td className="px-4 py-3 text-gray-500">
-                                        {ligne.vtel_lot_code || "-"}
+                                        {ligne.vtel_lot_dateper || "-"}
                                       </td>
 
                                       <td className="px-4 py-3 text-right">
@@ -600,7 +601,7 @@ export default function ListeVentes({
                                       <td className="px-4 py-3 text-right">
                                         {formatMontant(ligne.vtel_prixunit)}
                                       </td>
-
+                                      <td></td>
                                       <td className="px-4 py-3 text-right font-medium">
                                         {formatMontant(ligne.vtel_ttc)}
                                       </td>
