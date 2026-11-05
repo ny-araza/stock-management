@@ -85,6 +85,7 @@ export interface VenteParams {
   valide?: 0 | 1;
 
   mode_paye?: string;
+  paye_client?: string;
   operateur?: string;
 
   ordering?: string;
@@ -186,6 +187,13 @@ export const venteService = {
     });
   },
 
+  async filtrerParPayeClient(paye_client: string, page = 1): Promise<VenteResponse> {
+    return this.getVentes({
+      paye_client,
+      page,
+    });
+  },
+  
   /**
    * Récupérer uniquement les ventes validées
    * ou non validées.
@@ -206,5 +214,32 @@ export const venteService = {
       ...params,
       page: params.page ?? 1,
     });
+  },
+
+  /**
+   * Récupérer une vente avec toutes ses lignes
+   */
+  async getVenteById(id: number): Promise<ListeVente> {
+    const response = await apiFetch(`${ENDPOINT}${id}/`, { method: "GET" });
+
+    if (!response.status) {
+      throw new Error(response.message || "Vente introuvable");
+    }
+
+    return response.vente as ListeVente;
+  },
+
+  /**
+   * Enregistrer les modifications d'une vente
+   */
+  async modifierVente(id: number, donnees: Partial<ListeVente>): Promise<void> {
+    const response = await apiFetch(`${ENDPOINT}${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(donnees),
+    });
+
+    if (!response.status) {
+      throw new Error(response.message || "Erreur lors de la modification");
+    }
   },
 };

@@ -26,6 +26,7 @@ import NewSortitPage from "./pages/stock/sortit/newSortitPage";
 import NewRtcPage from "./pages/rtc/newRetourClient";
 import NewRtfPage from "./pages/rtf/newRetourFrns";
 import NewArticlePage from "./pages/Articles/newArticles";
+import ModifierVentePage from "./pages/Ventes/ModifierVentePage";
 
 export default function App() {
   return (
@@ -46,7 +47,7 @@ export default function App() {
             <Route path="/new-vente" element={<NewVentePage />} />
             <Route
                 path="/new-vente/:id/modifier"
-                element={<NewVentePage />}
+                element={<ModifierVentePage />}
               />
             <Route path="/new-entry" element={<NewEntryPage />} />
             <Route path="/new-articles" element={<NewArticlePage />} />

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
+import { useNavigate, useParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
@@ -36,7 +36,22 @@ import { useAuth } from "../../services/authLogin";
 import mettreAJourDocument from "../../services/update";
 import NewClts from "../Clients/newClts";
 
-export default function NewVentePage() {
+interface NewVentePageProps {
+  mode?: "creation" | "modification";
+  initialData?: ListeVente & {
+    lignes: VenteLigne[];
+  };
+  onSuccess?: () => void;
+}
+
+export default function NewVentePage({
+  mode = "creation",
+  initialData,
+  onSuccess,
+}: NewVentePageProps) {
+  const navigate = useNavigate();
+
+  const isModification = mode === "modification";
   const today = new Date().toISOString().split("T")[0];
 
   const [alert, setAlert] = useState({
@@ -336,9 +351,9 @@ export default function NewVentePage() {
     },
 
     {
-      label: "TVA (Ar)",
+      label: "TVA",
       render: (article) =>
-        Number(article.vtel_montant_tva).toLocaleString("fr-FR"),
+        <>{Number(article.vtel_montant_tva).toLocaleString("fr-FR")} Ar</>,
     },
 
     {
@@ -379,6 +394,63 @@ export default function NewVentePage() {
     setModalOpen(true);
     setEditingUid(null);
   };
+
+  useEffect(() => {
+    if (!initialData || !isModification) return;
+
+    // Vérifier que la vente n'est pas validée
+    if (Number(initialData.vte_valide) === 1) {
+      setAlert({
+        open: true,
+        variant: "warning",
+        title: "Modification impossible",
+        message: "Cette vente est déjà validée.",
+      });
+
+      return;
+    }
+
+    // Précharger les informations de la vente
+    setVente({
+      ...emptyVente,
+      ...initialData,
+    });
+
+    // Précharger le client
+    const clientInitial: Client = {
+      ...emptyClient,
+      cli_code: initialData.vte_cli_code || "",
+      cli_nom: initialData.vte_cli_nom || "",
+      cli_tel1: initialData.vte_cli_contact || "",
+      cli_adresse: initialData.ve_adresse_liv || "",
+    };
+
+    setClient(clientInitial);
+    setSearchClt(initialData.vte_cli_nom || "");
+
+    // Précharger les lignes
+    setLigneArticle(
+      (initialData.lignes || []).map((ligne, index) => ({
+        ...ligne,
+
+        vtel_uid:
+          ligne.vtel_uid ||
+          `vente-${initialData.vte_id}-ligne-${ligne.vtel_id || index}`,
+
+        vtel_quantite: Number(ligne.vtel_quantite || 0),
+        vtel_prixunit: Number(ligne.vtel_prixunit || 0),
+        vtel_ht: Number(ligne.vtel_ht || 0),
+        vtel_tva: Number(ligne.vtel_tva || 0),
+        vtel_remise: Number(ligne.vtel_remise),
+        vtel_montant_tva: (Number(ligne.vtel_tva) / 100) * Number(ligne.vtel_ht),
+        vtel_montant_remise: (Number(ligne.vtel_remise) / 100) * Number(ligne.vtel_ht),
+        vtel_ttc: Number(ligne.vtel_ttc || 0),
+      })),
+    );
+
+    // Précharger les informations du proforma
+    setSearchProforma(initialData.ve_proforma || "");
+  }, [initialData, isModification]);
 
   const modifierArticle = (articleSelectionne: VenteLigne) => {
     setArticle({ ...articleSelectionne });
@@ -893,6 +965,111 @@ export default function NewVentePage() {
 
   const handleSubmit = async () => {
     try {
+      // =========================================
+      // MODIFICATION D'UNE VENTE EXISTANTE
+      // =========================================
+
+      if (isModification) {
+        if (!initialData?.vte_id) {
+          throw new Error("Identifiant de vente introuvable.");
+        }
+
+        if (Number(vente.vte_valide) === 1) {
+          throw new Error("Cette vente est déjà validée.");
+        }
+
+        if (!ligneArticle.length || !client.cli_code) {
+          throw new Error("Veuillez renseigner le client et les articles.");
+        }
+
+        const totauxCalcules = calculerTotaux(ligneArticle);
+
+        if (totauxCalcules.ttc <= 0) {
+          throw new Error("Le montant total doit être supérieur à zéro.");
+        }
+
+        const payload = {
+          vte_date: vente.vte_date,
+          vte_modepaye: vente.vte_modepaye,
+
+          vte_montant_ht: totauxCalcules.ht,
+          vte_montant_ttc: totauxCalcules.ttc,
+          vte_tva: totauxCalcules.tva,
+
+          vte_cli_code: client.cli_code,
+          vte_cli_nom: client.cli_nom,
+          vte_cli_contact: client.cli_tel1,
+
+          vte_payeclient: vente.vte_payeclient,
+          vte_datepay: vente.vte_datepay || null,
+          vte_telmoney: vente.vte_telmoney,
+
+          vte_livreur: vente.vte_livreur,
+          vet_operateur: vente.vet_operateur,
+
+          ve_dateecheance: vente.ve_dateecheance || null,
+          ve_code_bl: vente.ve_code_bl,
+          ve_adresse_liv: client.cli_adresse,
+
+          ve_remise: totauxCalcules.remise,
+
+          vte_lettremontant: montantTTCEnLettres(totauxCalcules.ttc),
+
+          lignes: ligneArticle.map((ligne) => ({
+            vtel_id: ligne.vtel_id || null,
+
+            vtel_quantite: Number(ligne.vtel_quantite),
+            vtel_pri_id: Number(ligne.vtel_pri_id),
+            vtel_prixunit: Number(ligne.vtel_prixunit),
+
+            vtel_tva: Number(ligne.vtel_tva),
+            vtel_ht: Number(ligne.vtel_ht),
+            vtel_ttc: Number(ligne.vtel_ttc),
+
+            vtel_art_code: ligne.vtel_art_code,
+            vtel_cli_code: client.cli_code,
+
+            vtel_lot_id: ligne.vtel_lot_id,
+            vtel_lot_dateper: ligne.vtel_dateper || null,
+
+            vtel_remise: Number(ligne.vtel_remise || 0),
+            vtel_montant_remise: Number(ligne.vtel_montant_remise || 0),
+
+            vtel_montant_tva: Number(ligne.vtel_montant_tva || 0),
+          })),
+        };
+
+        const res = await apiFetch(`/api/ventes/${initialData.vte_id}/`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.status) {
+          throw new Error(
+            res.message || "Erreur lors de la modification de la vente.",
+          );
+        }
+
+        setAlert({
+          open: true,
+          variant: "success",
+          title: "Modification réussie",
+          message: "La vente a été modifiée avec succès.",
+        });
+
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate("/ventes");
+        }
+
+        return;
+      }
+
+      // =========================================
+      // CRÉATION D'UNE NOUVELLE VENTE
+      // =========================================
+
       console.log("here => ", vente);
       const totauxCalcules = calculerTotaux(ligneArticle);
       console.log("totaux calcue => ", totauxCalcules);
@@ -1080,7 +1257,7 @@ export default function NewVentePage() {
     <div className="no-scrollbar relative w-full overflow-y-auto rounded-3xl p-4 dark:bg-gray-900 lg:p-11">
       <div className="px-2 pr-14 flex justify-between">
         <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-          Commande client
+          {isModification ? "Modifier une vente" : "Commande client"}
         </h4>
         <span className="dark:text-white/90">
           {Date().split(" ")[2]}/{Date().split(" ")[1]}/{Date().split(" ")[3]}
@@ -1430,16 +1607,21 @@ export default function NewVentePage() {
             className="md:w-50 sm:w-auto md:mr-3"
             variant="primary"
             type="button"
-            onClick={() => {
-              calculerEtStockerTotaux();
-              handleSubmit();
-            }}
+            onClick={handleSubmit}
           >
-            Enregistrer
+            {isModification ? "Modifier la vente" : "Enregistrer"}
           </Button>
-          <Button variant="outline" onClick={clear}>
-            Effacer tout
-          </Button>
+          {!isModification && (
+            <Button variant="outline" onClick={clear}>
+              Effacer tout
+            </Button>
+          )}
+
+          {isModification && (
+            <Button variant="outline" onClick={() => navigate("/ventes")}>
+              Annuler
+            </Button>
+          )}
         </div>
       </form>
       <GenericArticleModal<VenteLigne, ArticleApi>

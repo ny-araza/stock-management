@@ -9,6 +9,9 @@ import {
   ShoppingCart,
   Filter,
   RefreshCw,
+  CheckCheckIcon,
+  CheckIcon,
+  DollarSign,
 } from "lucide-react";
 
 import { ListeVente, VenteParams } from "../../services/ventesService";
@@ -27,6 +30,8 @@ interface ListeVentesProps {
   totalCount: number;
 
   onModifier: (vente: ListeVente) => void;
+  onValidate: (vente: ListeVente) => void;
+  onPaye: (vente: ListeVente) => void;
 
   onFiltrer: (filters: Omit<VenteParams, "page">) => void;
 
@@ -69,6 +74,8 @@ export default function ListeVentes({
   totalPages,
   totalCount,
   onModifier,
+  onValidate,
+  onPaye,
   onFiltrer,
   onPageChange,
   onRefresh,
@@ -79,6 +86,7 @@ export default function ListeVentes({
   const [dateFin, setDateFin] = useState("");
 
   const [paye, setPaye] = useState("");
+  const [searchPayeClient, setSearchPayeClient] = useState("")
   const [valide, setValide] = useState("");
 
   const [modePaye, setModePaye] = useState("");
@@ -111,6 +119,7 @@ export default function ListeVentes({
       paye?: string;
       valide?: string;
       modePaye?: string;
+      paye_client?: string;
     } = {},
   ) => {
     const debut = overrides.dateDebut ?? dateDebut;
@@ -118,12 +127,14 @@ export default function ListeVentes({
     const paiement = overrides.paye ?? paye;
     const validation = overrides.valide ?? valide;
     const mode = overrides.modePaye ?? modePaye;
+    const payeClient = overrides.paye_client
 
     const filters: Omit<VenteParams, "page"> = {
       search: recherche.trim(),
       date_debut: debut,
       date_fin: fin,
       mode_paye: mode,
+      paye_client: payeClient
     };
 
     if (paiement !== "") {
@@ -148,6 +159,7 @@ export default function ListeVentes({
     setPaye("");
     setValide("");
     setModePaye("");
+    setSearchPayeClient("")
 
     onFiltrer({});
   };
@@ -159,6 +171,7 @@ export default function ListeVentes({
     paye,
     valide,
     modePaye,
+    setSearchPayeClient,
   ].filter(Boolean).length;
 
   // ======================================
@@ -386,7 +399,9 @@ export default function ListeVentes({
                 <th className="px-4 py-4 text-right">Montant TTC</th>
                 <th className="px-4 py-4 text-center">Paiement</th>
                 <th className="px-4 py-4 text-center">Validation</th>
-                <th className="px-4 py-4 text-right">Actions</th>
+                <th className="px-4 py-4 text-right"></th>
+                <th className="px-4 py-4 text-right"></th>
+                <th className="px-4 py-4 text-right"></th>
               </tr>
             </thead>
 
@@ -504,20 +519,35 @@ export default function ListeVentes({
 
                         {/* MODIFICATION */}
                         <td className="px-4 py-4 text-right">
-                          {vente.vte_valide !== 1 ? (
-                            <button
-                              onClick={() => onModifier(vente)}
-                              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
-                            >
-                              <Pencil size={14} />
-                              Modifier
-                            </button>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-500">
-                              <X size={14} />
-                              Verrouillée
-                            </span>
-                          )}
+                          <button
+                            onClick={() => onModifier(vente)}
+                            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 active:scale-95"
+                          >
+                            <Pencil size={14} />
+                            Modifier
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => {
+                              onValidate(vente);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-lg bg-brand-300 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 active:scale-95"
+                          >
+                            <CheckIcon size={14} />
+                            Valider
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => {
+                              onPaye(vente);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-lg bg-green-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 active:scale-95"
+                          >
+                            <DollarSign size={14} />
+                            Payer
+                          </button>
                         </td>
                       </tr>
 
