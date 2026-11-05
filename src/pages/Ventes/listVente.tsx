@@ -1,0 +1,657 @@
+import React, { useEffect, useState } from "react";
+import {
+  Search,
+  CalendarDays,
+  Pencil,
+  ChevronDown,
+  ChevronRight,
+  X,
+  ShoppingCart,
+  Filter,
+  RefreshCw,
+} from "lucide-react";
+
+import { ListeVente, VenteParams } from "../../services/ventesService";
+
+// ======================================
+// PROPS
+// ======================================
+
+interface ListeVentesProps {
+  ventes: ListeVente[];
+  loading?: boolean;
+  error?: string | null;
+
+  page: number;
+  totalPages: number;
+  totalCount: number;
+
+  onModifier: (vente: ListeVente) => void;
+
+  onFiltrer: (filters: Omit<VenteParams, "page">) => void;
+
+  onPageChange: (page: number) => void;
+
+  onRefresh?: () => void;
+}
+
+// ======================================
+// FORMATAGE
+// ======================================
+
+const formatMontant = (montant: string | number | null | undefined) => {
+  return (
+    new Intl.NumberFormat("fr-FR", {
+      maximumFractionDigits: 0,
+    }).format(Number(montant) || 0) + " Ar"
+  );
+};
+
+const formatDate = (date?: string | null) => {
+  if (!date) return "-";
+
+  const d = new Date(date);
+
+  if (isNaN(d.getTime())) return date;
+
+  return d.toLocaleDateString("fr-FR");
+};
+
+// ======================================
+// COMPOSANT
+// ======================================
+
+export default function ListeVentes({
+  ventes,
+  loading = false,
+  error = null,
+  page,
+  totalPages,
+  totalCount,
+  onModifier,
+  onFiltrer,
+  onPageChange,
+  onRefresh,
+}: ListeVentesProps) {
+  // Filtres locaux
+  const [recherche, setRecherche] = useState("");
+  const [dateDebut, setDateDebut] = useState("");
+  const [dateFin, setDateFin] = useState("");
+
+  const [paye, setPaye] = useState("");
+  const [valide, setValide] = useState("");
+
+  const [modePaye, setModePaye] = useState("");
+
+  const [venteOuverte, setVenteOuverte] = useState<number | null>(null);
+
+  // ======================================
+  // RECHERCHE AVEC DÉLAI
+  // ======================================
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      appliquerFiltres();
+    }, 400);
+
+    return () => clearTimeout(timer);
+
+    // La recherche est déclenchée lorsque ses critères changent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recherche]);
+
+  // ======================================
+  // CONSTRUCTION DES FILTRES
+  // ======================================
+
+  const appliquerFiltres = (
+    overrides: {
+      dateDebut?: string;
+      dateFin?: string;
+      paye?: string;
+      valide?: string;
+      modePaye?: string;
+    } = {},
+  ) => {
+    const debut = overrides.dateDebut ?? dateDebut;
+    const fin = overrides.dateFin ?? dateFin;
+    const paiement = overrides.paye ?? paye;
+    const validation = overrides.valide ?? valide;
+    const mode = overrides.modePaye ?? modePaye;
+
+    const filters: Omit<VenteParams, "page"> = {
+      search: recherche.trim(),
+      date_debut: debut,
+      date_fin: fin,
+      mode_paye: mode,
+    };
+
+    if (paiement !== "") {
+      filters.paye = Number(paiement) as 0 | 1;
+    }
+
+    if (validation !== "") {
+      filters.valide = Number(validation) as 0 | 1;
+    }
+
+    onFiltrer(filters);
+  };
+
+  // ======================================
+  // RÉINITIALISER
+  // ======================================
+
+  const resetFiltres = () => {
+    setRecherche("");
+    setDateDebut("");
+    setDateFin("");
+    setPaye("");
+    setValide("");
+    setModePaye("");
+
+    onFiltrer({});
+  };
+
+  const nombreFiltres = [
+    recherche,
+    dateDebut,
+    dateFin,
+    paye,
+    valide,
+    modePaye,
+  ].filter(Boolean).length;
+
+  // ======================================
+  // STATUT
+  // ======================================
+
+  const getStatutPaiement = (vente: ListeVente) => {
+    if (vente.vte_paye === 1) {
+      return {
+        label: "Payée",
+        style: "bg-green-100 text-green-700",
+      };
+    }
+
+    return {
+      label: "Non payée",
+      style: "bg-orange-100 text-orange-700",
+    };
+  };
+
+  const getStatutValidation = (vente: ListeVente) => {
+    if (vente.vte_valide === 1) {
+      return {
+        label: "Validée",
+        style: "bg-brand-100 text-brand-700",
+      };
+    }
+
+    return {
+      label: "Non validée",
+      style: "bg-gray-100 text-gray-600",
+    };
+  };
+
+  // ======================================
+  // RENDU
+  // ======================================
+
+  return (
+    <div className="w-full space-y-5">
+      {/* EN-TÊTE */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Liste des ventes</h2>
+
+          <p className="text-sm text-gray-500">
+            Consultez et gérez vos opérations de vente.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              title="Actualiser"
+            >
+              <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
+            </button>
+          )}
+
+          <div className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+            {totalCount} vente(s)
+          </div>
+        </div>
+      </div>
+
+      {/* FILTRES */}
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-semibold text-gray-700">
+            <Filter size={17} />
+            Filtres
+          </div>
+
+          {nombreFiltres > 0 && (
+            <button
+              onClick={resetFiltres}
+              className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700"
+            >
+              <X size={15} />
+              Réinitialiser
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {/* RECHERCHE */}
+          <div className="relative lg:col-span-3">
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              type="text"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher un client, une vente, un article..."
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+          </div>
+
+          {/* DATE DÉBUT */}
+          <div className="relative">
+            <CalendarDays
+              size={17}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              type="date"
+              value={dateDebut}
+              max={dateFin || undefined}
+              onChange={(e) => {
+                setDateDebut(e.target.value);
+
+                appliquerFiltres({
+                  dateDebut: e.target.value,
+                });
+              }}
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500"
+              aria-label="Date de début"
+            />
+          </div>
+
+          {/* DATE FIN */}
+          <div className="relative">
+            <CalendarDays
+              size={17}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              type="date"
+              value={dateFin}
+              min={dateDebut || undefined}
+              onChange={(e) => {
+                setDateFin(e.target.value);
+
+                appliquerFiltres({
+                  dateFin: e.target.value,
+                });
+              }}
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500"
+              aria-label="Date de fin"
+            />
+          </div>
+
+          {/* PAIEMENT */}
+          <select
+            value={paye}
+            onChange={(e) => {
+              setPaye(e.target.value);
+
+              appliquerFiltres({
+                paye: e.target.value,
+              });
+            }}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">Tous les paiements</option>
+            <option value="1">Payées</option>
+            <option value="0">Non payées</option>
+          </select>
+
+          {/* VALIDATION */}
+          <select
+            value={valide}
+            onChange={(e) => {
+              setValide(e.target.value);
+
+              appliquerFiltres({
+                valide: e.target.value,
+              });
+            }}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">Toutes les validations</option>
+            <option value="1">Validées</option>
+            <option value="0">Non validées</option>
+          </select>
+
+          {/* MODE DE PAIEMENT */}
+          <select
+            value={modePaye}
+            onChange={(e) => {
+              setModePaye(e.target.value);
+
+              appliquerFiltres({
+                modePaye: e.target.value,
+              });
+            }}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">Tous les modes de paiement</option>
+            <option value="Espèce">Espèce</option>
+            <option value="Mobile Money">Mobile Money</option>
+            <option value="Virement">Virement</option>
+            <option value="Chèque">Chèque</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ERREUR */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* TABLEAU */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1050px] text-left text-sm">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+              <tr>
+                <th className="w-10 px-4 py-4"></th>
+                <th className="px-4 py-4">Code vente</th>
+                <th className="px-4 py-4">Date</th>
+                <th className="px-4 py-4">Client</th>
+                <th className="px-4 py-4 text-center">Articles</th>
+                <th className="px-4 py-4 text-right">Montant HT</th>
+                <th className="px-4 py-4 text-right">Montant TTC</th>
+                <th className="px-4 py-4 text-center">Paiement</th>
+                <th className="px-4 py-4 text-center">Validation</th>
+                <th className="px-4 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={10} className="py-16 text-center">
+                    <RefreshCw
+                      size={25}
+                      className="mx-auto mb-3 animate-spin text-brand-500"
+                    />
+                    <p className="text-gray-500">Chargement des ventes...</p>
+                  </td>
+                </tr>
+              ) : ventes.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-16 text-center">
+                    <ShoppingCart
+                      size={35}
+                      className="mx-auto mb-3 text-gray-300"
+                    />
+
+                    <p className="font-medium text-gray-600">
+                      Aucune vente trouvée
+                    </p>
+
+                    <p className="mt-1 text-xs text-gray-400">
+                      Modifiez vos critères de recherche.
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                ventes.map((vente) => {
+                  const statut = getStatutPaiement(vente);
+                  const validation = getStatutValidation(vente);
+
+                  return (
+                    <React.Fragment key={vente.vte_id}>
+                      <tr className="transition hover:bg-brand-50/40">
+                        {/* DÉTAILS */}
+                        <td className="px-4 py-4">
+                          <button
+                            onClick={() =>
+                              setVenteOuverte(
+                                venteOuverte === vente.vte_id
+                                  ? null
+                                  : vente.vte_id,
+                              )
+                            }
+                            className="rounded-md p-1 text-gray-400 hover:bg-gray-100"
+                          >
+                            {venteOuverte === vente.vte_id ? (
+                              <ChevronDown size={18} />
+                            ) : (
+                              <ChevronRight size={18} />
+                            )}
+                          </button>
+                        </td>
+
+                        {/* CODE */}
+                        <td className="px-4 py-4 font-semibold text-brand-700">
+                          {vente.vte_code}
+                        </td>
+
+                        {/* DATE */}
+                        <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                          {formatDate(vente.vte_date)}
+                        </td>
+
+                        {/* CLIENT */}
+                        <td className="px-4 py-4">
+                          <p className="font-medium text-gray-800">
+                            {vente.vte_cli_nom || "Client inconnu"}
+                          </p>
+
+                          <p className="text-xs text-gray-400">
+                            {vente.vte_cli_contact || vente.vte_cli_code}
+                          </p>
+                        </td>
+
+                        {/* ARTICLES */}
+                        <td className="px-4 py-4 text-center">
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                            {vente.lignes?.length || 0}
+                          </span>
+                        </td>
+
+                        {/* HT */}
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                          {formatMontant(vente.vte_montant_ht)}
+                        </td>
+
+                        {/* TTC */}
+                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800">
+                          {formatMontant(vente.vte_montant_ttc)}
+                        </td>
+
+                        {/* PAIEMENT */}
+                        <td className="px-4 py-4 text-center">
+                          <span
+                            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${statut.style}`}
+                          >
+                            {statut.label}
+                          </span>
+                        </td>
+
+                        {/* VALIDATION */}
+                        <td className="px-4 py-4 text-center">
+                          <span
+                            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${validation.style}`}
+                          >
+                            {validation.label}
+                          </span>
+                        </td>
+
+                        {/* MODIFICATION */}
+                        <td className="px-4 py-4 text-right">
+                          {vente.vte_valide !== 1 ? (
+                            <button
+                              onClick={() => onModifier(vente)}
+                              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+                            >
+                              <Pencil size={14} />
+                              Modifier
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-500">
+                              <X size={14} />
+                              Verrouillée
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+
+                      {/* DÉTAILS DES LIGNES */}
+                      {venteOuverte === vente.vte_id && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={10} className="px-8 py-5">
+                            <h4 className="mb-3 font-semibold text-gray-700">
+                              Articles de la vente {vente.vte_code}
+                            </h4>
+
+                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                              <table className="w-full min-w-[650px] text-sm">
+                                <thead className="bg-gray-100 text-xs text-gray-500">
+                                  <tr>
+                                    <th className="px-4 py-3">Article</th>
+                                    <th className="px-4 py-3">Code article</th>
+                                    <th className="px-4 py-3">Lot</th>
+                                    <th className="px-4 py-3 text-right">
+                                      Quantité
+                                    </th>
+                                    <th className="px-4 py-3 text-right">
+                                      Prix unitaire
+                                    </th>
+                                    <th className="px-4 py-3 text-right">
+                                      Total TTC
+                                    </th>
+                                  </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-gray-100">
+                                  {vente.lignes?.map((ligne) => (
+                                    <tr key={ligne.vtel_id}>
+                                      <td className="px-4 py-3 font-medium text-gray-700">
+                                        {ligne.art_nom || ligne.vtel_art_code}
+                                      </td>
+
+                                      <td className="px-4 py-3 text-gray-500">
+                                        {ligne.vtel_art_code}
+                                      </td>
+
+                                      <td className="px-4 py-3 text-gray-500">
+                                        {ligne.vtel_lot_code || "-"}
+                                      </td>
+
+                                      <td className="px-4 py-3 text-right">
+                                        {ligne.vtel_quantite}
+                                      </td>
+
+                                      <td className="px-4 py-3 text-right">
+                                        {formatMontant(ligne.vtel_prixunit)}
+                                      </td>
+
+                                      <td className="px-4 py-3 text-right font-medium">
+                                        {formatMontant(ligne.vtel_ttc)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PIED DU TABLEAU */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3">
+          <span className="text-xs text-gray-500">
+            {totalCount} vente(s) au total
+          </span>
+
+          <span className="text-xs font-medium text-gray-600">
+            Total TTC de cette page :{" "}
+            {formatMontant(
+              ventes.reduce(
+                (total, vente) => total + Number(vente.vte_montant_ttc || 0),
+                0,
+              ),
+            )}
+          </span>
+        </div>
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4">
+        <span className="text-sm text-gray-500">
+          Page {page} sur {totalPages}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(1)}
+            disabled={page <= 1 || loading}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Première
+          </button>
+
+          <button
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1 || loading}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Précédent
+          </button>
+
+          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+            {page}
+          </span>
+
+          <button
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages || loading}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Suivant
+          </button>
+
+          <button
+            onClick={() => onPageChange(totalPages)}
+            disabled={page >= totalPages || loading}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Dernière
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

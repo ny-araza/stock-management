@@ -82,7 +82,6 @@ export default function NewRtcPage() {
     vtel_art_code: "",
     vtel_cli_code: "",
     vtel_dateper: "",
-    vtel_cli_code: "",
     vtel_ht: 0,
     vtel_id: 0,
     vtel_lot_code: "",

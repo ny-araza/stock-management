@@ -231,8 +231,7 @@ export default function NewArticlePage() {
         !article.art_code ||
         !article.art_nom ||
         !selectedFamille ||
-        !selectedSousFamille ||
-        !article.art_stockmini
+        !selectedSousFamille
       ) {
         setAlert({
           open: true,
@@ -322,10 +321,7 @@ export default function NewArticlePage() {
           message: `Article ${article.art_code} enregistré`,
           variant: "success",
         });
-        setArticle(emptyArticle)
-        setSelectedFamille(null);
-        setSelectedSousFamille(null);
-        setPrixUnites(emptyPrixUnites); // remplace la boucle supprimerLigne
+        clear();
       } else {
         setAlert({
           open: true,
@@ -337,6 +333,13 @@ export default function NewArticlePage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const clear = () => {
+    setArticle(emptyArticle);
+    setSelectedFamille(null);
+    setSelectedSousFamille(null);
+    setPrixUnites(emptyPrixUnites);
   };
 
   useEffect(() => {
@@ -551,11 +554,13 @@ export default function NewArticlePage() {
                 />
               </div>
             </div>
+            <PrixUnitesSection value={prixUnites} onChange={setPrixUnites} />
           </div>
-          <PrixUnitesSection value={prixUnites} onChange={setPrixUnites} />
           <div className="flex justify-center mt-5">
-            <Button className="mr-2" type="submit">Creer Article</Button>
-            <Button className="ml-2" variant="outline">
+            <Button className="mr-2" type="submit">
+              Creer Article
+            </Button>
+            <Button className="ml-2" onClick={clear} variant="outline">
               Tout effacer
             </Button>
           </div>

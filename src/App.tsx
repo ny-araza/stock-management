@@ -44,6 +44,10 @@ export default function App() {
             <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
             <Route path="/new-proforma" element={<NewProformaPage />} />
             <Route path="/new-vente" element={<NewVentePage />} />
+            <Route
+                path="/new-vente/:id/modifier"
+                element={<NewVentePage />}
+              />
             <Route path="/new-entry" element={<NewEntryPage />} />
             <Route path="/new-articles" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />
