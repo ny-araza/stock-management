@@ -177,8 +177,6 @@ export default function NewVentePage({
     }),
   );
   //end payeClt
-
-  //modePaye
   const [modePayementEnum, setModepayementEnum] = useState<Enumeration[]>([]);
   const enumerationModePaye: EnumerationOption[] = modePayementEnum.map(
     (item: Enumeration) => ({
@@ -187,6 +185,7 @@ export default function NewVentePage({
       label: item.enu_nom,
     }),
   );
+
   const [openModalClt, setOpenModalClt] = useState<boolean>(false);
   //modePaye
 
@@ -352,8 +351,9 @@ export default function NewVentePage({
 
     {
       label: "TVA",
-      render: (article) =>
-        <>{Number(article.vtel_montant_tva).toLocaleString("fr-FR")} Ar</>,
+      render: (article) => (
+        <>{Number(article.vtel_montant_tva).toLocaleString("fr-FR")} Ar</>
+      ),
     },
 
     {
@@ -442,8 +442,10 @@ export default function NewVentePage({
         vtel_ht: Number(ligne.vtel_ht || 0),
         vtel_tva: Number(ligne.vtel_tva || 0),
         vtel_remise: Number(ligne.vtel_remise),
-        vtel_montant_tva: (Number(ligne.vtel_tva) / 100) * Number(ligne.vtel_ht),
-        vtel_montant_remise: (Number(ligne.vtel_remise) / 100) * Number(ligne.vtel_ht),
+        vtel_montant_tva:
+          (Number(ligne.vtel_tva) / 100) * Number(ligne.vtel_ht),
+        vtel_montant_remise:
+          (Number(ligne.vtel_remise) / 100) * Number(ligne.vtel_ht),
         vtel_ttc: Number(ligne.vtel_ttc || 0),
       })),
     );

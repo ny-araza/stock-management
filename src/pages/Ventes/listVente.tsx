@@ -131,7 +131,7 @@ export default function ListeVentes({
     const paiementClient = overrides.paye_client ?? payeClient;
     const validation = overrides.valide ?? valide;
     const mode = overrides.modePaye ?? modePaye;
-    console.log(overrides)
+    console.log(overrides);
     const filters: Omit<VenteParams, "page"> = {
       search: recherche.trim(),
       date_debut: debut,
@@ -219,6 +219,34 @@ export default function ListeVentes({
     }),
   );
 
+  //modePaye
+  const [modePayementEnum, setModepayementEnum] = useState<Enumeration[]>([]);
+  const enumerationModePaye: EnumerationOption[] = modePayementEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
+
+  const get_paye_client = (vente: ListeVente) => {
+    if (!enumerationPaye) return vente.vte_payeclient;
+    const enu_nom = enumerationPaye.filter(
+      (elt) => elt.enu_id == Number(vente.vte_payeclient),
+    )[0]?.enu_nom;
+    if (enu_nom) return enu_nom;
+    return vente.vte_payeclient;
+  };
+
+  const get_mode_paye = (vente: ListeVente) => {
+    if (!enumerationModePaye) return vente.vte_modepaye;
+    const enu_nom = enumerationModePaye.filter(
+      (elt) => elt.enu_id == Number(vente.vte_modepaye),
+    )[0]?.enu_nom;
+    if (enu_nom) return enu_nom;
+    return vente.vte_modepaye;
+  };
+
   const fetchPaye = async (enu_code: string) => {
     try {
       const query = new URLSearchParams();
@@ -236,8 +264,26 @@ export default function ListeVentes({
     }
   };
 
+  const fetchModePaye = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        console.log(res.success)
+        setModepayementEnum(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     fetchPaye("PAYE_CLIENT");
+    fetchModePaye("MODE_PAY");
   }, []);
   // ======================================
   // RENDU
@@ -448,6 +494,8 @@ export default function ListeVentes({
                 <th className="px-4 py-4">Date</th>
                 <th className="px-4 py-4">Client</th>
                 <th className="px-4 py-4 text-center">Articles</th>
+                <th className="px-4 py-4 text-center">Type paiement</th>
+                <th className="px-4 py-4 text-center">Mode de paiement</th>
                 <th className="px-4 py-4 text-right">Montant HT</th>
                 <th className="px-4 py-4 text-right">Montant TTC</th>
                 <th className="px-4 py-4 text-center">Paiement</th>
@@ -543,6 +591,12 @@ export default function ListeVentes({
                         </td>
 
                         {/* HT */}
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                          {get_paye_client(vente)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                          {get_mode_paye(vente)}
+                        </td>
                         <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
                           {formatMontant(vente.vte_montant_ht)}
                         </td>

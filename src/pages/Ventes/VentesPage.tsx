@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useVentes } from "../../hooks/useVentes";
 import ListeVentes from "./listVente";
 import { ListeVente, VenteParams } from "../../services/ventesService";
@@ -11,6 +11,8 @@ import autoTable from "jspdf-autotable";
 import { Modal } from "../../components/ui/modal";
 import { Download, X } from "lucide-react";
 import { formatDate } from "../Home/modal/utils/utilsFucntions";
+import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
+import { apiFetch } from "../../services/api";
 
 export default function VentesPage() {
   //ticket
@@ -19,6 +21,31 @@ export default function VentesPage() {
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [ticketBlob, setTicketBlob] = useState<Blob | null>(null);
   // ticket
+  const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
+
+  const enumerationPaye: EnumerationOption[] = payementEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
+  const fetchPaye = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setpayementEnum(res.nom_enumeration || []);
+      }
+    } catch (error) {
+      console.error("Erreur chargement énumération PAYE_CLIENT :", error);
+    }
+  };
   const [alert, setAlert] = useState({
     open: false,
     variant: "success" as "success" | "error" | "warning" | "info",
@@ -84,6 +111,8 @@ export default function VentesPage() {
   };
   const handlePaye = async (vente: ListeVente) => {
     // Vérifier la validation
+    console.log(vente.vte_payeclient);
+
     if (vente.vte_valide != 1) {
       setAlert({
         open: true,
@@ -122,6 +151,7 @@ export default function VentesPage() {
     try {
       // Effectuer le paiement
       await updateVente(vente.vte_id, {
+
         vte_paye: true,
         vte_valide: true,
         vte_usermdf: user?.use_login || "",
@@ -265,19 +295,22 @@ export default function VentesPage() {
       y += Math.max(4, lignesTexte.length * 3.5);
     };
 
-    afficherInfo("N° Vente :", vente.vte_code || "-");
-    afficherInfo("Date :", formatDate(vente.vte_date));
-    afficherInfo("Date paiement :", formatDateHeure(vente.vte_datepay));
-    afficherInfo("Client :", vente.vte_cli_nom || "-");
-    afficherInfo("Contact :", vente.vte_cli_contact || "-");
-    afficherInfo("Mode paiement :", vente.vte_modepaye || "-");
+    afficherInfo("N° Vente:", vente.vte_code || "-");
+    afficherInfo("Date:", formatDate(vente.vte_date));
+    const today = new Date().toISOString().split("T")[0];
+    afficherInfo(
+      "Date paiement:",
+      formatDate(vente.vte_datepay || today),
+    );
+    afficherInfo("Client:", vente.vte_cli_nom || "-");
+    afficherInfo("Contact:", vente.vte_cli_contact || "-");
+    afficherInfo("Mode paiement:", vente.vte_modepaye || "-");
 
     if (vente.vte_payeclient) {
-      afficherInfo("Type paiement :", vente.vte_payeclient);
-    }
-
-    if (vente.vte_telmoney) {
-      afficherInfo("Référence paiement :", vente.vte_telmoney);
+      const enu_nom = enumerationPaye.filter(
+        (elt) => elt.enu_id == Number(vente.vte_payeclient),
+      )[0].enu_nom;
+      afficherInfo("Type paiement :", enu_nom);
     }
 
     y += 2;
@@ -463,7 +496,9 @@ export default function VentesPage() {
     link.click();
     document.body.removeChild(link);
   };
-
+  useEffect(() => {
+    fetchPaye("PAYE_CLIENT");
+  }, []);
   return (
     <div className="p-6">
       <ListeVentes
