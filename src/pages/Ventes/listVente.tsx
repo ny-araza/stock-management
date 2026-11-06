@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 
 import { ListeVente, VenteParams } from "../../services/ventesService";
+import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
+import Select from "../../components/form/Select";
+import { apiFetch } from "../../services/api";
 
 // ======================================
 // PROPS
@@ -86,7 +89,7 @@ export default function ListeVentes({
   const [dateFin, setDateFin] = useState("");
 
   const [paye, setPaye] = useState("");
-  const [searchPayeClient, setSearchPayeClient] = useState("")
+  const [payeClient, setPayeClient] = useState("");
   const [valide, setValide] = useState("");
 
   const [modePaye, setModePaye] = useState("");
@@ -117,24 +120,24 @@ export default function ListeVentes({
       dateDebut?: string;
       dateFin?: string;
       paye?: string;
+      paye_client?: string;
       valide?: string;
       modePaye?: string;
-      paye_client?: string;
     } = {},
   ) => {
     const debut = overrides.dateDebut ?? dateDebut;
     const fin = overrides.dateFin ?? dateFin;
     const paiement = overrides.paye ?? paye;
+    const paiementClient = overrides.paye_client ?? payeClient;
     const validation = overrides.valide ?? valide;
     const mode = overrides.modePaye ?? modePaye;
-    const payeClient = overrides.paye_client
-
+    console.log(overrides)
     const filters: Omit<VenteParams, "page"> = {
       search: recherche.trim(),
       date_debut: debut,
       date_fin: fin,
       mode_paye: mode,
-      paye_client: payeClient
+      paye_client: paiementClient,
     };
 
     if (paiement !== "") {
@@ -157,9 +160,9 @@ export default function ListeVentes({
     setDateDebut("");
     setDateFin("");
     setPaye("");
+    setPayeClient("");
     setValide("");
     setModePaye("");
-    setSearchPayeClient("")
 
     onFiltrer({});
   };
@@ -169,9 +172,9 @@ export default function ListeVentes({
     dateDebut,
     dateFin,
     paye,
+    payeClient,
     valide,
     modePaye,
-    setSearchPayeClient,
   ].filter(Boolean).length;
 
   // ======================================
@@ -205,7 +208,37 @@ export default function ListeVentes({
       style: "bg-gray-100 text-gray-600",
     };
   };
+  //payeClient
+  const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
 
+  const enumerationPaye: EnumerationOption[] = payementEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
+
+  const fetchPaye = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setpayementEnum(res.nom_enumeration || []);
+      }
+    } catch (error) {
+      console.error("Erreur chargement énumération PAYE_CLIENT :", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPaye("PAYE_CLIENT");
+  }, []);
   // ======================================
   // RENDU
   // ======================================
@@ -356,7 +389,27 @@ export default function ListeVentes({
             <option value="0">Non validées</option>
           </select>
 
-          {/* MODE DE PAIEMENT */}
+          {/* TYPE DE PAYEMENT CLIENT */}
+          <select
+            value={payeClient}
+            onChange={(e) => {
+              setPayeClient(e.target.value);
+
+              appliquerFiltres({
+                paye_client: e.target.value,
+              });
+            }}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+          >
+            <option value="">Tous les types de payement client</option>
+
+            {enumerationPaye.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+
           <select
             value={modePaye}
             onChange={(e) => {
@@ -368,7 +421,7 @@ export default function ListeVentes({
             }}
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
           >
-            <option value="">Tous les modes de paiement</option>
+            <option value="">Type de paiement du client</option>
             <option value="Espèce">Espèce</option>
             <option value="Mobile Money">Mobile Money</option>
             <option value="Virement">Virement</option>
