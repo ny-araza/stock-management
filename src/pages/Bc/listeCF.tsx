@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Search,
   CalendarDays,
@@ -14,7 +14,12 @@ import {
   DollarSign,
 } from "lucide-react";
 
-import { BCAutoComplete } from "../../interfaces/interfaces";
+import {
+  BCAutoComplete,
+  Enumeration,
+  EnumerationOption,
+} from "../../interfaces/interfaces";
+import { apiFetch } from "../../services/api";
 
 // ======================================
 // PROPS
@@ -152,7 +157,42 @@ export default function ListeBC({
       style: "bg-orange-100 text-orange-700",
     };
   };
+  const [commandeEnum, setCommandEnum] = useState<Enumeration[]>([]);
+  const enumerationCmd: EnumerationOption[] = commandeEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
+  const fetchCommande = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
 
+      if (res.success) {
+        setCommandEnum(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
+
+  const get_mode_cmd = (cf: BCAutoComplete) => {
+    if (!enumerationCmd) return cf.cmf_modecmd;
+    const enu_nom = enumerationCmd.filter(
+      (elt) => elt.enu_id == Number(cf.cmf_modecmd),
+    )[0]?.enu_nom;
+    if (enu_nom) return enu_nom;
+    return cf.cmf_modecmd;
+  };
+
+  useEffect(() => {
+    fetchCommande("MODE_COM");
+  }, []);
   // ======================================
   // RENDU
   // ======================================
@@ -276,9 +316,12 @@ export default function ListeBC({
             }}
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
           >
-            <option value="">Tous les modes de commande</option>
-            <option value="Automatique">Automatique</option>
-            <option value="Manuel">Manuel</option>
+            <option value="">Tous les types de mode de paiements</option>
+            {enumerationCmd.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
           </select>
 
           {/* LIVRAISON */}
@@ -410,7 +453,7 @@ export default function ListeBC({
                         </td>
 
                         <td className="px-4 py-4 text-center text-gray-600">
-                          {commande.cmf_modecmd || "-"}
+                          {get_mode_cmd(commande) || "-"}
                         </td>
 
                         <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
