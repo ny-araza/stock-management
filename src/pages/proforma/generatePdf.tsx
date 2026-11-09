@@ -13,7 +13,7 @@ export const DEFAULT_COMPANY: CompanyInfo = {
   nom: "TOUT POUR BEBE ET ENFANT",
   adresse: "Antananarivo, Madagascar",
   tel: "+261 XX XX XXX XX",
-  email: "contact@sainto.mg",
+  email: "notre email",
 };
 
 export interface GenerateProformaPdfOptions {

@@ -273,7 +273,7 @@ export default function ListeVentes({
       );
 
       if (res.success) {
-        console.log(res.success)
+        console.log(res.success);
         setModepayementEnum(res.nom_enumeration);
       }
     } catch (error: any) {
@@ -491,6 +491,7 @@ export default function ListeVentes({
               <tr>
                 <th className="w-10 px-4 py-4"></th>
                 <th className="px-4 py-4">Code vente</th>
+                <th className="px-4 py-4">Proforma</th>
                 <th className="px-4 py-4">Date</th>
                 <th className="px-4 py-4">Client</th>
                 <th className="px-4 py-4 text-center">Articles</th>
@@ -566,7 +567,9 @@ export default function ListeVentes({
                         <td className="px-4 py-4 font-semibold text-brand-700">
                           {vente.vte_code}
                         </td>
-
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                          {vente.ve_proforma || "-"}
+                        </td>
                         {/* DATE */}
                         <td className="whitespace-nowrap px-4 py-4 text-gray-600">
                           {formatDate(vente.vte_date)}

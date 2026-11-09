@@ -30,6 +30,15 @@ export default function VentesPage() {
       label: item.enu_nom,
     }),
   );
+  //modePaye
+  const [modePayementEnum, setModepayementEnum] = useState<Enumeration[]>([]);
+  const enumerationModePaye: EnumerationOption[] = modePayementEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
   const fetchPaye = async (enu_code: string) => {
     try {
       const query = new URLSearchParams();
@@ -44,6 +53,23 @@ export default function VentesPage() {
       }
     } catch (error) {
       console.error("Erreur chargement énumération PAYE_CLIENT :", error);
+    }
+  };
+
+  const fetchModePaye = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        console.log(res.success);
+        setModepayementEnum(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.log(error);
     }
   };
   const [alert, setAlert] = useState({
@@ -151,7 +177,6 @@ export default function VentesPage() {
     try {
       // Effectuer le paiement
       await updateVente(vente.vte_id, {
-
         vte_paye: true,
         vte_valide: true,
         vte_usermdf: user?.use_login || "",
@@ -298,13 +323,13 @@ export default function VentesPage() {
     afficherInfo("N° Vente:", vente.vte_code || "-");
     afficherInfo("Date:", formatDate(vente.vte_date));
     const today = new Date().toISOString().split("T")[0];
-    afficherInfo(
-      "Date paiement:",
-      formatDate(vente.vte_datepay || today),
-    );
+    afficherInfo("Date paiement:", formatDate(vente.vte_datepay || today));
     afficherInfo("Client:", vente.vte_cli_nom || "-");
     afficherInfo("Contact:", vente.vte_cli_contact || "-");
-    afficherInfo("Mode paiement:", vente.vte_modepaye || "-");
+    const enu_nom = enumerationModePaye.filter(
+      (elt) => elt.enu_id == Number(vente.vte_modepaye),
+    )[0]?.enu_nom;
+    afficherInfo("Mode paiement:", enu_nom || vente.vte_modepaye);
 
     if (vente.vte_payeclient) {
       const enu_nom = enumerationPaye.filter(
@@ -498,6 +523,7 @@ export default function VentesPage() {
   };
   useEffect(() => {
     fetchPaye("PAYE_CLIENT");
+    fetchModePaye("MODE_PAY");
   }, []);
   return (
     <div className="p-6">
