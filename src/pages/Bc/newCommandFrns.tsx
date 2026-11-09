@@ -604,6 +604,7 @@ export default function NewCmdFrnsPage() {
               cmfl_totalht: value.cmfl_TotalHT,
               cmfl_art_code: value.cmfl_Art_Code,
               cmfl_fou_code: frns.fou_code,
+              cmfl_totalttc: value.cmfl_TotalTTC
             },
           );
           if (send.status) {
