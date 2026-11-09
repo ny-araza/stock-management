@@ -1,6 +1,7 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import BcTable from "./bcTable";
+import CFPages from "./CFPage";
 
 export default function ListBcTables() {
   return (
@@ -9,7 +10,7 @@ export default function ListBcTables() {
       <PageBreadcrumb pageTitle="Bond de Commande"  />
       <div  className="space-y-6">
         <ComponentCard title="">
-          <BcTable />
+          <CFPages />
         </ComponentCard>
       </div>
     </>

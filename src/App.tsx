@@ -42,13 +42,13 @@ export default function App() {
             <Route path="ventes" element={<ListVentesTables />} />
             <Route path="/bc" element={<ListBcTables />} />
             <Route path="/new-liv" element={<NewLivFrnsPage />} />
-            <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
             <Route path="/new-proforma" element={<NewProformaPage />} />
             <Route path="/new-vente" element={<NewVentePage />} />
             <Route
                 path="/new-vente/:id/modifier"
                 element={<ModifierVentePage />}
               />
+            <Route path="/new-cmd_fournis/:id/modifier" element={<NewCmdFrnsPage />} />
             <Route path="/new-entry" element={<NewEntryPage />} />
             <Route path="/new-articles" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />

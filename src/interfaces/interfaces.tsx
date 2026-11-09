@@ -220,6 +220,7 @@ export interface BCAutoComplete {
   cmf_islivre: boolean;
   cmf_fou_code: string;
   cmf_lettre: string;
+  cmf_is_paye: boolean;
   fournisseur: Fourniseur;
   ligne: CFLigneArticle[];
 }

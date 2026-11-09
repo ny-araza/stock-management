@@ -20,7 +20,7 @@ export default async function updateVente(
 
   if (response?.error) {
     throw new Error(
-      response.error || "Erreur lors de la mise à jour de la proforma.",
+      response.error || "Erreur lors de la mise à jour de la vente",
     );
   }
 

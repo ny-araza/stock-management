@@ -32,6 +32,7 @@ import { useAuth } from "../../services/authLogin";
 
 export default function NewLivFrnsPage() {
   const { user } = useAuth();
+  const today = new Date().toISOString().split("T")[0];
 
   const emptyFrns: Fourniseur = {
     fou_adresse: "",
@@ -51,7 +52,7 @@ export default function NewLivFrnsPage() {
   };
   const emptyBC: BCAutoComplete = {
     cmf_code: "",
-    cmf_date: "",
+    cmf_date: today,
     cmf_datecre: "",
     cmf_dateliv: "",
     cmf_datemdf: "",
@@ -101,7 +102,7 @@ export default function NewLivFrnsPage() {
   const requestId = useRef(0);
   const { values, reset, setField, handleChange } = useForm({
     codeBl: "",
-    datePaiement: "",
+    datePaiement: today,
     facture: "",
     modeCmd: "",
   });
@@ -796,7 +797,6 @@ export default function NewLivFrnsPage() {
         return;
       }
 
-      const today = new Date().toISOString().split("T")[0];
 
       const resultats = await Promise.all(
         form.ligne.map(async (value) => {
@@ -807,7 +807,6 @@ export default function NewLivFrnsPage() {
              */
             if (!value.cmfl_datePer) {
               throw Error("La date de peremeption est obligatoire");
-              return false;
             }
             const lot_id = await stockLot({
               pri_lot: value.cmfl_uid || "",
@@ -885,7 +884,7 @@ export default function NewLivFrnsPage() {
               value,
               error,
             );
-
+            throw Error("Date de peremption laisser pour vide")
             return false;
           }
         }),
@@ -901,7 +900,7 @@ export default function NewLivFrnsPage() {
           open: true,
           variant: "error",
           title: "Une erreur est survenue",
-          message: "Une erreur est survenue dans la liste des articles",
+          message: "Une erreur survenue sur l'une des lignes",
         });
 
         return;
@@ -955,13 +954,12 @@ export default function NewLivFrnsPage() {
 
       clear();
     } catch (error) {
-      console.error("Erreur handleSubmit :", error);
 
       setAlert({
         open: true,
         variant: "error",
         title: "Une erreur est survenue",
-        message: "Erreur lors de l'enregistrement dans la base de données.",
+        message: `${error}`,
       });
     }
   };
@@ -987,6 +985,7 @@ export default function NewLivFrnsPage() {
     fetchCode("t_entree", false);
     fetchPaye("MODE_PAY");
     setField("modeCmd", "1");
+    setField("datePaiement", today);
   }, []);
 
   useEffect(() => {
