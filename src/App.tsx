@@ -27,6 +27,7 @@ import NewRtcPage from "./pages/rtc/newRetourClient";
 import NewRtfPage from "./pages/rtf/newRetourFrns";
 import NewArticlePage from "./pages/Articles/newArticles";
 import ModifierVentePage from "./pages/Ventes/ModifierVentePage";
+import ModifierCFPage from "./pages/Bc/modifierCFPage";
 
 export default function App() {
   return (
@@ -48,7 +49,11 @@ export default function App() {
                 path="/new-vente/:id/modifier"
                 element={<ModifierVentePage />}
               />
-            <Route path="/new-cmd_fournis/:id/modifier" element={<NewCmdFrnsPage />} />
+            <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
+            <Route
+                path="/new-cmd_fournis/:id/modifier"
+                element={<ModifierCFPage />}
+              />
             <Route path="/new-entry" element={<NewEntryPage />} />
             <Route path="/new-articles" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />

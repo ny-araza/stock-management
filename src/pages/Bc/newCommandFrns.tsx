@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { useNavigate } from "react-router";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import {
@@ -28,8 +29,24 @@ import NewFrns from "../Fournisseurs/newFrns";
 import montantTTCEnLettres from "../../utils/montantEnLettre";
 import { postData } from "../../services/sendDataService";
 import Alert from "../../components/ui/alert/Alert";
+import { _consoleError } from "ag-grid-community";
 
-export default function NewCmdFrnsPage() {
+interface NewCmdFrnsPageProps {
+  mode?: "creation" | "modification";
+  initialData?: BC & {
+    ligne: CFLigneArticle[];
+    fournisseur?: Fourniseur | null;
+  };
+  onSuccess?: () => void;
+}
+
+export default function NewCmdFrnsPage({
+  mode = "creation",
+  initialData,
+  onSuccess,
+}: NewCmdFrnsPageProps) {
+  const navigate = useNavigate();
+  const isModification = mode === "modification";
   const emptyBC: BC = {
     cmf_code: "",
     cmf_date: "",
@@ -94,7 +111,6 @@ export default function NewCmdFrnsPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionsFrns, setSuggestionsFrns] = useState<Fourniseur[]>([]);
   const [loading, setLoading] = useState(false);
-  const skipSearch = useRef(false);
   const requestId = useRef(0);
   const [highlight, setHighlight] = useState(-1);
   const handleSearchChangeFrns = (value: string) => {
@@ -128,7 +144,6 @@ export default function NewCmdFrnsPage() {
   `;
 
   const choisirFrns = (a: Fourniseur) => {
-    skipSearch.current = true;
     setSearchFrns(a.fou_nom);
     setFrns(a);
     setSuggestionsFrns([]);
@@ -405,9 +420,8 @@ export default function NewCmdFrnsPage() {
       type: "number",
       min: 0,
       parseValue: Number,
-      getValue: (article: CFLigneArticle) =>
-        article.cmfl_Quantite || "",
-      placeholder: "Quantité à commander"
+      getValue: (article: CFLigneArticle) => article.cmfl_Quantite || "",
+      placeholder: "Quantité à commander",
     },
 
     {
@@ -482,6 +496,35 @@ export default function NewCmdFrnsPage() {
     setEditingUid(null);
   };
 
+  // Préchargement du bon de commande et de ses lignes en mode modification.
+  useEffect(() => {
+    if (!isModification || !initialData) return;
+    console.log(initialData);
+    setForm({ ...emptyBC, ...initialData });
+
+    const fournisseurInitial = initialData.fournisseur ?? emptyFrns;
+    setFrns(fournisseurInitial);
+    setSearchFrns(fournisseurInitial.fou_nom || initialData.cmf_fou_code || "");
+
+    setLigneArticle(
+      (initialData.ligne ?? []).map((ligne, index) => ({
+        ...ligne,
+        cmfl_uid:
+          ligne.cmfl_uid ||
+          `bc-${initialData.cmf_id}-ligne-${ligne.cmfl_id ?? index}`,
+        cmfl_Quantite: Number(ligne.cmfl_Quantite || 0),
+        cmfl_PrixAchat: Number(ligne.cmfl_PrixAchat || 0),
+        cmfl_Tva: Number(ligne.cmfl_Tva || 0),
+        cmfl_TotalHT: Number(ligne.cmfl_TotalHT || 0),
+        cmfl_TotalTTC: Number(ligne.cmfl_TotalTTC || 0),
+        cmfl_remise: Number(ligne.cmfl_remise || 0),
+        cmfl_montant_remise: Number(ligne.cmfl_montant_remise || 0),
+        cmfl_montant_tva:
+          Number(ligne.cmfl_Tva / 100 || 0) * Number(ligne.cmfl_TotalHT),
+      })),
+    );
+  }, [initialData, isModification]);
+
   const fetchCode = async (table_name: string, isInsert: boolean) => {
     try {
       const query = new URLSearchParams();
@@ -544,23 +587,23 @@ export default function NewCmdFrnsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      console.log("form ==> ", form);
-      console.log("ligneArticle ==> ", ligneArticle);
-      console.log("frns ==> ", frns);
-      const ligne_ok: boolean[] = [];
-      if (ligneArticle.length == 0 || !form || !frns) {
-        throw Error("Vous avz laisser des champs vides");
+      if (!ligneArticle.length) {
+        throw new Error("Ajoutez au moins un article à la commande.");
       }
-      const total_remise = ligneArticle.reduce(
-        (total, article) => total + Number(article.cmfl_montant_remise || 0),
+      if (!frns.fou_code) {
+        throw new Error("Veuillez sélectionner un fournisseur.");
+      }
+
+      const ht = ligneArticle.reduce(
+        (total, article) => total + Number(article.cmfl_TotalHT || 0),
         0,
       );
-      const ht =
-        ligneArticle.reduce(
-          (total, article) => total + Number(article.cmfl_TotalHT || 0),
-          0,
-        ) - total_remise || 0;
+      const tva = ligneArticle.reduce(
+        (total, article) => total + Number(article.cmfl_montant_tva || 0),
+        0,
+      );
       const ttc = ligneArticle.reduce(
         (total, article) =>
           total +
@@ -568,16 +611,74 @@ export default function NewCmdFrnsPage() {
           Number(article.cmfl_montant_tva || 0),
         0,
       );
-      if (ttc === 0) {
+
+      if (ttc <= 0) {
         setAlert({
           open: true,
-          message: "Le montant total HT doit être supérieur à 0.",
+          message: "Le montant total TTC doit être supérieur à 0.",
           title: "Montant invalide",
           variant: "error",
         });
         return;
       }
+
       const today = new Date().toISOString().split("T")[0];
+
+      // MODIFICATION : on met à jour le bon existant, sans en créer un nouveau.
+      if (isModification) {
+        if (!initialData?.cmf_id) {
+          throw new Error("Identifiant du bon de commande introuvable.");
+        }
+
+        const payload = {
+          cmf_date: form.cmf_date || today,
+          cmf_modecmd: form.cmf_modecmd,
+          cmf_dateliv: form.cmf_dateliv || null,
+          cmf_montant_ht: ht,
+          cmf_montant_ttc: ttc,
+          cmf_fou_code: frns.fou_code,
+          cmf_lettre: montantTTCEnLettres(ttc),
+          ligne: ligneArticle.map((ligne) => ({
+            cmfl_id: ligne.cmfl_id || null,
+            cmfl_cmf_code: form.cmf_code,
+            cmfl_Quantite: Number(ligne.cmfl_Quantite || 0),
+            cmfl_PrixAchat: Number(ligne.cmfl_PrixAchat || 0),
+            cmfl_Tva: Number(ligne.cmfl_Tva || 0),
+            cmfl_TotalHT: Number(ligne.cmfl_TotalHT || 0),
+            cmfl_TotalTTC: Number(ligne.cmfl_TotalTTC || 0),
+            cmfl_Art_Code: ligne.cmfl_Art_Code,
+            cmfl_fou_Code: frns.fou_code,
+            cmfl_pri_id: Number(ligne.cmfl_pri_id || 0),
+            cmfl_remise: Number(ligne.cmfl_remise || 0),
+            cmfl_montant_remise: Number(ligne.cmfl_montant_remise || 0),
+            cmfl_montant_tva: Number(ligne.cmfl_montant_tva || 0),
+          })),
+        };
+
+        const res = await apiFetch(`/api/bc-list/${initialData.cmf_id}/`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.status) {
+          throw new Error(
+            res.message || "Erreur lors de la modification du bon de commande.",
+          );
+        }
+
+        setAlert({
+          open: true,
+          variant: "success",
+          title: "Modification réussie",
+          message: "Le bon de commande a été modifié avec succès.",
+        });
+
+        if (onSuccess) onSuccess();
+        else navigate(-1);
+        return;
+      }
+
+      // CRÉATION : conserver le comportement d'insertion existant.
       const res = await postData("/api/insert-database/", "t_cmd_fournis", {
         cmf_code: form.cmf_code,
         cmf_modecmd: form.cmf_modecmd,
@@ -590,63 +691,53 @@ export default function NewCmdFrnsPage() {
         cmf_lettre: montantTTCEnLettres(ttc),
         cmf_enabled: true,
       });
-      if (res.status) {
-        ligneArticle.map(async (value) => {
-          const send = await postData(
-            "/api/insert-database/",
-            "t_ligne_cmd_fournis",
-            {
-              cmfl_quantite: value.cmfl_Quantite,
-              cmfl_pri_id: value.cmfl_pri_id,
-              cmfl_cmf_code: form.cmf_code,
-              cmfl_prixachat: value.cmfl_PrixAchat,
-              cmfl_tva: value.cmfl_Tva,
-              cmfl_totalht: value.cmfl_TotalHT,
-              cmfl_art_code: value.cmfl_Art_Code,
-              cmfl_fou_code: frns.fou_code,
-              cmfl_totalttc: value.cmfl_TotalTTC
-            },
-          );
-          if (send.status) {
-            ligne_ok.push(true);
-          } else ligne_ok.push(false);
-        });
-      } else {
-        setAlert({
-          open: true,
-          message: res.error,
-          title: "Une erreur survenue",
-          variant: "error",
-        });
-        return;
-      }
-      if (!ligne_ok.find((val) => val == false)) {
-        fetchCode("t_cmd_fournis", true);
-        setAlert({
-          open: true,
-          variant: "success",
-          title: "Opération réussie",
-          message: "Commande enregistrer avec succès",
-        });
-        clear();
-        return;
-      } else {
-        setAlert({
-          open: true,
-          variant: "error",
-          title: "Une erreur est survenue",
-          message: "Erreur lors de l'enregistrement dans la base de donnée",
-        });
+
+      if (!res.status) {
+        throw new Error(
+          res.error || "Erreur lors de l'enregistrement du bon de commande.",
+        );
       }
 
+      const resultats = await Promise.all(
+        ligneArticle.map((value) =>
+          postData("/api/insert-database/", "t_ligne_cmd_fournis", {
+            cmfl_quantite: value.cmfl_Quantite,
+            cmfl_pri_id: value.cmfl_pri_id,
+            cmfl_cmf_code: form.cmf_code,
+            cmfl_prixachat: value.cmfl_PrixAchat,
+            cmfl_tva: value.cmfl_Tva,
+            cmfl_totalht: value.cmfl_TotalHT,
+            cmfl_totalttc: value.cmfl_TotalTTC,
+            cmfl_art_code: value.cmfl_Art_Code,
+            cmfl_fou_code: frns.fou_code,
+          }),
+        ),
+      );
+
+      if (resultats.some((resultat) => !resultat.status)) {
+        throw new Error(
+          "Le bon a été créé, mais une ou plusieurs lignes n'ont pas pu être enregistrées.",
+        );
+      }
+
+      fetchCode("t_cmd_fournis", true);
       setAlert({
         open: true,
-        message: "Vous avez laisser un (des) champ(s) vide(s)",
-        title: "Une erreur survenue",
-        variant: "error",
+        variant: "success",
+        title: "Opération réussie",
+        message: "Commande enregistrée avec succès.",
       });
-    } catch (error) {
-      console.error(error);
+      clear();
+    } catch (error: any) {
+      console.error("Erreur handleSubmit :", error);
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Une erreur est survenue",
+        message:
+          error?.message ||
+          "Erreur lors de l'enregistrement dans la base de données.",
+      });
     }
   };
 
@@ -655,31 +746,25 @@ export default function NewCmdFrnsPage() {
     setFrns(emptyFrns);
     setLigneArticle([]);
     setForm(emptyBC);
-    fetchCode("t_cmd_fournis", false);
+    if (!isModification) fetchCode("t_cmd_fournis", false);
   };
 
   useEffect(() => {
-    fetchCode("t_cmd_fournis", false);
     fetchCommande("MODE_COM");
-    setForm((prev) => ({
-      ...prev,
-      cmf_modecmd: "8",
-    }));
-  }, []);
+    if (!isModification) {
+      fetchCode("t_cmd_fournis", false);
+      setForm((prev) => ({ ...prev, cmf_modecmd: "8" }));
+    }
+  }, [isModification]);
 
   useEffect(() => {
-    if (!open) return;
-
-    if (skipSearch.current) {
-      skipSearch.current = false;
-      return;
-    }
+    if (!showSuggestionsFrns) return;
 
     const timerFrns = setTimeout(() => rechercherFrns(searchFrns), 300);
     return () => {
       clearTimeout(timerFrns);
     };
-  }, [searchFrns, open, rechercherFrns]);
+  }, [searchFrns, showSuggestionsFrns, rechercherFrns]);
 
   return (
     <>
@@ -687,7 +772,9 @@ export default function NewCmdFrnsPage() {
         <div className="no-scrollbar relative h-full w-full overflow-y-auto rounded-3xl p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Ajout commande fournisseur
+              {isModification
+                ? "Modifier le bon de commande"
+                : "Ajout commande fournisseur"}
             </h4>
             <span className="dark:text-white/90">
               {Date().split(" ")[2]}/{Date().split(" ")[1]}/
@@ -941,11 +1028,13 @@ export default function NewCmdFrnsPage() {
                 variant="primary"
                 type="submit"
               >
-                Valider
+                {isModification ? "Enregistrer les modifications" : "Valider"}
               </Button>
-              <Button variant="outline" onClick={clear}>
-                Effacer tout
-              </Button>
+              {!isModification && (
+                <Button variant="outline" type="button" onClick={clear}>
+                  Effacer tout
+                </Button>
+              )}
             </div>
           </form>
         </div>

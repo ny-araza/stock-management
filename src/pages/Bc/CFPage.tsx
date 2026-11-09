@@ -41,7 +41,7 @@ export default function CFPages() {
       return;
     }
 
-    navigate(`/new-cf/${cf.cmf_id}/modifier`);
+    navigate(`/new-cmd_fournis/${cf.cmf_id}/modifier`);
   };
 
   const handleLivrer = (vente: BCAutoComplete) => {

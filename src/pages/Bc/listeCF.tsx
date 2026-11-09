@@ -204,7 +204,7 @@ export default function ListeBC({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-800">
-            Liste des bons de commande automatiques
+            Liste des bons de commande
           </h2>
           <p className="text-sm text-gray-500">
             Consultez et gérez vos bons de commande fournisseurs.
