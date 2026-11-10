@@ -28,6 +28,7 @@ import NewRtfPage from "./pages/rtf/newRetourFrns";
 import NewArticlePage from "./pages/Articles/newArticles";
 import ModifierVentePage from "./pages/Ventes/ModifierVentePage";
 import ModifierCFPage from "./pages/Bc/modifierCFPage";
+import ModifierLivFrnsPage from "./pages/livFrns/modifierFrnsPage";
 
 export default function App() {
   return (
@@ -46,15 +47,19 @@ export default function App() {
             <Route path="/new-proforma" element={<NewProformaPage />} />
             <Route path="/new-vente" element={<NewVentePage />} />
             <Route
-                path="/new-vente/:id/modifier"
-                element={<ModifierVentePage />}
-              />
+              path="/new-vente/:id/modifier"
+              element={<ModifierVentePage />}
+            />
             <Route path="/new-cmd_fournis" element={<NewCmdFrnsPage />} />
             <Route
-                path="/new-cmd_fournis/:id/modifier"
-                element={<ModifierCFPage />}
-              />
+              path="/new-cmd_fournis/:id/modifier"
+              element={<ModifierCFPage />}
+            />
             <Route path="/new-entry" element={<NewEntryPage />} />
+            <Route
+              path="/new-entry/:id/modifier"
+              element={<ModifierLivFrnsPage />}
+            />
             <Route path="/new-articles" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />
             <Route path="/new-rtc" element={<NewRtcPage />} />

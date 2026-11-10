@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router";
 import SearchableSelect from "../Home/modal/utils/searchableSelect";
 import {
   ArticleApi,
@@ -27,11 +28,36 @@ import GenericArticleModal, {
 import { postData } from "../../services/sendDataService";
 import Alert from "../../components/ui/alert/Alert";
 import NewFrns from "../Fournisseurs/newFrns";
-import mettreAJourDocument, { DataUpdate } from "../../services/update";
 import { useAuth } from "../../services/authLogin";
+import mettreAJourDocument, { DataUpdate } from "../../services/update";
 
-export default function NewLivFrnsPage() {
+interface NewLivFrnsPageProps {
+  mode?: "creation" | "modification";
+  initialData?: Partial<BCAutoComplete> & {
+    ent_id?: number;
+    ent_code?: string;
+    ent_modepaye?: string;
+    ent_datepay?: string;
+    ent_facture?: string;
+    ent_date?: string;
+    ent_montant_ht?: number;
+    ent_montant_ttc?: number;
+    ent_fou_code?: string;
+    ent_cmf_code?: string;
+    fournisseur?: Fourniseur | null;
+    ligne?: CFLigneArticle[];
+  };
+  onSuccess?: () => void;
+}
+
+export default function NewLivFrnsPage({
+  mode = "creation",
+  initialData,
+  onSuccess,
+}: NewLivFrnsPageProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
+  const isModification = mode === "modification";
   const today = new Date().toISOString().split("T")[0];
 
   const emptyFrns: Fourniseur = {
@@ -304,9 +330,10 @@ export default function NewLivFrnsPage() {
       fournisseur: {
         ...a,
       },
+      cmf_fou_code: a.fou_code,
     }));
     setSuggestionsFrns([]);
-    setShowSuggestions(false);
+    setShowSuggestionsFrns(false);
     setHighlight(-1);
   };
 
@@ -425,6 +452,7 @@ export default function NewLivFrnsPage() {
         ...prev.fournisseur,
         [field]: value,
       },
+      ...(field === "fou_code" ? { cmf_fou_code: String(value) } : {}),
     }));
   };
 
@@ -771,15 +799,15 @@ export default function NewLivFrnsPage() {
         });
         return;
       }
-      const total_remise = form.ligne.reduce(
-        (total, article) => total + Number(article.cmfl_montant_remise || 0),
+
+      if (!form.fournisseur?.fou_code) {
+        throw new Error("Veuillez sélectionner un fournisseur.");
+      }
+
+      const ht = form.ligne.reduce(
+        (total, article) => total + Number(article.cmfl_TotalHT || 0),
         0,
       );
-      const ht =
-        form.ligne.reduce(
-          (total, article) => total + Number(article.cmfl_TotalHT || 0),
-          0,
-        ) - total_remise || 0;
       const ttc = form.ligne.reduce(
         (total, article) =>
           total +
@@ -797,6 +825,69 @@ export default function NewLivFrnsPage() {
         return;
       }
 
+      // En modification, on met à jour l'entrée existante et ses lignes.
+      // On ne recrée surtout pas les lots et les mouvements de stock :
+      // ils ont déjà été générés lors de la création de l'entrée.
+      if (isModification) {
+        if (!initialData?.ent_id) {
+          throw new Error("Identifiant de l'entrée introuvable.");
+        }
+
+        const payload = {
+          ent_modepaye: values.modeCmd || "0",
+          ent_datepay: values.datePaiement || today,
+          ent_montant_ht: Math.round(ht),
+          ent_montant_ttc: Math.round(ttc),
+          ent_fou_code: form.fournisseur.fou_code,
+          ent_facture: values.facture || "",
+          ent_cmf_code: form.cmf_code,
+          ent_is_paye: values.datePaiement === today,
+          ent_usermdf: user?.use_login ?? "",
+          ligne: form.ligne.map((ligne: any) => ({
+            entl_id: ligne.entl_id ?? null,
+            entl_ent_code: values.codeBl,
+            entl_quantite: Number(ligne.cmfl_Quantite || 0),
+            entl_pri_id: Number(ligne.cmfl_pri_id || 0),
+            entl_prixunit: Number(ligne.cmfl_PrixAchat || 0),
+            entl_tva: Number(ligne.cmfl_Tva || 0),
+            entl_ht: Number(ligne.cmfl_TotalHT || 0),
+            entl_art_code: ligne.cmfl_Art_Code,
+            entl_fou_code: form.fournisseur.fou_code,
+            entl_ttc: Number(ligne.cmfl_TotalTTC || 0),
+            entl_dateper: ligne.cmfl_datePer || null,
+            entl_prix: Number(ligne.cmfl_PrixAchat || 0),
+            entl_remise: Number(ligne.cmfl_remise || 0),
+            entl_lot: ligne.entl_lot ?? ligne.cmfl_lot ?? null,
+          })),
+        };
+
+        const updateRes = await apiFetch(
+          `/api/entree_stock/${initialData.ent_id}/`,
+          {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          },
+        );
+
+        if (!updateRes.status) {
+          throw new Error(
+            updateRes.message ||
+              updateRes.error ||
+              "Erreur lors de la modification de l'entrée fournisseur.",
+          );
+        }
+
+        setAlert({
+          open: true,
+          variant: "success",
+          title: "Modification réussie",
+          message: "L'entrée fournisseur a été modifiée avec succès.",
+        });
+
+        if (onSuccess) onSuccess();
+        else navigate(-1);
+        return;
+      }
 
       const resultats = await Promise.all(
         form.ligne.map(async (value) => {
@@ -884,8 +975,11 @@ export default function NewLivFrnsPage() {
               value,
               error,
             );
-            throw Error("Date de peremption laisser pour vide")
-            return false;
+            throw new Error(
+              error instanceof Error
+                ? error.message
+                : "La date de péremption est obligatoire.",
+            );
           }
         }),
       );
@@ -915,7 +1009,7 @@ export default function NewLivFrnsPage() {
         ent_date: today,
         ent_facture: values.facture,
         ent_cmf_code: form.cmf_code,
-        ent_is_paye: false,
+        ent_is_paye: today == values.datePaiement,
       });
 
       if (res.status && form.cmf_code) {
@@ -942,7 +1036,7 @@ export default function NewLivFrnsPage() {
         });
         return;
       }
-      
+
       fetchCode("t_entree", true);
 
       setAlert({
@@ -954,7 +1048,6 @@ export default function NewLivFrnsPage() {
 
       clear();
     } catch (error) {
-
       setAlert({
         open: true,
         variant: "error",
@@ -978,18 +1071,57 @@ export default function NewLivFrnsPage() {
     setArticles([]);
     setForm(emptyBC);
     reset();
-    fetchCode("t_entree", false);
+    if (!isModification) fetchCode("t_entree", false);
   };
 
   useEffect(() => {
-    fetchCode("t_entree", false);
     fetchPaye("MODE_PAY");
-    setField("modeCmd", "1");
-    setField("datePaiement", today);
-  }, []);
+    if (isModification && initialData) {
+      const fournisseurInitial = initialData.fournisseur ?? emptyFrns;
+      setForm({
+        ...emptyBC,
+        ...initialData,
+        fournisseur: fournisseurInitial,
+        ligne: (initialData.ligne ?? []).map((ligne, index) => ({
+          ...ligne,
+          cmfl_uid:
+            ligne.cmfl_uid ||
+            `ent-${initialData.ent_id ?? "edit"}-ligne-${ligne.cmfl_id ?? index}`,
+          cmfl_Quantite: Number(ligne.cmfl_Quantite ?? 0),
+          cmfl_PrixAchat: Number(ligne.cmfl_PrixAchat ?? 0),
+          cmfl_Tva: Number(ligne.cmfl_Tva ?? 0),
+          cmfl_TotalHT: Number(ligne.cmfl_TotalHT ?? 0),
+          cmfl_TotalTTC: Number(ligne.cmfl_TotalTTC ?? 0),
+          cmfl_montant_tva: Number(
+            ligne.cmfl_montant_tva ??
+              (Number(ligne.cmfl_TotalHT ?? 0) * Number(ligne.cmfl_Tva ?? 0)) /
+                100,
+          ),
+          cmfl_remise: Number(ligne.cmfl_remise ?? 0),
+          cmfl_montant_remise: Number(ligne.cmfl_montant_remise ?? 0),
+          cmfl_datePer: ligne.cmfl_datePer || "",
+        })),
+      });
+      setSearch(initialData.cmf_code ?? initialData.ent_cmf_code ?? "");
+      setSearchFrns(
+        fournisseurInitial.fou_nom ||
+          initialData.cmf_fou_code ||
+          initialData.ent_fou_code ||
+          "",
+      );
+      setField("codeBl", initialData.ent_code ?? "");
+      setField("datePaiement", initialData.ent_datepay ?? today);
+      setField("facture", initialData.ent_facture ?? "");
+      setField("modeCmd", initialData.ent_modepaye ?? "1");
+    } else {
+      fetchCode("t_entree", false);
+      setField("modeCmd", "1");
+      setField("datePaiement", today);
+    }
+  }, [isModification, initialData]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!showSuggestions) return;
 
     if (skipSearch.current) {
       skipSearch.current = false;
@@ -1000,10 +1132,10 @@ export default function NewLivFrnsPage() {
     return () => {
       clearTimeout(timer);
     };
-  }, [search, open, rechercherArticle]);
+  }, [search, showSuggestions, rechercherArticle]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!showSuggestionsFrns) return;
 
     if (skipSearch.current) {
       skipSearch.current = false;
@@ -1014,7 +1146,7 @@ export default function NewLivFrnsPage() {
     return () => {
       clearTimeout(timerFrns);
     };
-  }, [searchFrns, open, rechercherFrns]);
+  }, [searchFrns, showSuggestionsFrns, rechercherFrns]);
 
   return (
     <div>
@@ -1022,7 +1154,9 @@ export default function NewLivFrnsPage() {
         <div className="no-scrollbar relative w-full overflow-y-auto rounded-3xl p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14 flex justify-between">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Ajout livraisons fournisseur
+              {isModification
+                ? "Modifier l'entrée fournisseur"
+                : "Ajout livraisons fournisseur"}
             </h4>
             <span className="dark:text-white/90">
               {Date().split(" ")[2]}/{Date().split(" ")[1]}/
@@ -1215,7 +1349,9 @@ export default function NewLivFrnsPage() {
                 items={form.ligne}
                 columns={articleColumns}
 
-                getKey={(article: CFLigneArticle) => article.cmfl_Art_Code}
+                getKey={(article: CFLigneArticle) =>
+                  article.cmfl_uid || article.cmfl_Art_Code
+                }
 
                 onEdit={modifierArticle}
 
@@ -1281,9 +1417,9 @@ export default function NewLivFrnsPage() {
                 variant="primary"
                 type="submit"
               >
-                Valider
+                {isModification ? "Enregistrer les modifications" : "Valider"}
               </Button>
-              <Button variant="outline" onClick={clear}>
+              <Button type="button" variant="outline" onClick={clear}>
                 Effacer tout
               </Button>
             </div>

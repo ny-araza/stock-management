@@ -23,6 +23,7 @@ import {
 import { Modal } from "../../components/ui/modal";
 import { useModal } from "../../hooks/useModal";
 import SearchableSelect from "../Home/modal/utils/searchableSelect";
+import { Fourniseur } from "../../interfaces/interfaces";
 
 // ---- Types correspondant aux données reçues par ce composant ----
 // (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)
@@ -47,8 +48,8 @@ export interface EntreeLigne {
   entl_remise?: string;
   entl_uid?: string;
   entl_montant_tva: number;
-  entl_lot_id?: number
-  entl_montant_remise?: number
+  entl_lot_id?: number;
+  entl_montant_remise?: number;
 }
 
 export interface Entree {
@@ -67,6 +68,8 @@ export interface Entree {
   ent_montant_ht: string;
   ent_montant_ttc: string;
   ent_cmf_code: string;
+  ent_is_paye: boolean;
+  fournisseur?: Fourniseur;
   lignes: EntreeLigne[];
 }
 
@@ -378,7 +381,7 @@ export default function LivFrnsTable() {
 
   // --- Ouverture du modal au clic sur une ligne ---
   const onRowClicked = (event: RowClickedEvent<Entree>) => {
-    console.log(event.data)
+    console.log(event.data);
     if (event.data) setSelectedEntree(event.data);
     openModal();
   };

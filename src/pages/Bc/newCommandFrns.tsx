@@ -499,7 +499,6 @@ export default function NewCmdFrnsPage({
   // Préchargement du bon de commande et de ses lignes en mode modification.
   useEffect(() => {
     if (!isModification || !initialData) return;
-    console.log(initialData);
     setForm({ ...emptyBC, ...initialData });
 
     const fournisseurInitial = initialData.fournisseur ?? emptyFrns;

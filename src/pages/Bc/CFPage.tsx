@@ -31,7 +31,7 @@ export default function CFPages() {
 
   const handleModifier = (cf: BCAutoComplete) => {
     // Empêcher la modification d'une cf déjà validée
-    if (cf.cmf_islivre === true) {
+    if (cf.cmf_islivre) {
       setAlert({
         open: true,
         variant: "warning",
