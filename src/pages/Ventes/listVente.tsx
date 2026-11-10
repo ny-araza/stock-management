@@ -39,7 +39,7 @@ interface ListeVentesProps {
 
   onModifier: (vente: ListeVente) => void;
   onValidate: (vente: ListeVente) => void;
-  onExportFacture: (vente: ListeVente) => void;
+  onExportFacture: (vente: ListeVente, format: "pdf" | "png") => void;
   onPaye: (vente: ListeVente) => void;
 
   onFiltrer: (filters: Omit<VenteParams, "page">) => void;
@@ -682,12 +682,22 @@ export default function ListeVentes({
                             <DropdownItem
                               onClick={() => {
                                 setOpenDrop(null);
-                                onExportFacture(vente);
+                                onExportFacture(vente, "pdf");
                               }}
                               className="inline-flex w-full items-center gap-2 rounded-lg"
                             >
                               <FileText size={14} />
-                              Exporter la facture
+                              Exporter la facture PDF
+                            </DropdownItem>
+                            <DropdownItem
+                              onClick={() => {
+                                setOpenDrop(null);
+                                onExportFacture(vente, "png");
+                              }}
+                              className="inline-flex w-full items-center gap-2 rounded-lg"
+                            >
+                              <FileText size={14} />
+                              Exporter la facture PNG
                             </DropdownItem>
 
                             <DropdownItem
