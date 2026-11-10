@@ -288,14 +288,6 @@ export default function VentesPage() {
 
     y += 5;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text("REÇU DE PAIEMENT", pageWidth / 2, y, {
-      align: "center",
-    });
-
-    y += 5;
-
     doc.setLineWidth(0.3);
     doc.line(4, y, pageWidth - 4, y);
 

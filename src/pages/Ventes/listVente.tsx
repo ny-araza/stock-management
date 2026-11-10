@@ -12,12 +12,17 @@ import {
   CheckCheckIcon,
   CheckIcon,
   DollarSign,
+  Menu,
+  FileText,
 } from "lucide-react";
 
 import { ListeVente, VenteParams } from "../../services/ventesService";
 import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
 import Select from "../../components/form/Select";
 import { apiFetch } from "../../services/api";
+import { Dropdown } from "../../components/ui/dropdown/Dropdown";
+import { DropdownItem } from "../../components/ui/dropdown/DropdownItem";
+import Button from "../../components/ui/button/Button";
 
 // ======================================
 // PROPS
@@ -34,6 +39,7 @@ interface ListeVentesProps {
 
   onModifier: (vente: ListeVente) => void;
   onValidate: (vente: ListeVente) => void;
+  onExportFacture: (vente: ListeVente) => void;
   onPaye: (vente: ListeVente) => void;
 
   onFiltrer: (filters: Omit<VenteParams, "page">) => void;
@@ -78,6 +84,7 @@ export default function ListeVentes({
   totalCount,
   onModifier,
   onValidate,
+  onExportFacture,
   onPaye,
   onFiltrer,
   onPageChange,
@@ -228,6 +235,9 @@ export default function ListeVentes({
       label: item.enu_nom,
     }),
   );
+
+  //dropdown
+  const [openDrop, setOpenDrop] = useState<number | null>(null);
 
   const get_paye_client = (vente: ListeVente) => {
     if (!enumerationPaye) return vente.vte_payeclient;
@@ -486,7 +496,7 @@ export default function ListeVentes({
       {/* TABLEAU */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1050px] text-left text-sm">
+          <table className="w-full min-w-[1200px] text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
                 <th className="w-10 px-4 py-4"></th>
@@ -501,9 +511,7 @@ export default function ListeVentes({
                 <th className="px-4 py-4 text-right">Montant TTC</th>
                 <th className="px-4 py-4 text-center">Paiement</th>
                 <th className="px-4 py-4 text-center">Validation</th>
-                <th className="px-4 py-4 text-right"></th>
-                <th className="px-4 py-4 text-right"></th>
-                <th className="px-4 py-4 text-right"></th>
+                <th className="px-4 py-4 text-center">Actions</th>
               </tr>
             </thead>
 
@@ -628,36 +636,71 @@ export default function ListeVentes({
                         </td>
 
                         {/* MODIFICATION */}
-                        <td className="px-4 py-4 text-right">
+                        <td className="px-4 py-4 text-center">
                           <button
-                            onClick={() => onModifier(vente)}
+                            type="button"
+                            onClick={() =>
+                              setOpenDrop(
+                                openDrop === vente.vte_id ? null : vente.vte_id,
+                              )
+                            }
                             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 active:scale-95"
                           >
-                            <Pencil size={14} />
-                            Modifier
+                            <Menu size={14} />
+                            Actions
+                            <ChevronDown size={14} />
                           </button>
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => {
-                              onValidate(vente);
-                            }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-brand-300 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 active:scale-95"
+
+                          <Dropdown
+                            key={vente.vte_id}
+                            isOpen={openDrop === vente.vte_id}
+                            onClose={() => setOpenDrop(null)}
+                            className="w-50"
                           >
-                            <CheckIcon size={14} />
-                            Valider
-                          </button>
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => {
-                              onPaye(vente);
-                            }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-green-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 active:scale-95"
-                          >
-                            <DollarSign size={14} />
-                            Payer
-                          </button>
+                            <DropdownItem
+                              onClick={() => {
+                                setOpenDrop(null);
+                                onModifier(vente);
+                              }}
+                              className="inline-flex w-full items-center gap-2 rounded-lg"
+                            >
+                              <Pencil size={14} />
+                              Modifier
+                            </DropdownItem>
+
+                            <DropdownItem
+                              onClick={() => {
+                                setOpenDrop(null);
+                                onValidate(vente);
+                              }}
+                              className="inline-flex w-full items-center gap-2 rounded-lg"
+                            >
+                              <CheckIcon size={14} />
+                              Valider
+                            </DropdownItem>
+
+                            <DropdownItem
+                              onClick={() => {
+                                setOpenDrop(null);
+                                onExportFacture(vente);
+                              }}
+                              className="inline-flex w-full items-center gap-2 rounded-lg"
+                            >
+                              <FileText size={14} />
+                              Exporter la facture
+                            </DropdownItem>
+
+                            <DropdownItem
+                              onClick={() => {
+                                setOpenDrop(null);
+                                onPaye(vente);
+                              }}
+                              className="inline-flex w-full items-center gap-2 rounded-lg"
+                            >
+                              <DollarSign size={14} />
+                              Payer
+                            </DropdownItem>
+                          </Dropdown>
                         </td>
                       </tr>
 
