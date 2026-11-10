@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, CalendarClock, ChevronRight, Loader2, ClosedCaptionIcon } from "lucide-react";
+import { useNavigate } from "react-router";
 
 interface NotificationPaiementItem {
   ent_id: number;
@@ -45,7 +46,8 @@ export default function NotificationPaiement({
   const [nextUrl, setNextUrl] = useState<string | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-
+  const navigate = useNavigate()
+  
   /**
    * Chargement de la première page
    */
@@ -272,6 +274,7 @@ export default function NotificationPaiement({
 
                 transition
               "
+              onClick={() => navigate(`/new-entry/${item.ent_id}/modifier`)}
             >
               {/* ICÔNE */}
               <div
