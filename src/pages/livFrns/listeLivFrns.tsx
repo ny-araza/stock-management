@@ -172,7 +172,7 @@ export default function ListeLivFrns({
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
             Liste des entrées fournisseurs
           </h2>
 
@@ -186,7 +186,7 @@ export default function ListeLivFrns({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700"
               title="Actualiser"
             >
               <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
@@ -201,9 +201,9 @@ export default function ListeLivFrns({
 
       {/* FILTRES */}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:bg-gray-dark dark:border-gray-dark dark:text-white">
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-semibold text-gray-700">
+          <div className="flex items-center gap-2 font-semibold text-gray-700 dark:text-white">
             <Filter size={17} />
             Filtres
           </div>
@@ -233,7 +233,7 @@ export default function ListeLivFrns({
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder="Rechercher un code, une facture, un fournisseur..."
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700"
             />
           </div>
 
@@ -255,7 +255,7 @@ export default function ListeLivFrns({
                   dateDebut: e.target.value,
                 });
               }}
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm dark:border-gray-700"
               aria-label="Date de début"
             />
           </div>
@@ -278,7 +278,7 @@ export default function ListeLivFrns({
                   dateFin: e.target.value,
                 });
               }}
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm dark:border-gray-700"
               aria-label="Date de fin"
             />
           </div>
@@ -293,7 +293,7 @@ export default function ListeLivFrns({
                 modePaye: e.target.value,
               });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Tous les modes de paiement</option>
             <option value="1">Espèces</option>
@@ -313,10 +313,10 @@ export default function ListeLivFrns({
 
       {/* TABLEAU */}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:bg-gray-dark dark:border-gray-700 dark:text-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1200px] text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-600 dark:text-white">
               <tr>
                 <th className="w-10 px-4 py-4"></th>
                 <th className="px-4 py-4">Code entrée</th>
@@ -368,7 +368,7 @@ export default function ListeLivFrns({
 
                   return (
                     <React.Fragment key={entree.ent_id}>
-                      <tr className="transition hover:bg-brand-50/40">
+                      <tr className="transition hover:bg-brand-50/40 dark:border-gray-700">
                         {/* DÉTAILS */}
 
                         <td className="px-4 py-4">
@@ -380,7 +380,7 @@ export default function ListeLivFrns({
                                   : entree.ent_id,
                               )
                             }
-                            className="rounded-md p-1 text-gray-400 hover:bg-gray-100"
+                            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 "
                           >
                             {entreeOuverte === entree.ent_id ? (
                               <ChevronDown size={18} />
@@ -392,13 +392,13 @@ export default function ListeLivFrns({
 
                         {/* CODE */}
 
-                        <td className="px-4 py-4 font-semibold text-brand-700">
+                        <td className="px-4 py-4 font-semibold text-brand-700 dark:text-brand-200">
                           {entree.ent_code}
                         </td>
 
                         {/* DATE */}
 
-                        <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-gray-600 dark:text-white">
                           {formatDate(entree.ent_date)}
                         </td>
 
@@ -407,7 +407,7 @@ export default function ListeLivFrns({
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             <FileText size={15} className="text-gray-400" />
-                            <span className="font-medium text-gray-700">
+                            <span className="font-medium text-gray-700 dark:text-white">
                               {entree.ent_facture || "-"}
                             </span>
                           </div>
@@ -420,40 +420,40 @@ export default function ListeLivFrns({
                             {entree.fournisseur?.fou_nom || entree.ent_fou_code}
                           </p>
 
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-400 dark:text-white">
                             {entree.ent_fou_code}
                           </p>
                         </td>
 
                         {/* BON DE COMMANDE */}
 
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 dark:text-white">
                           {entree.ent_cmf_code || "-"}
                         </td>
 
                         {/* ARTICLES */}
 
                         <td className="px-4 py-4 text-center">
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-500 dark:text-white">
                             {getTotalArticles(entree)}
                           </span>
                         </td>
 
                         {/* QUANTITÉ */}
 
-                        <td className="px-4 py-4 text-center font-medium text-gray-700">
+                        <td className="px-4 py-4 text-center font-medium text-gray-700 dark:text-white">
                           {getQuantiteTotale(entree)}
                         </td>
 
                         {/* MONTANT HT */}
 
-                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {formatMontant(entree.ent_montant_ht)}
                         </td>
 
                         {/* MONTANT TTC */}
 
-                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800">
+                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800 dark:text-white">
                           {formatMontant(entree.ent_montant_ttc)}
                         </td>
 
@@ -480,14 +480,14 @@ export default function ListeLivFrns({
                             </button>
 
                             {!entree.ent_is_paye && (
-                                <button
-                                  onClick={() => onPaye(entree)}
-                                  className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800"
-                                >
-                                  <CreditCard size={14} />
-                                  Payer
-                                </button>
-                              )}
+                              <button
+                                onClick={() => onPaye(entree)}
+                                className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800"
+                              >
+                                <CreditCard size={14} />
+                                Payer
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -496,9 +496,12 @@ export default function ListeLivFrns({
 
                       {entreeOuverte === entree.ent_id && (
                         <tr className="bg-gray-50">
-                          <td colSpan={12} className="px-8 py-5">
+                          <td
+                            colSpan={12}
+                            className="px-8 py-5 dark:bg-gray-dark"
+                          >
                             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                              <h4 className="font-semibold text-gray-700">
+                              <h4 className="font-semibold text-gray-700 dark:text-white">
                                 Articles de l'entrée {entree.ent_code}
                               </h4>
 
@@ -507,10 +510,10 @@ export default function ListeLivFrns({
                               </span>
                             </div>
 
-                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-gray-dark dark:border-gray-700 dark:text-white">
                               <table className="w-full min-w-[900px] text-sm">
-                                <thead className="bg-gray-100 text-xs text-gray-500">
-                                  <tr>
+                                <thead className="bg-gray-100 text-xs text-gray-500 dark:bg-gray-700 dark:text-white">
+                                  <tr className="dark:border-gray-700">
                                     <th className="px-4 py-3">Code article</th>
                                     <th className="px-4 py-3">Lot</th>
                                     <th className="px-4 py-3">
@@ -539,28 +542,31 @@ export default function ListeLivFrns({
 
                                 <tbody className="divide-y divide-gray-100">
                                   {entree.lignes?.map((ligne: EntreeLigne) => (
-                                    <tr key={ligne.entl_id}>
-                                      <td className="px-4 py-3 font-medium text-gray-700">
+                                    <tr
+                                      key={ligne.entl_id}
+                                      className="dark:border-gray-700"
+                                    >
+                                      <td className="px-4 py-3 font-medium text-gray-700 dark:text-white">
                                         {ligne.entl_art_code}
                                       </td>
 
-                                      <td className="px-4 py-3 text-gray-600">
+                                      <td className="px-4 py-3 text-gray-600 dark:text-white">
                                         {ligne.entl_lot || "-"}
                                       </td>
 
-                                      <td className="px-4 py-3 text-gray-600">
+                                      <td className="px-4 py-3 text-gray-600 dark:text-white">
                                         {formatDate(ligne.entl_dateper)}
                                       </td>
 
-                                      <td className="px-4 py-3 text-right">
+                                      <td className="px-4 py-3 text-right dark:text-white">
                                         {ligne.entl_quantite}
                                       </td>
 
-                                      <td className="px-4 py-3 text-right">
+                                      <td className="px-4 py-3 text-right dark:text-white">
                                         {formatMontant(ligne.entl_prixunit)}
                                       </td>
 
-                                      <td className="px-4 py-3 text-right">
+                                      <td className="px-4 py-3 text-right dark:text-white">
                                         {formatMontant(
                                           ligne.entl_montant_remise || 0,
                                         )}
@@ -588,7 +594,7 @@ export default function ListeLivFrns({
 
                             {/* INFORMATIONS PAIEMENT */}
 
-                            <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-4 sm:grid-cols-3">
+                            <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-4 sm:grid-cols-3 dark:bg-gray-dark dark:border-gray-700">
                               <div>
                                 <p className="text-xs text-gray-400">
                                   Mode de paiement
@@ -624,7 +630,7 @@ export default function ListeLivFrns({
 
         {/* PIED DU TABLEAU */}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 dark:bg-gray-dark dark:border-gray-700 dark:text-white">
           <span className="text-xs text-gray-500">
             {totalCount} entrée(s) au total
           </span>
@@ -643,7 +649,7 @@ export default function ListeLivFrns({
 
       {/* PAGINATION */}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:bg-gray-dark dark:border-gray-700">
         <span className="text-sm text-gray-500">
           Page {page} sur {totalPages}
         </span>
@@ -652,7 +658,7 @@ export default function ListeLivFrns({
           <button
             onClick={() => onPageChange(1)}
             disabled={page <= 1 || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Première
           </button>
@@ -660,19 +666,19 @@ export default function ListeLivFrns({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1 || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Précédent
           </button>
 
-          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-gray-dark dark:border-gray-700 dark:text-white">
             {page}
           </span>
 
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Suivant
           </button>
@@ -680,7 +686,7 @@ export default function ListeLivFrns({
           <button
             onClick={() => onPageChange(totalPages)}
             disabled={page >= totalPages || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Dernière
           </button>

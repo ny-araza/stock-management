@@ -203,7 +203,7 @@ export default function ListeBC({
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
             Liste des bons de commande
           </h2>
           <p className="text-sm text-gray-500">
@@ -216,7 +216,7 @@ export default function ListeBC({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700"
               title="Actualiser"
             >
               <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
@@ -231,7 +231,7 @@ export default function ListeBC({
 
       {/* FILTRES */}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:bg-gray-dark dark:border-gray-dark dark:text-white">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 font-semibold text-gray-700">
             <Filter size={17} />
@@ -262,7 +262,7 @@ export default function ListeBC({
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder="Rechercher un code, un fournisseur..."
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700"
             />
           </div>
 
@@ -281,7 +281,7 @@ export default function ListeBC({
                 setDateDebut(e.target.value);
                 appliquerFiltres({ dateDebut: e.target.value });
               }}
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm dark:border-gray-700"
               aria-label="Date de début"
             />
           </div>
@@ -301,7 +301,7 @@ export default function ListeBC({
                 setDateFin(e.target.value);
                 appliquerFiltres({ dateFin: e.target.value });
               }}
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm dark:border-gray-700"
               aria-label="Date de fin"
             />
           </div>
@@ -314,7 +314,7 @@ export default function ListeBC({
               setModeCommande(e.target.value);
               appliquerFiltres({ modeCommande: e.target.value });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Tous les types de mode de paiements</option>
             {enumerationCmd.map((item) => (
@@ -332,7 +332,7 @@ export default function ListeBC({
               setLivre(e.target.value);
               appliquerFiltres({ livre: e.target.value });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Tous les statuts de livraison</option>
             <option value="true">Livrés</option>
@@ -351,10 +351,10 @@ export default function ListeBC({
 
       {/* TABLEAU */}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:bg-gray-dark dark:border-gray-700 dark:text-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-600 dark:text-white">
               <tr>
                 <th className="w-10 px-4 py-4"></th>
                 <th className="px-4 py-4">Code commande</th>
@@ -402,7 +402,7 @@ export default function ListeBC({
 
                   return (
                     <React.Fragment key={commande.cmf_id}>
-                      <tr className="transition hover:bg-brand-50/40">
+                      <tr className="transition hover:bg-brand-50/40 dark:border-gray-700">
                         {/* DÉTAILS */}
 
                         <td className="px-4 py-4">
@@ -424,15 +424,15 @@ export default function ListeBC({
                           </button>
                         </td>
 
-                        <td className="px-4 py-4 font-semibold text-brand-700">
+                        <td className="px-4 py-4 font-semibold text-brand-700 dark:text-brand-200">
                           {commande.cmf_code}
                         </td>
 
-                        <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-gray-600 dark:text-white">
                           {formatDate(commande.cmf_date)}
                         </td>
 
-                        <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-gray-600 dark:text-white">
                           {formatDate(commande.cmf_dateliv)}
                         </td>
 
@@ -441,26 +441,26 @@ export default function ListeBC({
                             {commande.fournisseur?.fou_nom ||
                               commande.cmf_fou_code}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-400 dark:text-white">
                             {commande.cmf_fou_code}
                           </p>
                         </td>
 
                         <td className="px-4 py-4 text-center">
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:text-white dark:bg-gray-700">
                             {commande.ligne?.length || 0}
                           </span>
                         </td>
 
-                        <td className="px-4 py-4 text-center text-gray-600">
+                        <td className="px-4 py-4 text-center text-gray-600 dark:text-white">
                           {get_mode_cmd(commande) || "-"}
                         </td>
 
-                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {formatMontant(commande.cmf_montant_ht)}
                         </td>
 
-                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800">
+                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800 dark:text-white">
                           {formatMontant(commande.cmf_montant_ttc)}
                         </td>
 
@@ -481,25 +481,6 @@ export default function ListeBC({
                               <Pencil size={14} />
                               Modifier
                             </button>
-
-                            {/*{!commande.cmf_islivre && (
-                              <button
-                                onClick={() => onLivrer(commande)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800"
-                              >
-                                <Truck size={14} />
-                                Livrer
-                              </button>
-                            )}
-                            {!commande.cmf_is_paye && (
-                              <button
-                                onClick={() => onPaye(commande)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800"
-                              >
-                                <DollarSign size={14} />
-                                Payer
-                              </button>
-                            )}*/}
                           </div>
                         </td>
                       </tr>
@@ -508,14 +489,17 @@ export default function ListeBC({
 
                       {venteOuverte === commande.cmf_id && (
                         <tr className="bg-gray-50">
-                          <td colSpan={11} className="px-8 py-5">
-                            <h4 className="mb-3 font-semibold text-gray-700">
+                          <td
+                            colSpan={11}
+                            className="px-8 py-5 dark:bg-gray-dark"
+                          >
+                            <h4 className="mb-3 font-semibold text-gray-700 dark:text-white">
                               Articles de la commande {commande.cmf_code}
                             </h4>
 
-                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-gray-dark dark:border-gray-700 dark:text-white">
                               <table className="w-full min-w-[650px] text-sm">
-                                <thead className="bg-gray-100 text-xs text-gray-500">
+                                <thead className="bg-gray-100 text-xs text-gray-500 dark:bg-gray-700 dark:text-white">
                                   <tr>
                                     <th className="px-4 py-3">Article</th>
                                     <th className="px-4 py-3">Code article</th>
@@ -534,7 +518,7 @@ export default function ListeBC({
                                 <tbody className="divide-y divide-gray-100">
                                   {commande.ligne?.map((ligne, index) => (
                                     <tr key={index}>
-                                      <td className="px-4 py-3 font-medium text-gray-700">
+                                      <td className="px-4 py-3 font-medium text-gray-700 dark:text-white">
                                         {ligne.art_nom || ligne.cmfl_Art_Code}
                                       </td>
 
@@ -571,7 +555,7 @@ export default function ListeBC({
 
         {/* PIED DU TABLEAU */}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 dark:bg-gray-dark dark:border-gray-700 dark:text-white">
           <span className="text-xs text-gray-500">
             {totalCount} commande(s) au total
           </span>
@@ -591,7 +575,7 @@ export default function ListeBC({
 
       {/* PAGINATION */}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:bg-gray-dark dark:border-gray-700">
         <span className="text-sm text-gray-500">
           Page {page} sur {totalPages}
         </span>
@@ -600,7 +584,7 @@ export default function ListeBC({
           <button
             onClick={() => onPageChange(1)}
             disabled={page <= 1 || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Première
           </button>
@@ -608,19 +592,19 @@ export default function ListeBC({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1 || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Précédent
           </button>
 
-          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:bg-gray-dark dark:border-gray-700 dark:text-white">
             {page}
           </span>
 
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Suivant
           </button>
@@ -628,7 +612,7 @@ export default function ListeBC({
           <button
             onClick={() => onPageChange(totalPages)}
             disabled={page >= totalPages || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-dark dark:border-gray-700 dark:text-white"
           >
             Dernière
           </button>

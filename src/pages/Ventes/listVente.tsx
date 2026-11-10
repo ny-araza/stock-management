@@ -304,19 +304,21 @@ export default function ListeVentes({
       {/* EN-TÊTE */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Liste des ventes</h2>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+            Liste des ventes
+          </h2>
 
           <p className="text-sm text-gray-500">
             Consultez et gérez vos opérations de vente.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ">
           {onRefresh && (
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700"
               title="Actualiser"
             >
               <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
@@ -330,7 +332,7 @@ export default function ListeVentes({
       </div>
 
       {/* FILTRES */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:bg-gray-dark dark:border-gray-dark dark:text-white">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 font-semibold text-gray-700">
             <Filter size={17} />
@@ -361,7 +363,7 @@ export default function ListeVentes({
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder="Rechercher un client, une vente, un article..."
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-700"
             />
           </div>
 
@@ -383,7 +385,7 @@ export default function ListeVentes({
                   dateDebut: e.target.value,
                 });
               }}
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700"
               aria-label="Date de début"
             />
           </div>
@@ -406,7 +408,7 @@ export default function ListeVentes({
                   dateFin: e.target.value,
                 });
               }}
-              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700"
               aria-label="Date de fin"
             />
           </div>
@@ -421,7 +423,7 @@ export default function ListeVentes({
                 paye: e.target.value,
               });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Tous les paiements</option>
             <option value="1">Payées</option>
@@ -438,7 +440,7 @@ export default function ListeVentes({
                 valide: e.target.value,
               });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Toutes les validations</option>
             <option value="1">Validées</option>
@@ -455,7 +457,7 @@ export default function ListeVentes({
                 paye_client: e.target.value,
               });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Tous les types de payement client</option>
 
@@ -475,7 +477,7 @@ export default function ListeVentes({
                 modePaye: e.target.value,
               });
             }}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-dark"
           >
             <option value="">Type de paiement du client</option>
             <option value="Espèce">Espèce</option>
@@ -494,10 +496,10 @@ export default function ListeVentes({
       )}
 
       {/* TABLEAU */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-dark dark:text-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1200px] text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-600 dark:text-white">
               <tr>
                 <th className="w-10 px-4 py-4"></th>
                 <th className="px-4 py-4">Code vente</th>
@@ -550,7 +552,7 @@ export default function ListeVentes({
 
                   return (
                     <React.Fragment key={vente.vte_id}>
-                      <tr className="transition hover:bg-brand-50/40">
+                      <tr className="transition hover:bg-brand-50/40 dark:border-gray-700">
                         {/* DÉTAILS */}
                         <td className="px-4 py-4">
                           <button
@@ -572,48 +574,48 @@ export default function ListeVentes({
                         </td>
 
                         {/* CODE */}
-                        <td className="px-4 py-4 font-semibold text-brand-700">
+                        <td className="px-4 py-4 font-semibold text-brand-700 dark:text-brand-200">
                           {vente.vte_code}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {vente.ve_proforma || "-"}
                         </td>
                         {/* DATE */}
-                        <td className="whitespace-nowrap px-4 py-4 text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-gray-600 dark:text-white">
                           {formatDate(vente.vte_date)}
                         </td>
 
                         {/* CLIENT */}
                         <td className="px-4 py-4">
-                          <p className="font-medium text-gray-800">
+                          <p className="font-medium text-gray-800 dark:text-white">
                             {vente.vte_cli_nom || "Client inconnu"}
                           </p>
 
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-400 dark:text-white">
                             {vente.vte_cli_contact || vente.vte_cli_code}
                           </p>
                         </td>
 
                         {/* ARTICLES */}
                         <td className="px-4 py-4 text-center">
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                          <span className="rounded-full bg-gray-100 px-3 dark:bg-gray-500 py-1 text-xs font-medium text-gray-600 dark:text-white">
                             {vente.lignes?.length || 0}
                           </span>
                         </td>
 
                         {/* HT */}
-                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {get_paye_client(vente)}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {get_mode_paye(vente)}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600">
+                        <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {formatMontant(vente.vte_montant_ht)}
                         </td>
 
                         {/* TTC */}
-                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800">
+                        <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800 dark:text-white">
                           {formatMontant(vente.vte_montant_ttc)}
                         </td>
 
@@ -717,14 +719,14 @@ export default function ListeVentes({
                       {/* DÉTAILS DES LIGNES */}
                       {venteOuverte === vente.vte_id && (
                         <tr className="bg-gray-50">
-                          <td colSpan={10} className="px-8 py-5">
-                            <h4 className="mb-3 font-semibold text-gray-700">
+                          <td colSpan={10} className="px-8 py-5 dark:bg-gray-dark">
+                            <h4 className="mb-3 font-semibold text-gray-700 dark:text-white">
                               Articles de la vente {vente.vte_code}
                             </h4>
 
-                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:bg-gray-dark dark:border-gray-700 dark:text-white">
                               <table className="w-full min-w-[650px] text-sm">
-                                <thead className="bg-gray-100 text-xs text-gray-500">
+                                <thead className="bg-gray-100 text-xs text-gray-500 dark:bg-gray-700 dark:text-white">
                                   <tr>
                                     <th className="px-4 py-3">Article</th>
                                     <th className="px-4 py-3">Code article</th>
@@ -742,18 +744,18 @@ export default function ListeVentes({
                                   </tr>
                                 </thead>
 
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:text-white">
                                   {vente.lignes?.map((ligne) => (
                                     <tr key={ligne.vtel_id}>
-                                      <td className="px-4 py-3 font-medium text-gray-700">
+                                      <td className="px-4 py-3 font-medium text-gray-700 dark:text-white">
                                         {ligne.art_nom || ligne.vtel_art_code}
                                       </td>
 
-                                      <td className="px-4 py-3 text-gray-500">
+                                      <td className="px-4 py-3 text-gray-500 dark:text-white">
                                         {ligne.vtel_art_code}
                                       </td>
 
-                                      <td className="px-4 py-3 text-gray-500">
+                                      <td className="px-4 py-3 text-gray-500 dark:text-white">
                                         {ligne.vtel_lot_dateper || "-"}
                                       </td>
 
@@ -785,7 +787,7 @@ export default function ListeVentes({
         </div>
 
         {/* PIED DU TABLEAU */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 dark:bg-gray-dark dark:border-gray-700">
           <span className="text-xs text-gray-500">
             {totalCount} vente(s) au total
           </span>
@@ -803,7 +805,7 @@ export default function ListeVentes({
       </div>
 
       {/* PAGINATION */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:bg-gray-dark dark:border-gray-700">
         <span className="text-sm text-gray-500">
           Page {page} sur {totalPages}
         </span>
