@@ -246,6 +246,7 @@ export interface CFLigneArticle {
   cmfl_quantite_stock?: number;
   cmfl_lot_id?: number;
   cmfl_lot_code?: string;
+  cmfl_unitevente?: "Pièce" | "Gros"
 }
 
 export interface ProLigneArticle {
@@ -344,6 +345,7 @@ export interface ArticleApi {
   prix_ht: number;
   prix_vte: number;
   pri_tva: number;
+  pri_unitevente?: "Pièce" | "Gros"
   nom_article: string;
   lots: LotApi[];
   quantite_stock: number;

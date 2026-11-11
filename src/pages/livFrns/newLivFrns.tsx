@@ -559,7 +559,17 @@ export default function NewLivFrnsPage({
       placeholder: "Désignation de l'article",
       className: "md:col-span-7",
     },
-
+    {
+      name: "cmfl_unitevente",
+      label: "Conditionnement",
+      type: "select",
+      placeholder: "Choisir un conditionnement",
+      options: [
+        { value: "Pièce", label: "Pièce" },
+        { value: "Gros", label: "Gros" },
+      ],
+      className: "",
+    },
     {
       name: "cmfl_Quantite",
       label: "Quantité",
@@ -638,6 +648,7 @@ export default function NewLivFrnsPage({
           "
         >
           {article.code}
+          <span className="bg-brand-200 rounded-full ml-2"> {article.pri_unitevente}</span>
         </div>
 
         <div

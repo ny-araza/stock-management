@@ -1,3 +1,5 @@
+import { faCircle } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import React, {
   useEffect,
   useRef,
@@ -222,7 +224,7 @@ export default function SearchableSelect<T>({
       {/* Loading */}
       {loading && (
         <span className="absolute right-3 top-2.5 text-xs text-gray-400">
-          ...
+          <FontAwesomeIcon icon={faCircle} bounce={loading} />
         </span>
       )}
 

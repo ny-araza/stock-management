@@ -42,8 +42,8 @@ export interface ArticleField<T> {
   name: keyof T;
   label: string;
 
-  type?: "text" | "number" | "date";
-
+  type?: "text" | "number" | "date" | "select";
+  options?: { value: string; label: string }[];
   placeholder?: string;
 
   /**
@@ -741,11 +741,39 @@ export default function GenericArticleModal<T, S>({
                   >
                     <label className={labelClass}>{field.label}</label>
 
+                    {/* RENDU PERSONNALISE */}
                     {field.render ? (
                       field.render(form, (value) =>
-                        handleChange(field.name, value),
+                        handleChange(field.name, value as T[keyof T]),
                       )
+                    ) : field.type === "select" ? (
+                      /* SELECT */
+                      <select
+                        value={value ?? ""}
+                        disabled={field.readOnly}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+
+                          const parsed = field.parseValue
+                            ? field.parseValue(raw)
+                            : raw;
+
+                          handleChange(field.name, parsed as T[keyof T]);
+                        }}
+                        className={inputClass}
+                      >
+                        <option value="">
+                          {field.placeholder ?? "Sélectionner..."}
+                        </option>
+
+                        {field.options?.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
+                      /* INPUT CLASSIQUE */
                       <input
                         type={field.type ?? "text"}
                         value={value ?? ""}
@@ -755,14 +783,18 @@ export default function GenericArticleModal<T, S>({
                         readOnly={field.readOnly}
                         onChange={(e) => {
                           const raw = e.target.value;
+
                           const parsed = field.parseValue
                             ? field.parseValue(raw)
                             : field.type === "number"
                               ? Number(raw)
                               : raw;
-                          if (Number(raw) < 0) return 0;
 
-                          handleChange(field.name, parsed);
+                          if (field.type === "number" && Number(raw) < 0) {
+                            return;
+                          }
+
+                          handleChange(field.name, parsed as T[keyof T]);
                         }}
                         className={inputClass}
                       />

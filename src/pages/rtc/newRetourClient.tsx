@@ -576,6 +576,7 @@ export default function NewRtcPage() {
           "
         >
           {article.code}
+          <span className="bg-brand-200 rounded-full ml-2"> {article.pri_unitevente}</span>
         </div>
 
         <div
