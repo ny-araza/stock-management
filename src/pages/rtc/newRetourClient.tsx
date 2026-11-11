@@ -830,7 +830,7 @@ export default function NewRtcPage() {
 
       const res = await postData("/api/insert-database/", "t_retour_client", {
         rtc_code: rtc.rtc_code,
-        rtc_vte: rtc.vte_code,
+        rtc_vte_code: rtc.vte_code,
         rtc_date: today,
         rtc_montant_ht: totauxCalcules.ht,
         rtc_montant_ttc: totauxCalcules.ttc,

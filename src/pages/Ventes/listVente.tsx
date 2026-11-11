@@ -14,6 +14,7 @@ import {
   DollarSign,
   Menu,
   FileText,
+  ArrowBigLeft,
 } from "lucide-react";
 
 import { ListeVente, VenteParams } from "../../services/ventesService";
@@ -39,6 +40,7 @@ interface ListeVentesProps {
 
   onModifier: (vente: ListeVente) => void;
   onValidate: (vente: ListeVente) => void;
+  onRetour: (vente: ListeVente) => void;
   onExportFacture: (vente: ListeVente, format: "pdf" | "png") => void;
   onPaye: (vente: ListeVente) => void;
 
@@ -83,6 +85,7 @@ export default function ListeVentes({
   totalPages,
   totalCount,
   onModifier,
+  onRetour,
   onValidate,
   onExportFacture,
   onPaye,
@@ -498,7 +501,7 @@ export default function ListeVentes({
       {/* TABLEAU */}
       <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-dark dark:text-white">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] text-left text-sm">
+          <table className="w-full min-w-[100px] text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-600 dark:text-white">
               <tr>
                 <th className="w-10 px-4 py-4"></th>
@@ -574,9 +577,20 @@ export default function ListeVentes({
                         </td>
 
                         {/* CODE */}
-                        <td className="px-4 py-4 font-semibold text-brand-700 dark:text-brand-200">
-                          {vente.vte_code}
+                        <td className="px-4 py-4 ">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-brand-700 dark:text-brand-200">
+                              {vente.vte_code}
+                            </span>
+
+                            {vente.vte_is_retour == 1 && (
+                              <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
+                                Retour
+                              </span>
+                            )}
+                          </div>
                         </td>
+
                         <td className="whitespace-nowrap px-4 py-4 text-right text-gray-600 dark:text-white">
                           {vente.ve_proforma || "-"}
                         </td>
@@ -712,6 +726,16 @@ export default function ListeVentes({
                               <DollarSign size={14} />
                               Payer
                             </DropdownItem>
+                            <DropdownItem
+                              onClick={() => {
+                                setOpenDrop(null);
+                                onRetour(vente);
+                              }}
+                              className="inline-flex w-full items-center gap-2 rounded-lg"
+                            >
+                              <ArrowBigLeft size={14} />
+                              Retour
+                            </DropdownItem>
                           </Dropdown>
                         </td>
                       </tr>
@@ -719,7 +743,10 @@ export default function ListeVentes({
                       {/* DÉTAILS DES LIGNES */}
                       {venteOuverte === vente.vte_id && (
                         <tr className="bg-gray-50">
-                          <td colSpan={10} className="px-8 py-5 dark:bg-gray-dark">
+                          <td
+                            colSpan={10}
+                            className="px-8 py-5 dark:bg-gray-dark"
+                          >
                             <h4 className="mb-3 font-semibold text-gray-700 dark:text-white">
                               Articles de la vente {vente.vte_code}
                             </h4>

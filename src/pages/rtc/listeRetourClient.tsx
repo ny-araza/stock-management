@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { RtcLigne, RtcType } from "../../interfaces/interfaces";
 
-
-
 // ======================================
 // PROPS
 // ======================================
@@ -99,6 +97,12 @@ export default function ListeRetourClient({
       date_debut: debut,
       date_fin: fin,
     });
+  };
+
+  const calculeTva = (ligne: RtcLigne) => {
+    return formatMontant(
+      (Number(ligne.rtcl_tva ?? 0) / 100) * Number(ligne.rtcl_ht ?? 0),
+    );
   };
 
   useEffect(() => {
@@ -264,7 +268,7 @@ export default function ListeRetourClient({
                 <th className="px-4 py-4 text-center">Mode paiement</th>
                 <th className="px-4 py-4 text-right">Montant HT</th>
                 <th className="px-4 py-4 text-right">Montant TTC</th>
-                <th className="px-4 py-4 text-right">Actions</th>
+                {/*<th className="px-4 py-4 text-right">Actions</th>*/}
               </tr>
             </thead>
 
@@ -376,7 +380,7 @@ export default function ListeRetourClient({
                           {formatMontant(retour.rtc_montant_ttc)}
                         </td>
 
-                        <td className="px-4 py-4 text-right">
+                        {/*<td className="px-4 py-4 text-right">
                           <button
                             onClick={() => onModifier(retour)}
                             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
@@ -384,7 +388,7 @@ export default function ListeRetourClient({
                             <Pencil size={14} />
                             Modifier
                           </button>
-                        </td>
+                        </td>*/}
                       </tr>
 
                       {/* DÉTAILS DES ARTICLES DU RETOUR */}
@@ -452,7 +456,7 @@ export default function ListeRetourClient({
                                       </td>
 
                                       <td className="whitespace-nowrap px-4 py-3 text-right">
-                                        {formatMontant(ligne.rtcl_tva)}
+                                        {calculeTva(ligne)}
                                       </td>
 
                                       <td className="whitespace-nowrap px-4 py-3 text-right">

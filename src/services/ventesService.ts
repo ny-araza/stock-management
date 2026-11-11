@@ -58,6 +58,7 @@ export interface ListeVente {
   vte_livreur: string;
   vet_operateur: string;
   vte_lettremontant: string;
+  vte_is_retour?: number;
   ve_dateecheance: string;
   ve_code_bl: string;
   ve_adresse_liv: string;
