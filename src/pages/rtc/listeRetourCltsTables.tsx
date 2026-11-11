@@ -1,6 +1,6 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
-import RetourClientTable from "./retourCltsTable";
+import RetourClientPages from "./retourClientPage";
 
 export default function RetourClientListeTables() {
   return (
@@ -8,7 +8,7 @@ export default function RetourClientListeTables() {
       <PageBreadcrumb pageTitle="Retour client" />
       <div className="space-y-6">
         <ComponentCard title="">
-          <RetourClientTable />
+          <RetourClientPages />
         </ComponentCard>
       </div>
     </>

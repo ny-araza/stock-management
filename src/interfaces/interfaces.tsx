@@ -89,7 +89,6 @@ export interface VenteLigne {
   vtel_lot?: string;
 }
 
-
 export interface FactureAutocomplete {
   rtc_code: string;
   vte_id: string;
@@ -103,8 +102,8 @@ export interface FactureAutocomplete {
   vte_cli_nom: string;
   rtc_motif: string;
   rtc_observation: string;
-  client: Client
-  ligne: VenteLigne[]
+  client: Client;
+  ligne: VenteLigne[];
 }
 
 export interface EntreeAutocomplete {
@@ -120,8 +119,8 @@ export interface EntreeAutocomplete {
   ent_fou_nom: string;
   rtf_motif: string;
   rtf_observation: string;
-  fournisseur: Fourniseur
-  ligne: EntreeLigne[]
+  fournisseur: Fourniseur;
+  ligne: EntreeLigne[];
 }
 
 export interface ListeVenteProforma {
@@ -246,7 +245,7 @@ export interface CFLigneArticle {
   cmfl_quantite_stock?: number;
   cmfl_lot_id?: number;
   cmfl_lot_code?: string;
-  cmfl_unitevente?: "Pièce" | "Gros"
+  cmfl_unitevente?: "Pièce" | "Gros";
 }
 
 export interface ProLigneArticle {
@@ -314,6 +313,50 @@ export interface Fourniseur {
   fou_commercial: string;
 }
 
+export interface RtcLigne {
+  rtcl_id: number;
+  rtcl_datecre: string;
+  rtcl_datemdf: string | null;
+  rtcl_usercre: string;
+  rtcl_usermdf: string | null;
+  rtcl_quantite: number;
+  rtcl_prixunit: string;
+  rtcl_ttc: string;
+  rtcl_art_code: string;
+  rtcl_pri_id: number;
+  rtcl_tva: string;
+  rtcl_rtc_code: string;
+  rtcl_ht: string;
+  rtcl_fou_code: string;
+  rtcl_lot: string;
+  rtcl_dateper: string | null;
+  rtcl_prix: string;
+  rtcl_remise: string;
+}
+
+export interface RtcType {
+  rtc_id: number;
+  rtc_code: string;
+  rtc_datecre: string;
+  rtc_datemdf: string | null;
+  rtc_usercre: string;
+  rtc_usermdf: string | null;
+  rtc_cli_code: string;
+  rtc_cli_nom: string;
+  rtc_motif: string;
+  rtc_observation: string;
+  rtc_date: string;
+  rtc_facture: string;
+  rtc_datepay: string | null;
+  rtc_modepaye: string;
+  rtc_dateecheance: string | null;
+  rtc_montant_ht: string;
+  rtc_montant_ttc: string;
+  rtc_tva: string;
+  rtc_vte_code: string;
+  lignes: RtcLigne[];
+}
+
 export interface Famille {
   fam_id: number;
   fam_code: string;
@@ -345,7 +388,7 @@ export interface ArticleApi {
   prix_ht: number;
   prix_vte: number;
   pri_tva: number;
-  pri_unitevente?: "Pièce" | "Gros"
+  pri_unitevente?: "Pièce" | "Gros";
   nom_article: string;
   lots: LotApi[];
   quantite_stock: number;

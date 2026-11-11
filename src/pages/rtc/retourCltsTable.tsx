@@ -25,7 +25,7 @@ import { useModal } from "../../hooks/useModal";
 
 // ---- Types correspondant aux données reçues par ce composant ----
 // (à déplacer dans interfaces/interfaces.ts si tu préfères centraliser)
-export interface RtfLigne {
+export interface RtcLigne {
   rtcl_id: number;
   rtcl_datecre: string;
   rtcl_datemdf: string | null;
@@ -46,7 +46,7 @@ export interface RtfLigne {
   rtcl_remise: string;
 }
 
-export interface RtfType {
+export interface RtcType {
   rtc_id: number;
   rtc_code: string;
   rtc_datecre: string;
@@ -66,7 +66,7 @@ export interface RtfType {
   rtc_montant_ttc: string;
   rtc_tva: string;
   rtc_vte_code: string;
-  lignes: RtfLigne[];
+  lignes: RtcLigne[];
 }
 
 // Champs date côté backend (DateFilter / DateTimeFilter)
