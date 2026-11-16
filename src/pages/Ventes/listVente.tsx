@@ -734,7 +734,7 @@ export default function ListeVentes({
                               className="inline-flex w-full items-center gap-2 rounded-lg"
                             >
                               <ArrowBigLeft size={14} />
-                              Retour
+                              Retour  
                             </DropdownItem>
                           </Dropdown>
                         </td>
@@ -841,7 +841,7 @@ export default function ListeVentes({
           <button
             onClick={() => onPageChange(1)}
             disabled={page <= 1 || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white"
           >
             Première
           </button>
@@ -849,19 +849,19 @@ export default function ListeVentes({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1 || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white"
           >
             Précédent
           </button>
 
-          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+          <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 dark:text-white">
             {page}
           </span>
 
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages || loading}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-white"
           >
             Suivant
           </button>

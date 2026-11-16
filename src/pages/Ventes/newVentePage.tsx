@@ -499,9 +499,15 @@ export default function NewVentePage({
   };
 
   const ajouterArticle = (nouvelArticle: VenteLigne) => {
-    console.log("Article reçu :", nouvelArticle);
-    console.log("Mode :", editingUid ? "MODIFICATION" : "AJOUT");
-    console.log("UID :", editingUid);
+    if (nouvelArticle.vtel_quantite <= 0) {
+      setAlert({
+        open: true,
+        message: "La quantite doit etre superieur a 0",
+        title: "Qunatité invalide",
+        variant: "warning",
+      });
+      return;
+    }
 
     setLigneArticle((prev) => {
       // =====================================================
@@ -1183,6 +1189,7 @@ export default function NewVentePage({
         vte_livreur: vente.vte_livreur,
         vet_operateur: vente.vet_operateur,
         vte_lettremontant: montantTTCEnLettres(totauxCalcules.ttc),
+        vte_is_retour: 0,
         ve_dateecheance: vente.vte_datepay || null,
         ve_code_bl: vente.ve_code_bl,
         ve_adresse_liv: client.cli_adresse,

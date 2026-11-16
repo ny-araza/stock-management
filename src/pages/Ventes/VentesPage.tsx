@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useVentes } from "../../hooks/useVentes";
 import ListeVentes from "./listVente";
-import { ListeVente, VenteParams } from "../../services/ventesService";
+import {
+  ListeVente,
+  VenteLigne,
+  VenteParams,
+} from "../../services/ventesService";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../services/authLogin";
 import updateVente from "../../services/updateVente";
@@ -21,6 +25,7 @@ export default function VentesPage() {
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [ticketBlob, setTicketBlob] = useState<Blob | null>(null);
+  const [rtcCode, setRtcCode] = useState<string>("");
   // ticket
   const [payementEnum, setpayementEnum] = useState<Enumeration[]>([]);
 
@@ -196,6 +201,78 @@ export default function VentesPage() {
         variant: "error",
         title: "Erreur",
         message: "Le paiement n'a pas pu être effectué.",
+      });
+    }
+  };
+
+  const fetchCode = async (table_name: string, isInsert: boolean) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("table_name", table_name);
+      query.set("is_insert", isInsert ? "1" : "0");
+      console.log(query.toString());
+      const res = await apiFetch(
+        `/api/generate-date-code/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        setRtcCode(res.code);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
+
+  const handleRetour = async (vente: ListeVente) => {
+    if (vente.vte_valide == 0) {
+      setAlert({
+        open: true,
+        variant: "warning",
+        title: "Attention",
+        message: "Vente pas encore validé",
+      });
+      return;
+    }
+    if (vente.vte_is_retour == 1) {
+      setAlert({
+        open: true,
+        variant: "warning",
+        title: "Attention",
+        message: "Vente deja retourner",
+      });
+      return;
+    }
+
+    // Vérifier l'autorisation
+    const autorise = authorisation?.some(
+      (elt) => elt.aut_men_code == 110 && elt.aut_acces === 1,
+    );
+
+    if (!autorise) {
+      setAlert({
+        open: true,
+        variant: "warning",
+        title: "Attention",
+        message: "Vous n'êtes pas autorisés à retourner cette vente.",
+      });
+      return;
+    }
+
+    try {
+      // Effectuer le paiement
+
+      navigate(`/new-rtc/${vente.vte_id}`)
+
+      // Actualiser la liste
+      refresh();
+    } catch (error) {
+      console.error("Erreur lors du retour :", error);
+
+      setAlert({
+        open: true,
+        variant: "error",
+        title: "Erreur",
+        message: "Le retour n'a pas pu être effectué",
       });
     }
   };
@@ -1142,6 +1219,7 @@ export default function VentesPage() {
 
         onModifier={handleModifier}
         onValidate={handleValidate}
+        onRetour={handleRetour}
         onExportFacture={handleExporterFacture}
         onPaye={handlePaye}
         onFiltrer={(filters: Omit<VenteParams, "page">) => {

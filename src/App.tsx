@@ -63,6 +63,10 @@ export default function App() {
             <Route path="/new-articles" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />
             <Route path="/new-rtc" element={<NewRtcPage />} />
+            <Route
+              path="/new-rtc/:id"
+              element={<NewRtcPage />}
+            />
             <Route path="/new-rtf" element={<NewRtfPage />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />

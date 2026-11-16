@@ -100,6 +100,9 @@ export interface FactureAutocomplete {
   vte_tva: number;
   vte_cli_code: string;
   vte_cli_nom: string;
+  vte_ispaye: number;
+  vte_is_retour: number;
+  vte_valid: number;
   rtc_motif: string;
   rtc_observation: string;
   client: Client;

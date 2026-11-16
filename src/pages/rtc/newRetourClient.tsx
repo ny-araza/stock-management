@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import {
@@ -25,6 +26,8 @@ import GenericArticleModal, {
   LotAllocation,
 } from "../Home/modal/utils/articleGenericModal";
 import Alert from "../../components/ui/alert/Alert";
+import updateVente from "../../services/updateVente";
+import { useAuth } from "../../services/authLogin";
 
 interface TotauxProforma {
   ht: number;
@@ -34,6 +37,8 @@ interface TotauxProforma {
 }
 
 export default function NewRtcPage() {
+  const user = useAuth();
+  const { id } = useParams<{ id: string }>();
   const today = new Date().toISOString().split("T")[0];
   const [motif, setMotif] = useState<Enumeration[]>([]);
   const EnumerationOptions: EnumerationOption[] = motif.map(
@@ -75,6 +80,9 @@ export default function NewRtcPage() {
     vte_montant_ttc: 0,
     vte_tva: 0,
     vte_vte_code: "",
+    vte_ispaye: 0,
+    vte_is_retour: 0,
+    vte_valid: 0,
   };
 
   const emptyArticle: VenteLigne = {
@@ -137,43 +145,83 @@ export default function NewRtcPage() {
     message: "",
   });
 
-  const choisirFacture = (a: FactureAutocomplete) => {
-    skipSearch.current = true;
-    console.log(a);
-    setSearchFacture(a.vte_code);
-    setSearchClt(a.client.cli_nom);
+  const appliquerVente = (vente: any) => {
+    const clientVente: Client = {
+      ...emptyClient,
+      cli_code: vente.vte_cli_code ?? "",
+      cli_nom: vente.vte_cli_nom ?? "",
+      cli_tel1: vente.vte_cli_contact ?? "",
+    };
+
+    const lignes: VenteLigne[] = (vente.lignes ?? []).map((item: any) => ({
+      ...emptyArticle,
+      ...item,
+      vtel_quantite: Number(item.vtel_quantite ?? 0),
+      vtel_prixunit: Number(item.vtel_prixunit ?? 0),
+      vtel_montant_tva: Number(
+        item.vtel_montant_tva ??
+          Number(item.vtel_ttc ?? 0) - Number(item.vtel_ht ?? 0),
+      ),
+      vtel_tva: Number(item.vtel_tva ?? 0),
+      vtel_ht: Number(item.vtel_ht ?? 0),
+      vtel_ttc: Number(item.vtel_ttc ?? 0),
+      vtel_pri_id: Number(item.vtel_pri_id ?? 0),
+      vtel_lot_id: Number(item.vtel_lot_id ?? 0),
+      vtel_lot_code: item.vtel_lot_code ?? "",
+      vtel_dateper: item.vtel_lot_dateper ?? item.vtel_dateper ?? "",
+      vtel_lot_dateper: item.vtel_lot_dateper ?? item.vtel_dateper ?? "",
+      vtel_art_code: item.vtel_art_code ?? "",
+      vtel_montant_remise: Number(
+        item.vtel_remise ?? item.vtel_montant_remise ?? 0,
+      ),
+      vtel_uid:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`,
+    }));
+
+    setClient(clientVente);
+    setSearchClt(clientVente.cli_nom);
+    setSearchFacture(vente.vte_code ?? "");
     setRtc((prev) => ({
       ...prev,
+      vte_id: String(vente.vte_id ?? ""),
+      client: clientVente,
+      vte_cli_code: vente.vte_cli_code ?? "",
+      vte_cli_nom: vente.vte_cli_nom ?? "",
+      vte_code: vente.vte_code ?? "",
+      vte_date: vente.vte_date ?? today,
+      vte_montant_ht: Number(vente.vte_montant_ht ?? 0),
+      vte_montant_ttc: Number(vente.vte_montant_ttc ?? 0),
+      vte_tva: Number(vente.vte_tva ?? 0),
+      vte_ispaye: vente.vte_ispaye,
+      vte_valid: vente.vte_valide,
+      vte_is_retour: vente.vte_is_retour,
+      vte_vte_code: vente.vte_code ?? "",
+      ligne: lignes,
+    }));
+    setSuggestionsFacture([]);
+    setShowSuggestionsFacture(false);
+    setSuggestionsClient([]);
+    setShowSuggestionsClient(false);
+    setHighlight(-1);
+  };
+
+  const choisirFacture = (a: FactureAutocomplete) => {
+    skipSearch.current = true;
+    setFacture(a);
+    appliquerVente({
       vte_id: a.vte_id,
-      client: a.client,
-      vte_cli_code: a.vte_cli_code,
       vte_code: a.vte_code,
-      vte_cli_nom: a.vte_cli_code,
       vte_date: a.vte_date,
       vte_montant_ht: a.vte_montant_ht,
       vte_montant_ttc: a.vte_montant_ttc,
       vte_tva: a.vte_tva,
-      vte_vte_code: a.vte_vte_code,
-      ligne: a.ligne.map((item) => ({
-        ...item,
-        vtel_quantite: Number(item.vtel_quantite ?? 0),
-        vtel_prixunit: Number(item.vtel_prixunit ?? 0),
-        vtel_montant_tva: Number(item.vtel_montant_tva ?? 0),
-        vtel_ht: Number(item.vtel_ht ?? 0),
-        vtel_ttc: Number(item.vtel_ttc ?? 0),
-        vtel_pri_id: Number(item.vtel_pri_id ?? 0),
-        vtel_uid:
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random()}`,
-        vtel_dateper: item.vtel_dateper,
-        vtel_id: item.vtel_id,
-        vtel_lot_code: item.vtel_lot_code,
-      })),
-    }));
-    setSuggestionsFacture([]);
-    setShowSuggestionsFacture(false);
-    setHighlight(-1);
+      vte_cli_code: a.vte_cli_code,
+      vte_cli_nom: a.client?.cli_nom ?? a.vte_cli_nom,
+      vte_cli_contact: a.client?.cli_tel1 ?? "",
+      lignes: a.ligne ?? [],
+    });
   };
 
   const modifierArticle = (articleSelectionne: VenteLigne) => {
@@ -299,15 +347,19 @@ export default function NewRtcPage() {
     setSearchClt(value);
     setShowSuggestionsClient(true);
     setClient(emptyClient);
+    setRtc((prev) => ({ ...prev, client: emptyClient }));
   };
 
   const choisirClient = (a: Client) => {
     skipSearch.current = true;
     setSearchClt(a.cli_nom);
     console.log(a);
+    setClient(a);
     setRtc((prev) => ({
       ...prev,
       client: a,
+      vte_cli_code: a.cli_code,
+      vte_cli_nom: a.cli_nom,
     }));
     setSuggestionsClient([]);
     setShowSuggestionsClient(false);
@@ -576,7 +628,10 @@ export default function NewRtcPage() {
           "
         >
           {article.code}
-          <span className="bg-brand-200 rounded-full ml-2"> {article.pri_unitevente}</span>
+          <span className="bg-brand-200 rounded-full ml-2">
+            {" "}
+            {article.pri_unitevente}
+          </span>
         </div>
 
         <div
@@ -723,7 +778,6 @@ export default function NewRtcPage() {
         data.lot_quantite,
         data.operation,
       );
-
     } catch (error) {
       console.error(error);
       throw Error(`${error}`);
@@ -733,6 +787,24 @@ export default function NewRtcPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (rtc.vte_valid == 0) {
+        setAlert({
+          open: true,
+          message: `La facture ${rtc.vte_vte_code} n'est pas encore validé`,
+          title: "Aucune ligne",
+          variant: "error",
+        });
+        return;
+      }
+      if (rtc.vte_is_retour == 1) {
+        setAlert({
+          open: true,
+          message: `La facture ${rtc.vte_vte_code} est deja retourner`,
+          title: "Aucune ligne",
+          variant: "error",
+        });
+        return;
+      }
       if (!rtc.ligne || rtc.ligne.length === 0) {
         setAlert({
           open: true,
@@ -742,6 +814,7 @@ export default function NewRtcPage() {
         });
         return;
       }
+      console.log(rtc);
       const totauxCalcules = calculerTotaux(rtc.ligne);
       console.log(totauxCalcules);
       if (totauxCalcules.ttc === 0) {
@@ -773,11 +846,10 @@ export default function NewRtcPage() {
                 rtcl_tva: value.vtel_tva,
                 rtcl_ht: value.vtel_ht,
                 rtcl_art_code: value.vtel_art_code,
-                rtcl_cli_code: client.cli_code,
+                rtcl_cli_code: rtc.client.cli_code || client.cli_code,
                 rtcl_ttc: value.vtel_ttc,
                 rtcl_lot_dateper: value.vtel_dateper,
                 rtcl_lot_id: value.vtel_lot_id,
-                rtcl_remise: value.vtel_montant_remise,
                 rtcl_vtel_id: value.vtel_id,
               },
             );
@@ -796,7 +868,7 @@ export default function NewRtcPage() {
               });
 
               await stockLot({
-                lot_id: value.vtel_lot_code,
+                lot_id: value.vtel_lot_id,
                 lot_art_code: value.vtel_art_code,
                 lot_quantite: value.vtel_quantite,
                 operation: "entrer",
@@ -835,10 +907,17 @@ export default function NewRtcPage() {
         rtc_montant_ht: totauxCalcules.ht,
         rtc_montant_ttc: totauxCalcules.ttc,
         rtc_tva: totauxCalcules.tva,
-        rtc_cli_code: client.cli_code,
-        rtc_cli_nom: client.cli_nom,
+        rtc_cli_code: rtc.client.cli_code || client.cli_code,
+        rtc_cli_nom: rtc.client.cli_nom || client.cli_nom,
         rtc_motif: rtc.rtc_motif,
         rtc_observation: rtc.rtc_observation,
+      });
+
+      await updateVente(rtc.vte_id, {
+        vte_paye: rtc.vte_ispaye == 1 ? true : false,
+        vte_valide: rtc.vte_valid == 1,
+        vte_is_retour: 1,
+        vte_usermdf: user.login,
       });
 
       if (!res.status) {
@@ -852,13 +931,14 @@ export default function NewRtcPage() {
         return;
       }
 
-      fetchCode("t_vente", true);
+      fetchCode("t_retour_client", true);
       setAlert({
         open: true,
         variant: "success",
         title: "Opération réussie",
         message: "Retour client enregistrée avec succès",
       });
+
       clear();
     } catch (error) {
       console.error("Erreur handleSubmit :", error);
@@ -881,8 +961,6 @@ export default function NewRtcPage() {
   };
 
   useEffect(() => {
-    if (!open) return;
-
     if (skipSearch.current) {
       skipSearch.current = false;
       return;
@@ -892,11 +970,9 @@ export default function NewRtcPage() {
     return () => {
       clearTimeout(timer);
     };
-  }, [searchFacture, open, rechercherFacture]);
+  }, [searchFacture, rechercherFacture]);
 
   useEffect(() => {
-    if (!open) return;
-
     if (skipSearch.current) {
       skipSearch.current = false;
       return;
@@ -906,12 +982,53 @@ export default function NewRtcPage() {
     return () => {
       clearTimeout(timerFrns);
     };
-  }, [searchClt, open, rechercherClient]);
+  }, [searchClt, rechercherClient]);
 
   useEffect(() => {
     fetchMotif("RC_MOTIF");
     fetchCode("t_retour_client", false);
   }, []);
+
+  // Si la page est ouverte depuis la liste des ventes, charger directement la vente par son ID.
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+    const chargerVente = async () => {
+      try {
+        setLoading(true);
+        const res = await apiFetch(`/api/ventes/${id}/`);
+        if (cancelled) return;
+
+        if (!res?.status || !res?.vente) {
+          throw new Error(
+            res?.message || "Impossible de récupérer cette vente.",
+          );
+        }
+
+        appliquerVente(res.vente);
+      } catch (error: any) {
+        console.error("Erreur chargement vente pour retour :", error);
+        if (!cancelled) {
+          setAlert({
+            open: true,
+            variant: "error",
+            title: "Chargement impossible",
+            message:
+              error?.message ||
+              "Impossible de charger les informations de la vente.",
+          });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    chargerVente();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   return (
     <>
