@@ -88,6 +88,8 @@ const NewClts: React.FC<NewCltsProps> = ({
   // CHARGEMENT DES ÉNUMÉRATIONS
   // =====================================
 
+  const [enabled, setEnabled] = useState(true);
+
   const fetchEnumeration = async (
     enuCode: string,
     setter: React.Dispatch<React.SetStateAction<Option[]>>,
@@ -135,9 +137,12 @@ const NewClts: React.FC<NewCltsProps> = ({
   // PRÉREMPLISSAGE DU FORMULAIRE
   // =====================================
 
+  const toBool = (value: unknown): boolean =>
+    value === true || value === 1 || value === "1" || value === "true";
+
   const remplirFormulaire = (selectedClient: Client) => {
-    console.log(getTypeClient(selectedClient.cli_type))
-    console.log("newclient => ", selectedClient)
+    console.log(getTypeClient(selectedClient.cli_type));
+    console.log("newclient => ", selectedClient);
     setField("code", selectedClient.cli_code || "");
     setField("denomination", selectedClient.cli_nom || "");
     setField(
@@ -155,6 +160,7 @@ const NewClts: React.FC<NewCltsProps> = ({
     setField("rcs", selectedClient.cli_rcs || "");
     setField("type_client", String(selectedClient.cli_type ?? ""));
     setField("paiement", String(selectedClient.cli_modepay ?? ""));
+    setEnabled(toBool(selectedClient.cli_enabled));
   };
 
   // =====================================
@@ -470,6 +476,27 @@ const NewClts: React.FC<NewCltsProps> = ({
                     onChange={(value) => setField("paiement", value)}
                     value={values.paiement}
                   />
+                </div>
+                <div className="lg:col-span-1">
+                  <Label>Statut</Label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    onClick={() => setEnabled((prev) => !prev)}
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition ${
+                      enabled
+                        ? "border-green-300 bg-green-100 text-green-700 hover:bg-green-200 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "border-red-300 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        enabled ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    />
+                    {enabled ? "Actif" : "Non actif"}
+                  </button>
                 </div>
               </div>
             </div>
