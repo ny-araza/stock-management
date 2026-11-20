@@ -16,7 +16,7 @@ export default function ClientPage() {
 
   return (
     <div className="p-6">
-      <ListeClient onModifier={handleModifier} onRefresh={refresh} />
+      <ListeClient onRefresh={refresh} />
     </div>
   );
 }
