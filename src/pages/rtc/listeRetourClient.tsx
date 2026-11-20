@@ -10,7 +10,13 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
-import { RtcLigne, RtcType } from "../../interfaces/interfaces";
+import {
+  Enumeration,
+  EnumerationOption,
+  RtcLigne,
+  RtcType,
+} from "../../interfaces/interfaces";
+import { apiFetch } from "../../services/api";
 
 // ======================================
 // PROPS
@@ -79,6 +85,23 @@ export default function ListeRetourClient({
   const [dateFin, setDateFin] = useState("");
   const [retourOuvert, setRetourOuvert] = useState<number | null>(null);
 
+  const [motifEnum, setMotifEnum] = useState<Enumeration[]>([]);
+  const enumerationMotif: EnumerationOption[] = motifEnum.map(
+    (item: Enumeration) => ({
+      ...item,
+      value: item.enu_id.toString(),
+      label: item.enu_nom,
+    }),
+  );
+
+  const get_motif = (retour: RtcType) => {
+    if (!enumerationMotif) return retour.rtc_motif;
+    const enu_nom = enumerationMotif.filter(
+      (elt) => elt.enu_id == Number(retour.rtc_motif),
+    )[0]?.enu_nom;
+    if (enu_nom) return enu_nom;
+    return retour.rtc_motif;
+  };
   // ======================================
   // FILTRES
   // ======================================
@@ -118,6 +141,23 @@ export default function ListeRetourClient({
     onFiltrer({});
   };
 
+  const fetchMotif = async (enu_code: string) => {
+    try {
+      const query = new URLSearchParams();
+      query.set("enu_code", enu_code);
+      const res = await apiFetch(
+        `/api/generate-enumeration/?${query.toString()}`,
+      );
+
+      if (res.success) {
+        console.log(res.success);
+        setMotifEnum(res.nom_enumeration);
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
+
   const nombreFiltres = [recherche, dateDebut, dateFin].filter(Boolean).length;
 
   // ======================================
@@ -127,6 +167,10 @@ export default function ListeRetourClient({
   const getLignes = (retour: RtcType): RtcLigne[] => {
     return retour.lignes ?? [];
   };
+
+  useEffect(() => {
+    fetchMotif("RC_MOTIF");
+  }, []);
 
   // ======================================
   // RENDU
@@ -348,17 +392,12 @@ export default function ListeRetourClient({
                         </td>
 
                         <td className="px-4 py-4 text-gray-600 dark:text-white">
-                          <p>{retour.rtc_facture || "-"}</p>
-                          {retour.rtc_vte_code && (
-                            <p className="text-xs text-gray-400">
-                              Vente : {retour.rtc_vte_code}
-                            </p>
-                          )}
+                          {retour.rtc_vte_code}
                         </td>
 
                         <td className="max-w-[180px] px-4 py-4 text-gray-600 dark:text-white">
                           <span className="line-clamp-2">
-                            {retour.rtc_motif || "-"}
+                            {get_motif(retour)}
                           </span>
                         </td>
 
@@ -379,16 +418,6 @@ export default function ListeRetourClient({
                         <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-gray-800 dark:text-white">
                           {formatMontant(retour.rtc_montant_ttc)}
                         </td>
-
-                        {/*<td className="px-4 py-4 text-right">
-                          <button
-                            onClick={() => onModifier(retour)}
-                            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
-                          >
-                            <Pencil size={14} />
-                            Modifier
-                          </button>
-                        </td>*/}
                       </tr>
 
                       {/* DÉTAILS DES ARTICLES DU RETOUR */}

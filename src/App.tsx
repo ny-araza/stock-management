@@ -29,6 +29,7 @@ import NewArticlePage from "./pages/Articles/newArticles";
 import ModifierVentePage from "./pages/Ventes/ModifierVentePage";
 import ModifierCFPage from "./pages/Bc/modifierCFPage";
 import ModifierLivFrnsPage from "./pages/livFrns/modifierFrnsPage";
+import ListeClient from "./pages/Clients/listeClient";
 
 export default function App() {
   return (
@@ -39,7 +40,7 @@ export default function App() {
           <Route index path="/" element={<SignIn />} />
           <Route element={<AppLayout />}>
             <Route path="/accueil" element={<Accueil />} />
-            <Route path="/clients" element={<ListClientsTables />} />
+            <Route path="/clients" element={<ListeClient />} />
             <Route path="/articles" element={<ListArticlesTables />} />
             <Route path="ventes" element={<ListVentesTables />} />
             <Route path="/bc" element={<ListBcTables />} />
@@ -63,10 +64,7 @@ export default function App() {
             <Route path="/new-articles" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />
             <Route path="/new-rtc" element={<NewRtcPage />} />
-            <Route
-              path="/new-rtc/:id"
-              element={<NewRtcPage />}
-            />
+            <Route path="/new-rtc/:id" element={<NewRtcPage />} />
             <Route path="/new-rtf" element={<NewRtfPage />} />
             <Route path="/fournisseurs" element={<ListFournisseurTables />} />
             <Route path="/stock" element={<ExempleUtilisation />} />

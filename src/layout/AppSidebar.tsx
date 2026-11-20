@@ -95,7 +95,7 @@ const navItems: NavItem[] = [
     name: "Retour",
     icon: <FontAwesomeIcon icon={faArrowLeft} />,
     subItems: [
-      { code: 103, name: "Retour fournisseur", path: "/rtf", pro: false },
+      // { code: 103, name: "Retour fournisseur", path: "/rtf", pro: false },
       { code: 104, name: "Retour client", path: "/rtc", pro: false },
     ],
   },

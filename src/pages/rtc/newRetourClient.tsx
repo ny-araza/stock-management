@@ -220,6 +220,9 @@ export default function NewRtcPage() {
       vte_cli_code: a.vte_cli_code,
       vte_cli_nom: a.client?.cli_nom ?? a.vte_cli_nom,
       vte_cli_contact: a.client?.cli_tel1 ?? "",
+      vte_is_retour: a.vte_is_retour,
+      vte_ispaye: a.vte_ispaye,
+      vte_valid: a.vte_valid,
       lignes: a.ligne ?? [],
     });
   };
@@ -986,6 +989,10 @@ export default function NewRtcPage() {
 
   useEffect(() => {
     fetchMotif("RC_MOTIF");
+    setRtc((prev) => ({
+      ...prev,
+      rtc_motif: "35",
+    }));
     fetchCode("t_retour_client", false);
   }, []);
 
