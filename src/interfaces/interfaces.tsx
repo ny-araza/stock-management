@@ -299,6 +299,40 @@ export interface OutStock {
   out_code: string;
 }
 
+export interface PrixArticle {
+  pri_id: number;
+  pri_achat: number;
+  pri_vte: number;
+  pri_marge: number;
+  pri_tauxmarge: number;
+  pri_tva: number;
+  pri_unitevente: string;
+  pri_nbcolis: number;
+  pri_datedeb: string | null;
+  pri_datefin: string | null;
+}
+
+export interface Article {
+  art_id: number;
+  art_code: string;
+  art_nom: string;
+  art_datecre: string;
+  art_datemdf: string | null;
+  art_usercre: string;
+  art_usermdf: string | null;
+  art_poids: string;
+  art_taille: string;
+  art_stockmini: number;
+  art_enabled: number;
+  art_fam_id: number;
+  art_sof_id: number;
+  art_codebarre: string;
+  art_lot_id: number;
+  art_stockable: number;
+  art_marque: string;
+  prix: PrixArticle[];
+}
+
 export interface Fourniseur {
   fou_id: number;
   fou_code: string;

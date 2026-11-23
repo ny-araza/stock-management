@@ -62,6 +62,7 @@ export default function App() {
               element={<ModifierLivFrnsPage />}
             />
             <Route path="/new-articles" element={<NewArticlePage />} />
+            <Route path="/new-article/modifier/:id" element={<NewArticlePage />} />
             <Route path="/new-sortit" element={<NewSortitPage />} />
             <Route path="/new-rtc" element={<NewRtcPage />} />
             <Route path="/new-rtc/:id" element={<NewRtcPage />} />
