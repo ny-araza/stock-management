@@ -596,7 +596,7 @@ export default function NewVentePage({
         vtel_uid:
           typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
-            : `${Date.now()}-${Math.randomCF26100006()}`,
+            : `${Date.now()}-${Math.random()}`,
 
         // Normalisation
         vtel_pri_id: Number(article.vtel_pri_id || 0),
@@ -919,27 +919,6 @@ export default function NewVentePage({
     return result;
   };
 
-  const handleCreateMvtStock = async (mvt: any) => {
-    try {
-      const res = await postData("/api/insert-database/", "t_mvt_stock", {
-        mvt_action: "delete",
-        mvt_code_org: mvt.code_org,
-        mvt_date: mvt.date,
-        mvt_lot_code: mvt.lot_code,
-        mvt_origine: mvt.origine,
-        mvt_pri_id: mvt.pri_id,
-        mvt_qte: mvt.qte,
-        mvt_art_code: mvt.art_code,
-      });
-      if (!res.status) {
-        throw new Error(`${res.error}`);
-      }
-      console.log(`Mvt stocker avec success ${res.message}`);
-    } catch (err: any) {
-      throw new Error(`${err.error}`);
-    }
-  };
-
   const handleStock = async (stk: any) => {
     try {
       const quantity = stk.old_stock + parseInt(stk.quantite);
@@ -972,6 +951,28 @@ export default function NewVentePage({
     } catch (error) {
       console.error(error);
       throw Error(`${error}`);
+    }
+  };
+
+  const handleCreateMvtStock = async (mvt: any) => {
+    try {
+      console.log(`mvt ${mvt}`);
+      const res = await postData("/api/insert-database/", "t_mvt_stock", {
+        mvt_action: "delete",
+        mvt_code_org: mvt.code_org,
+        mvt_date: mvt.date,
+        mvt_lot_code: mvt.lot_code,
+        mvt_origine: mvt.origine,
+        mvt_pri_id: mvt.pri_id,
+        mvt_qte: mvt.qte,
+        mvt_art_code: mvt.art_code,
+      });
+      if (!res.status) {
+        throw new Error(`${res.error}`);
+      }
+      console.log(`Mvt stocker avec success ${res.message}`);
+    } catch (err: any) {
+      throw new Error(`${err.error}`);
     }
   };
 
@@ -1134,7 +1135,15 @@ export default function NewVentePage({
                 article: value.vtel_art_code,
                 old_stock: value.vtel_quantite ?? 0,
               });
-
+              await handleCreateMvtStock({
+                code_org: vente.vte_code,
+                date: today,
+                lot_code: value.vtel_lot_id,
+                origine: "t_entree_stock",
+                pri_id: value.vtel_pri_id,
+                qte: value.vtel_quantite,
+                art_code: value.vtel_art_code,
+              });
               await stockLot({
                 lot_id: value.vtel_lot_id,
                 lot_art_code: value.vtel_art_code,
@@ -1661,10 +1670,8 @@ export default function NewVentePage({
         getArticleCode={(article) => article.vtel_art_code}
 
         getStock={(article) => Number(article.vtel_quantite_stock || 0)}
-
         getLots={(article, form) => {
           const quantiteDemandee = Number(form.vtel_quantite || 0);
-          console.log("quantiteDemandee => ", quantiteDemandee);
           if (quantiteDemandee <= 0) {
             return [];
           }
@@ -1726,7 +1733,6 @@ export default function NewVentePage({
 
           return allocations;
         }}
-
         mapLotToLine={(form, lot) => {
           const quantite = Number(lot.quantiteUtilisee || 0);
 

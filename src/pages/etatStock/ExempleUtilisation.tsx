@@ -3,6 +3,7 @@ import { StockOverviewPanel } from "./StockOverviewPanel";
 
 import { StockArticle } from "./types";
 import { apiFetch } from "../../services/api";
+import { RefreshCw } from "lucide-react";
 
 export default function ExempleUtilisation() {
   const [articles, setArticles] = useState<StockArticle[]>([]);
@@ -98,8 +99,8 @@ export default function ExempleUtilisation() {
       />
 
       {loading && (
-        <div className="mt-2 text-center text-sm text-gray-500">
-          Chargement...
+        <div className="mt-4 flex justify-center items-center">
+          <RefreshCw size={24} className="animate-spin text-brand-300" />
         </div>
       )}
     </div>

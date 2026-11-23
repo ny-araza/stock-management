@@ -5,6 +5,8 @@ import {
   faArrowLeft,
   faBox,
   faBriefcase,
+  faCircle,
+  faComputer,
   faHandshakeSimple,
   faHome,
   faToolbox,
@@ -112,17 +114,23 @@ const navItems: NavItem[] = [
     icon: <FontAwesomeIcon icon={faBox} />,
     subItems: [
       { code: 100, name: "Articles", path: "/articles", pro: false },
-      { code: 107, name: "Entree en stock", path: "/entree", pro: false },
-      { code: 107, name: "Sortie en stock", path: "/sortie", pro: false },
       { code: 107, name: "Etat de stock", path: "/stock", pro: false },
       { code: 107, name: "Mouvement de stock", path: "/mvt-stock", pro: false },
     ],
   },
   {
     name: "Caisse",
-    icon: <FontAwesomeIcon icon={faBox} />,
+    icon: <FontAwesomeIcon icon={faComputer} />,
     subItems: [
-      { code: 112, name: "Arrêt de caisse", path: "/entree", pro: false },
+      { code: 112, name: "Arrêt de caisse", path: "#", pro: false },
+    ],
+  },
+  {
+    name: "Autre",
+    icon: <FontAwesomeIcon icon={faCircle} />,
+    subItems: [
+      { code: 107, name: "Entree en stock", path: "/entree", pro: false },    
+      { code: 107, name: "Sortie en stock", path: "/sortie", pro: false },
     ],
   },
 ];

@@ -18,6 +18,7 @@ import GenericArticleModal, {
   ArticleCalculation,
   ArticleField,
   ArticleSearchConfig,
+  LotAllocation,
 } from "../../Home/modal/utils/articleGenericModal";
 import Alert from "../../../components/ui/alert/Alert";
 import { postData } from "../../../services/sendDataService";
@@ -262,12 +263,6 @@ export default function NewSortitPage() {
       parseValue: Number,
     },
     {
-      name: "cmfl_datePer",
-      label: "Date de Péremption",
-      type: "date",
-      parseValue: String,
-    },
-    {
       name: "cmfl_TotalHT",
       label: "Total HT",
       type: "text",
@@ -293,7 +288,9 @@ export default function NewSortitPage() {
 
     getSearchValue: (article) => article.code,
 
-    getLots: (article) => [],
+    getLots: (article) => {
+      return article.lots ?? [];
+    },
 
     getStock: (article) => article.quantite_stock,
 
@@ -423,7 +420,7 @@ export default function NewSortitPage() {
     try {
       console.log(`mvt ${mvt}`);
       const res = await postData("/api/insert-database/", "t_mvt_stock", {
-        mvt_action: "insert",
+        mvt_action: "delete",
         mvt_code_org: mvt.code_org,
         mvt_date: mvt.date,
         mvt_lot_code: mvt.lot_code,
@@ -447,9 +444,10 @@ export default function NewSortitPage() {
         data.lot_id,
         data.lot_art_code,
         data.lot_quantite,
+        "sortie"
       );
 
-      return result.lot_id
+      return result.lot_id;
     } catch (error) {
       console.error(error);
       throw Error(`${error}`);
@@ -570,7 +568,7 @@ export default function NewSortitPage() {
             const lot_id = await stockLot({
               lot_id: value.cmfl_lot_id,
               lot_art_code: value.cmfl_Art_Code,
-              lot_quantite: 0,
+              lot_quantite: value.cmfl_Quantite,
             });
 
             const res = await postData("/api/insert-database/", "t_out_stock", {
@@ -578,11 +576,11 @@ export default function NewSortitPage() {
               out_motif: EnumerationOptions.find(
                 (opt) => opt.enu_id == parseInt(OutStock.out_motif),
               )?.label,
-              out_art_code: value.cmfl_PrixAchat,
+              out_art_code: value.cmfl_Art_Code,
               out_lot_id: lot_id,
               out_lot_code: lot_id,
               out_pri_id: value.cmfl_pri_id,
-              out_quantite: 0,
+              out_quantite: value.cmfl_Quantite,
               out_date: today,
             });
 
@@ -836,6 +834,95 @@ export default function NewSortitPage() {
 
         getArticleCode={(article) => article.cmfl_Art_Code}
         getStock={(article) => article.cmfl_quantite_stock ?? 0}
+        getLots={(article, form) => {
+          const quantiteDemandee = Number(form.cmfl_Quantite || 0);
+          if (quantiteDemandee <= 0) {
+            return [];
+          }
+
+          const aujourdHui = new Date();
+
+          const lotsDisponibles = (article.lots ?? [])
+            .filter((lot) => {
+              const quantite = Number(lot.lot_quantite || 0);
+
+              if (quantite <= 0) {
+                return false;
+              }
+
+              if (!lot.lot_datePeremption) {
+                return true;
+              }
+
+              return new Date(lot.lot_datePeremption) >= aujourdHui;
+            })
+            .sort((a, b) => {
+              if (!a.lot_datePeremption) {
+                return 1;
+              }
+
+              if (!b.lot_datePeremption) {
+                return -1;
+              }
+
+              return (
+                new Date(a.lot_datePeremption).getTime() -
+                new Date(b.lot_datePeremption).getTime()
+              );
+            });
+
+          let restant = quantiteDemandee;
+          console.log("restant => ", restant);
+          const allocations: LotAllocation[] = [];
+
+          for (const lot of lotsDisponibles) {
+            if (restant <= 0) {
+              break;
+            }
+
+            const stock = Number(lot.lot_quantite || 0);
+
+            const quantiteUtilisee = Math.min(restant, stock);
+
+            if (quantiteUtilisee <= 0) {
+              continue;
+            }
+
+            allocations.push({
+              ...lot,
+              quantiteUtilisee,
+            });
+            restant -= quantiteUtilisee;
+          }
+
+          return allocations;
+        }}
+        mapLotToLine={(form, lot) => {
+          const quantite = Number(lot.quantiteUtilisee || 0);
+
+          const prixUnit = Number(form.cmfl_PrixAchat || 0);
+
+          const tva = Number(form.cmfl_Tva || 0);
+
+          const totalHT = quantite * prixUnit;
+
+          const totalTTC = totalHT * (1 + tva / 100);
+
+          return {
+            ...form,
+
+            cmfl_Quantite: quantite,
+
+            cmfl_lot_code: lot.lot_code || "",
+
+            cmfl_datePer: lot.lot_datePeremption || "",
+
+            cmfl_TotalHT: totalHT,
+
+            cmfl_TotalTTC: totalTTC,
+            cmfl_lot_id: lot.lot_id,
+          };
+        }}
         validate={(form) => {
           if (!form.cmfl_Art_Code || !form.cmfl_uid) {
             return "Veuillez sélectionner un article dans la liste.";

@@ -197,7 +197,7 @@ export default function ListeArticles({ onRefresh }: ListeArticlesProps) {
   // ======================================
 
   const handleAjouter = () => {
-    openModal();
+    navigate(`/new-articles`);
   };
 
   const handleModifier = (article: Article) => {
@@ -283,7 +283,7 @@ export default function ListeArticles({ onRefresh }: ListeArticlesProps) {
                 setRecherche(e.target.value);
                 setPage(1);
               }}
-              placeholder="Rechercher un code, un nom, une marque, un code-barres..."
+              placeholder="Rechercher un code, un nom"
               className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-dark dark:text-white"
             />
           </div>

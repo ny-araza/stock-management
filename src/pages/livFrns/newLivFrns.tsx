@@ -761,7 +761,7 @@ export default function NewLivFrnsPage({
     try {
       console.log(`mvt ${mvt}`);
       const res = await postData("/api/insert-database/", "t_mvt_stock", {
-        mvt_action: "insert",
+        mvt_action: "delete",
         mvt_code_org: mvt.code_org,
         mvt_date: mvt.date,
         mvt_lot_code: mvt.lot_code,
@@ -959,10 +959,10 @@ export default function NewLivFrnsPage({
              * Mouvement de stock
              */
             await handleCreateMvtStock({
-              code_org: form.cmf_code,
+              code_org: values.codeBl,
               date: today,
               lot_code: lot_id,
-              origine: "t_entree_stock",
+              origine: "t_ligne_vente",
               pri_id: value.cmfl_pri_id,
               qte: value.cmfl_Quantite,
               art_code: value.cmfl_Art_Code,
