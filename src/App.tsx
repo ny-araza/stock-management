@@ -30,6 +30,7 @@ import ModifierVentePage from "./pages/Ventes/ModifierVentePage";
 import ModifierCFPage from "./pages/Bc/modifierCFPage";
 import ModifierLivFrnsPage from "./pages/livFrns/modifierFrnsPage";
 import ListeClient from "./pages/Clients/listeClient";
+import InventairePhysique from "./pages/stock/Inventaire/InventairePhysique";
 
 export default function App() {
   return (
@@ -62,7 +63,10 @@ export default function App() {
               element={<ModifierLivFrnsPage />}
             />
             <Route path="/new-articles" element={<NewArticlePage />} />
-            <Route path="/new-article/modifier/:id" element={<NewArticlePage />} />
+            <Route
+              path="/new-article/modifier/:id"
+              element={<NewArticlePage />}
+            />
             <Route path="/new-sortit" element={<NewSortitPage />} />
             <Route path="/new-rtc" element={<NewRtcPage />} />
             <Route path="/new-rtc/:id" element={<NewRtcPage />} />
@@ -77,6 +81,8 @@ export default function App() {
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="/rtf" element={<RetourFrnsListeTables />} />
             <Route path="/rtc" element={<RetourClientListeTables />} />
+
+            <Route path="/inv" element={<InventairePhysique />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
         </Routes>
