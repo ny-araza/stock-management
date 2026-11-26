@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../services/api";
 import Button from "../../components/ui/button/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -22,6 +22,8 @@ interface User {
   use_usermdf: string | null;
 }
 
+type StatutFiltre = "tous" | "actifs" | "inactifs";
+
 // Rôles disponibles pour use_acc_code — adapte à ta nomenclature réelle
 const ACC_CODES = [
   "ADMIN",
@@ -31,17 +33,18 @@ const ACC_CODES = [
   "GROUPE-STOCK",
 ] as const;
 
+// Clair : fond pastel + texte foncé (contraste élevé sur fond blanc). Sombre : fond translucide + texte clair.
 const accCodeStyles: Record<string, string> = {
   ADMIN:
-    "dark:bg-violet-500/15 bg-violet-500/10 dark:text-violet-300 text-violet-500 border-violet-500/30",
+    "bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30",
   CAISSE:
-    "dark:bg-amber-500/15 bg-amber-500/10  dark:text-amber-300 text-amber-400 border-amber-500/30",
+    "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
   VENTE:
-    "dark:bg-sky-500/15 bg-sky-500/10 dark:text-sky-300 text-sky-500 border-sky-500/30",
+    "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30",
   STOCK:
-    "dark:bg-emerald-500/15 bg-emerald-500/10 dark:text-emerald-300 text-emerald-500 border-emerald-500/30",
+    "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
   "GROUPE-STOCK":
-    "dark:bg-teal-500/15 bg-teal-500/10 dark:text-teal-300 text-teal-500 border-teal-500/30",
+    "bg-brand-100 text-brand-800 border-brand-300 dark:bg-brand-500/15 dark:text-brand-300 dark:border-brand-500/30",
 };
 
 function formatDate(value: string | null): string {
@@ -55,15 +58,20 @@ function formatDate(value: string | null): string {
   });
 }
 
+function initiales(login: string): string {
+  return login?.trim().slice(0, 2).toUpperCase() || "?";
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [statut, setStatut] = useState<StatutFiltre>("tous");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [confirmDisableId, setConfirmDisableId] = useState<number | null>(null);
-  const { closeModal, isOpen, openModal, toggleModal } = useModal();
+  const { closeModal, isOpen, openModal } = useModal();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const handleEditUser = (user: User) => {
@@ -71,44 +79,44 @@ export default function UserManagement() {
     openModal();
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadUsers() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await apiFetch("/api/users/");
-        if (!res.status)
-          throw new Error("Échec du chargement des utilisateurs");
-        const data: User[] = await res.users;
-        if (!cancelled) setUsers(data);
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Une erreur est survenue",
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  // silent = true : recharge sans afficher le spinner (après création / modification)
+  const loadUsers = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/users/");
+      if (!res.status) throw new Error("Échec du chargement des utilisateurs");
+      const data: User[] = await res.users;
+      setUsers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+    } finally {
+      setLoading(false);
     }
-
-    loadUsers();
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const nbActifs = useMemo(
+    () => users.filter((u) => u.use_enabled).length,
+    [users],
+  );
+  const nbInactifs = users.length - nbActifs;
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toUpperCase();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
+    return users.filter((u) => {
+      if (statut === "actifs" && !u.use_enabled) return false;
+      if (statut === "inactifs" && u.use_enabled) return false;
+      if (!q) return true;
+      return (
         u.use_login.toUpperCase().includes(q) ||
-        u.use_acc_code.toUpperCase().includes(q),
-    );
-  }, [users, search]);
+        u.use_acc_code.toUpperCase().includes(q)
+      );
+    });
+  }, [users, search, statut]);
 
   async function updateAccCode(userId: number, newCode: string) {
     const previous = users;
@@ -167,51 +175,54 @@ export default function UserManagement() {
     }
   }
 
+  const filtres: { key: StatutFiltre; label: string; count: number }[] = [
+    { key: "tous", label: "Tous", count: users.length },
+    { key: "actifs", label: "Actifs", count: nbActifs },
+    { key: "inactifs", label: "Désactivés", count: nbInactifs },
+  ];
+
   return (
-    <div className="w-full  dark:text-slate-100 text-gray-dark">
+    <div className="w-full text-slate-900 dark:text-slate-100">
       <div className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
         {/* En-tête */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              title="Ajouter un nouvel utilisateur"
+              onClick={() => {
+                setSelectedUser(null);
+                openModal();
+              }}
+            >
+              <FontAwesomeIcon icon={faPlus} />
+            </Button>
+            <NewUser
+              isOpen={isOpen}
+              onClose={() => {
+                closeModal();
+                setSelectedUser(null);
+              }}
+              className="max-w-[900px] m-4"
+              userToEdit={selectedUser}
+              onSuccess={() => loadUsers(true)}
+            />
             <div>
-              <Button
-                title="Ajouter un nouvelle utilisateur"
-                onClick={() => {
-                  setSelectedUser(null);
-                  openModal();
-                }}
-              >
-                <FontAwesomeIcon icon={faPlus} />
-              </Button>
-              <NewUser
-                isOpen={isOpen}
-                onClose={() => {
-                  closeModal();
-                  setSelectedUser(null);
-                }}
-                className="max-w-[900px] m-4"
-                userToEdit={selectedUser}
-                onSuccess={() => {
-                  // Recharger les utilisateurs ici
-                }}
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight dark:text-white">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Utilisateurs
               </h1>
-              <p className="mt-1 text-sm dark:text-slate-400">
-                {users.length} compte{users.length > 1 ? "s" : ""} enregistré
-                {users.length > 1 ? "s" : ""}
+              <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+                Gérez les comptes, leurs rôles et leur statut.
               </p>
             </div>
           </div>
-          <div className="relative w-full sm:w-72">
+
+          <div className="relative w-full lg:w-80">
             <svg
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -225,61 +236,123 @@ export default function UserManagement() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un identifiant ou un rôle..."
-              className="w-full rounded-lg border dark:border-slate-800 dark:bg-slate-900 py-2 pl-9 pr-3 text-sm dark:text-slate-100 placeholder-slate-500 outline-none transition focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
         </div>
 
+        {/* Statistiques */}
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            {
+              label: "Comptes",
+              value: users.length,
+              tone: "text-slate-900 dark:text-white",
+            },
+            {
+              label: "Actifs",
+              value: nbActifs,
+              tone: "text-emerald-700 dark:text-emerald-300",
+            },
+            {
+              label: "Désactivés",
+              value: nbInactifs,
+              tone: "text-rose-700 dark:text-rose-300",
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60"
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                {s.label}
+              </div>
+              <div className={`mt-1 text-3xl font-bold tabular-nums ${s.tone}`}>
+                {s.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Message d'erreur */}
         {error && (
-          <div className="mb-4 flex items-center justify-between rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+          <div
+            role="alert"
+            className="mb-4 flex items-center justify-between rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+          >
             <span>{error}</span>
             <button
               onClick={() => setError(null)}
-              className="ml-4 text-rose-300/70 hover:text-rose-200"
+              className="ml-4 rounded-md px-2 py-1 font-semibold text-rose-800 hover:bg-rose-100 dark:text-rose-300 dark:hover:bg-rose-500/20"
             >
               Fermer
             </button>
           </div>
         )}
 
+        {/* Filtre de statut */}
+        <div className="mb-3 inline-flex overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          {filtres.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setStatut(f.key)}
+              className={`px-4 py-2 text-sm font-medium transition ${
+                statut === f.key
+                  ? "bg-brand-600 text-white"
+                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              {f.label}
+              <span
+                className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  statut === f.key
+                    ? "bg-white/25 text-white"
+                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                }`}
+              >
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
         {/* Contenu */}
-        <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
           {loading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
-              <span className="text-sm">Chargement des utilisateurs...</span>
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-600 dark:text-slate-400">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600 dark:border-slate-700 dark:border-t-brand-400" />
+              <span className="text-sm font-medium">
+                Chargement des utilisateurs...
+              </span>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="py-16 px-4 text-center text-sm text-slate-500">
-              Aucun utilisateur ne correspond à cette recherche.
+            <div className="px-4 py-16 text-center text-sm font-medium text-slate-600 dark:text-slate-400">
+              {users.length === 0
+                ? "Aucun utilisateur enregistré."
+                : "Aucun utilisateur ne correspond à cette recherche."}
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
               <table className="w-full min-w-[850px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-xs uppercase tracking-wide dark:border-slate-800 dark:text-slate-500">
-                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+                    <th className="whitespace-nowrap px-3 py-3 font-semibold sm:px-4">
                       Identifiant
                     </th>
-
-                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                    <th className="whitespace-nowrap px-3 py-3 font-semibold sm:px-4">
                       Rôle
                     </th>
-
-                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                    <th className="whitespace-nowrap px-3 py-3 font-semibold sm:px-4">
                       Statut
                     </th>
-
-                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                    <th className="whitespace-nowrap px-3 py-3 font-semibold sm:px-4">
                       Créé le
                     </th>
-
-                    <th className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
+                    <th className="whitespace-nowrap px-3 py-3 font-semibold sm:px-4">
                       Modifié le
                     </th>
-
-                    <th className="whitespace-nowrap px-3 py-3 text-right font-medium sm:px-4">
+                    <th className="whitespace-nowrap px-3 py-3 text-right font-semibold sm:px-4">
                       Actions
                     </th>
                   </tr>
@@ -295,30 +368,26 @@ export default function UserManagement() {
                     return (
                       <tr
                         key={user.use_id}
-                        className="border-b border-slate-800/60 last:border-0 hover:bg-gray-300/20 dark:hover:bg-slate-800/30"
+                        className="border-b border-slate-100 transition-colors last:border-0 hover:bg-brand-50/60 dark:border-slate-800/60 dark:hover:bg-slate-800/40"
                       >
                         {/* Identifiant */}
-                        {/*<td className="whitespace-nowrap px-3 py-3 font-medium dark:text-slate-100 sm:px-4">
-                          {user.use_login}
-                        </td>*/}
-                        <td className="whitespace-nowrap px-3 py-3 font-medium sm:px-4">
-                          <button
-                            type="button"
-                            onClick={() => handleEditUser(user)}
-                            className="
-                              cursor-pointer
-                              text-left
-                              text-teal-500
-                              transition
-                              hover:text-teal-600
-                              hover:underline
-                              dark:text-teal-400
-                              dark:hover:text-teal-300
-                            "
-                            title="Cliquer pour modifier cet utilisateur"
-                          >
-                            {user.use_login}
-                          </button>
+                        <td className="whitespace-nowrap px-3 py-3 sm:px-4">
+                          <div className="flex items-center gap-3">
+                            <span
+                              aria-hidden="true"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-800 dark:bg-brand-500/20 dark:text-brand-300"
+                            >
+                              {initiales(user.use_login)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleEditUser(user)}
+                              className="cursor-pointer text-left font-semibold text-brand-700 transition hover:text-brand-900 hover:underline dark:text-brand-300 dark:hover:text-brand-200"
+                              title="Cliquer pour modifier cet utilisateur"
+                            >
+                              {user.use_login}
+                            </button>
+                          </div>
                         </td>
 
                         {/* Rôle */}
@@ -332,7 +401,7 @@ export default function UserManagement() {
                                 updateAccCode(user.use_id, e.target.value)
                               }
                               onBlur={() => setEditingRoleId(null)}
-                              className="w-full min-w-[100px] rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100 outline-none focus:border-teal-500"
+                              className="w-full min-w-[120px] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                             >
                               {ACC_CODES.map((code) => (
                                 <option key={code} value={code}>
@@ -344,9 +413,9 @@ export default function UserManagement() {
                             <button
                               onClick={() => setEditingRoleId(user.use_id)}
                               disabled={isSaving}
-                              className={`whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium transition hover:opacity-80 disabled:opacity-50 ${
+                              className={`whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold transition hover:brightness-95 disabled:opacity-50 ${
                                 accCodeStyles[user.use_acc_code] ??
-                                "border-slate-600 bg-slate-700/30 text-slate-300"
+                                "border-slate-300 bg-slate-100 text-slate-800 dark:border-slate-600 dark:bg-slate-700/30 dark:text-slate-300"
                               }`}
                               title="Cliquer pour modifier le rôle"
                             >
@@ -358,55 +427,52 @@ export default function UserManagement() {
                         {/* Statut */}
                         <td className="px-3 py-3 sm:px-4">
                           <span
-                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium ${
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
                               user.use_enabled
-                                ? "bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-300"
-                                : "bg-slate-600/10 text-slate-400 dark:bg-slate-600/20"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300"
+                                : "bg-slate-200 text-slate-700 dark:bg-slate-600/20 dark:text-slate-400"
                             }`}
                           >
                             <span
                               className={`h-1.5 w-1.5 rounded-full ${
                                 user.use_enabled
-                                  ? "bg-emerald-400"
+                                  ? "bg-emerald-600"
                                   : "bg-slate-500"
                               }`}
                             />
-
                             {user.use_enabled ? "Actif" : "Désactivé"}
                           </span>
                         </td>
 
                         {/* Date création */}
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-400 sm:px-4">
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-700 dark:text-slate-400 sm:px-4">
                           {formatDate(user.use_datecre)}
                         </td>
 
                         {/* Date modification */}
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-400 sm:px-4">
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-700 dark:text-slate-400 sm:px-4">
                           {formatDate(user.use_datemdf)}
                         </td>
 
                         {/* Actions */}
                         <td className="px-3 py-3 sm:px-4">
-                          <div className="flex min-w-[170px] items-center justify-end gap-2">
+                          <div className="flex min-w-[190px] items-center justify-end gap-2">
                             {isConfirmingDisable ? (
                               <div className="flex items-center gap-2 text-xs">
-                                <span className="whitespace-nowrap text-slate-400">
+                                <span className="whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">
                                   Désactiver ce compte ?
                                 </span>
-
                                 <button
                                   onClick={() =>
                                     toggleEnabled(user.use_id, false)
                                   }
-                                  className="whitespace-nowrap rounded-md bg-rose-500/20 px-2 py-1 font-medium text-rose-300 hover:bg-rose-500/30"
+                                  className="whitespace-nowrap rounded-md bg-rose-600 px-2.5 py-1.5 font-semibold text-white hover:bg-rose-700"
                                 >
                                   Confirmer
                                 </button>
-
                                 <button
                                   onClick={() => setConfirmDisableId(null)}
-                                  className="whitespace-nowrap rounded-md px-2 py-1 text-slate-400 hover:text-slate-200"
+                                  className="whitespace-nowrap rounded-md px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                 >
                                   Annuler
                                 </button>
@@ -415,10 +481,10 @@ export default function UserManagement() {
                               <button
                                 onClick={() => requestDisableToggle(user)}
                                 disabled={isSaving}
-                                className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                                className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
                                   user.use_enabled
-                                    ? "border-rose-500/10 text-rose-400 hover:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300"
-                                    : "border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300"
+                                    ? "border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                                    : "border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
                                 }`}
                               >
                                 {isSaving
