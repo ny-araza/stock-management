@@ -839,7 +839,7 @@ export default function InventairePhysique() {
               onClick={() => setFiltre(k)}
               className={`px-3 py-2 text-sm ${
                 filtre === k
-                  ? "bg-sky-600 text-white"
+                  ? "bg-brand-600 text-white"
                   : "hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -1029,7 +1029,7 @@ export default function InventairePhysique() {
                 setConfirmOpen(true);
               }}
               disabled={modifications.length === 0 || saving}
-              className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-brand-300 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? "Enregistrement…" : "Enregistrer les modifications"}
             </button>
@@ -1056,7 +1056,7 @@ export default function InventairePhysique() {
               type="button"
               onClick={enregistrer}
               disabled={saving || modifications.length === 0}
-              className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? "Enregistrement…" : "Confirmer et enregistrer"}
             </button>
