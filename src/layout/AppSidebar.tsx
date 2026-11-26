@@ -117,6 +117,7 @@ const navItems: NavItem[] = [
       { code: 107, name: "Etat de stock", path: "/stock", pro: false },
       { code: 107, name: "Mouvement de stock", path: "/mvt-stock", pro: false },
       { code: 107, name: "Inventaire", path: "/inv", pro: false },
+      { code: 107, name: "Historique Inventaire", path: "/inv-histo", pro: false },
     ],
   },
   {

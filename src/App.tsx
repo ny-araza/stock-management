@@ -31,6 +31,7 @@ import ModifierCFPage from "./pages/Bc/modifierCFPage";
 import ModifierLivFrnsPage from "./pages/livFrns/modifierFrnsPage";
 import ListeClient from "./pages/Clients/listeClient";
 import InventairePhysique from "./pages/stock/Inventaire/InventairePhysique";
+import InventaireHistorique from "./pages/stock/Inventaire/inventaireHistorique";
 
 export default function App() {
   return (
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="/rtc" element={<RetourClientListeTables />} />
 
             <Route path="/inv" element={<InventairePhysique />} />
+            <Route path="/inv-histo" element={<InventaireHistorique />} />
           </Route>
           <Route path="/signin" element={<SignIn />} />
         </Routes>

@@ -17,6 +17,7 @@ interface Lot {
   lotArtCode: string;
   lotArtQuantite: number;
   nomArticle: string;
+  prixAchat: number | null; // prix d'achat unitaire (TPrix), null si inconnu
 }
 
 interface LotsResponse {
@@ -33,6 +34,7 @@ interface Modification {
   ancienneQuantite: number;
   nouvelleQuantite: number;
   ecart: number;
+  prixAchat: number | null;
 }
 
 type Filtre = "tous" | "modifies" | "non_modifies";
@@ -48,8 +50,22 @@ const QUANTITE_STEP = "1"; // lot_art_quantite est un IntegerField
 const DECIMALS = 0;
 
 const round = (n: number) => Number(n.toFixed(DECIMALS));
+// fr-FR utilise des espaces insécables fines que la police par défaut de jsPDF ne sait pas dessiner : on les remplace.
+const nettoyerEspaces = (t: string) => t.replace(/[\u202f\u00a0]/g, " ");
 const fmt = (n: number) =>
-  n.toLocaleString("fr-FR", { maximumFractionDigits: DECIMALS });
+  nettoyerEspaces(
+    n.toLocaleString("fr-FR", { maximumFractionDigits: DECIMALS }),
+  );
+const fmtMontant = (n: number) =>
+  nettoyerEspaces(
+    n.toLocaleString("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }),
+  ) + " Ar";
+const fmtMontantSigne = (n: number) =>
+  n > 0 ? `+${fmtMontant(n)}` : fmtMontant(n);
+const round2 = (n: number) => Math.round(n * 100) / 100;
 const fmtEcart = (n: number) => (n > 0 ? `+${fmt(n)}` : fmt(n));
 
 /** Retourne la quantité entière valide (>= 0) ou null. */
@@ -68,7 +84,11 @@ const ecartClass = (e: number) =>
       : "text-slate-500 dark:text-slate-400";
 
 const normaliser = (rows: Lot[]): Lot[] =>
-  rows.map((l) => ({ ...l, lotArtQuantite: Number(l.lotArtQuantite) }));
+  rows.map((l) => ({
+    ...l,
+    lotArtQuantite: Number(l.lotArtQuantite),
+    prixAchat: l.prixAchat == null ? null : Number(l.prixAchat),
+  }));
 
 /* ------------------------------------------------------------------ */
 /* Export (PDF / PNG) — lecture seule, ne touche jamais à la BDD       */
@@ -78,7 +98,7 @@ const today = () => new Date().toLocaleDateString("fr-FR");
 const stamp = () => new Date().toISOString().slice(0, 10);
 
 const HEAD_FICHE = [
-  "Date Péremption",
+  "Code lot",
   "Code article",
   "Désignation",
   "Stock actuel",
@@ -86,7 +106,7 @@ const HEAD_FICHE = [
   "Observations",
 ];
 const HEAD_RAPPORT = [
-  "Date Péremption",
+  "Code lot",
   "Article",
   "Ancienne qté",
   "Nouvelle qté",
@@ -111,7 +131,68 @@ const rowsRapport = (mods: Modification[]) =>
     fmtEcart(m.ecart),
   ]);
 
-function pdfFicheComptage(lots: Lot[]) {
+/** Valorisation au prix d'achat. Les lots sans prix ne sont pas comptés (signalés dans le PDF). */
+function totauxStock(lots: Lot[]) {
+  let stock = 0;
+  let sansPrix = 0;
+  for (const l of lots) {
+    if (l.prixAchat == null) sansPrix++;
+    else stock += l.lotArtQuantite * l.prixAchat;
+  }
+  return { stock: round2(stock), sansPrix };
+}
+
+function totauxRapport(mods: Modification[]) {
+  let stock = 0;
+  let ecart = 0;
+  let sansPrix = 0;
+  for (const m of mods) {
+    if (m.prixAchat == null) {
+      sansPrix++;
+      continue;
+    }
+    stock += m.ancienneQuantite * m.prixAchat;
+    ecart += m.ecart * m.prixAchat;
+  }
+  return { stock: round2(stock), ecart: round2(ecart), sansPrix };
+}
+
+/** Tableau récapitulatif des totaux, placé à la fin du PDF (aligné à droite, jamais coupé en deux). */
+function ajouterTotaux(
+  doc: jsPDF,
+  lignes: [string, string][],
+  sansPrix: number,
+) {
+  const finY =
+    (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable
+      ?.finalY ?? 30;
+  const largeur = 120;
+  autoTable(doc, {
+    startY: finY + 8,
+    body: lignes,
+    theme: "grid",
+    tableWidth: largeur,
+    margin: { left: doc.internal.pageSize.getWidth() - 14 - largeur },
+    styles: { fontSize: 9.5, cellPadding: 2.5, fontStyle: "bold" },
+    columnStyles: { 0: { cellWidth: 75 }, 1: { halign: "right" } },
+    pageBreak: "avoid",
+  });
+  if (sansPrix > 0) {
+    const y =
+      (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable
+        ?.finalY ?? finY;
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(
+      `${sansPrix} lot(s) sans prix d'achat actif : non valorisé(s) dans ces totaux.`,
+      14,
+      y + 6,
+    );
+    doc.setTextColor(0);
+  }
+}
+
+function pdfFicheComptage(lots: Lot[], mods: Modification[]) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   doc.setFontSize(14);
   doc.text("Fiche de comptage physique", 14, 15);
@@ -135,6 +216,21 @@ function pdfFicheComptage(lots: Lot[]) {
     },
     theme: "grid",
   });
+
+  const st = totauxStock(lots);
+  const lignes: [string, string][] = [
+    ["Valeur du stock numérique (prix d'achat)", fmtMontant(st.stock)],
+  ];
+  const sansPrix = st.sansPrix;
+  // La fiche est vierge avant comptage : un écart n'existe que pour les lots déjà saisis dans la liste.
+  if (mods.length > 0) {
+    const tr = totauxRapport(mods);
+    lignes.push([
+      `Valeur de l'écart (${mods.length} lot(s) saisi(s))`,
+      fmtMontantSigne(tr.ecart),
+    ]);
+  }
+  ajouterTotaux(doc, lignes, sansPrix);
   doc.save(`fiche-comptage-${stamp()}.pdf`);
 }
 
@@ -157,6 +253,16 @@ function pdfRapport(mods: Modification[]) {
     },
     theme: "grid",
   });
+
+  const t = totauxRapport(mods);
+  ajouterTotaux(
+    doc,
+    [
+      ["Total valeur du stock numérique (prix d'achat)", fmtMontant(t.stock)],
+      ["Total valeur de l'écart (prix d'achat)", fmtMontantSigne(t.ecart)],
+    ],
+    t.sansPrix,
+  );
   doc.save(`rapport-inventaire-${stamp()}.pdf`);
 }
 
@@ -205,6 +311,62 @@ async function exportPng(
 }
 
 /* ------------------------------------------------------------------ */
+/* Modal (version locale : remplace-la par ton <Modal/> existant)      */
+/* ------------------------------------------------------------------ */
+
+interface ModalProps {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  busy?: boolean; // bloque la fermeture pendant une action en cours
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}
+
+function Modal({
+  open,
+  title,
+  onClose,
+  busy = false,
+  children,
+  footer,
+}: ModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, busy, onClose]);
+
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !busy) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-lg rounded-lg bg-white shadow-xl dark:bg-slate-900"
+      >
+        <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+          <h2 className="text-lg font-semibold">{title}</h2>
+        </div>
+        <div className="space-y-3 px-5 py-4 text-sm">{children}</div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-700">
+          {footer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Ligne du tableau (memo : saisie fluide)                             */
 /* ------------------------------------------------------------------ */
 
@@ -212,16 +374,16 @@ interface RowProps {
   lot: Lot;
   saisie: string;
   inList: boolean;
-  onChange: (lotId: number, v: string) => void;
-  onAdd: (lot: Lot) => void;
+  disabled: boolean;
+  onChange: (lot: Lot, v: string) => void;
 }
 
 const LotRow = memo(function LotRow({
   lot,
   saisie,
   inList,
+  disabled,
   onChange,
-  onAdd,
 }: RowProps) {
   const q = parseQuantite(saisie);
   const invalid = saisie.trim() !== "" && q === null;
@@ -246,10 +408,8 @@ const LotRow = memo(function LotRow({
           min={0}
           step={QUANTITE_STEP}
           value={saisie}
-          onChange={(e) => onChange(lot.lotId, e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") onAdd(lot);
-          }}
+          onChange={(e) => onChange(lot, e.target.value)}
+          disabled={disabled}
           aria-label={`Nouvelle quantité du lot ${lot.lotCode}`}
           className={`w-28 rounded-md border px-2 py-1 text-right tabular-nums bg-white dark:bg-slate-900 ${
             invalid
@@ -263,15 +423,16 @@ const LotRow = memo(function LotRow({
       >
         {ecart === null ? "—" : fmtEcart(ecart)}
       </td>
-      <td className="px-3 py-2 text-right">
-        <button
-          type="button"
-          onClick={() => onAdd(lot)}
-          disabled={q === null}
-          className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {inList ? "Mettre à jour" : "Ajouter à la liste"}
-        </button>
+      <td className="px-3 py-2 text-right text-sm">
+        {inList ? (
+          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+            ✓ Dans la liste
+          </span>
+        ) : invalid ? (
+          <span className="text-red-600 dark:text-red-400">Entier ≥ 0</span>
+        ) : (
+          <span className="text-slate-400">—</span>
+        )}
       </td>
     </tr>
   );
@@ -299,6 +460,8 @@ export default function InventairePhysique() {
   const [notice, setNotice] = useState<Notice>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [listeOuverte, setListeOuverte] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const savingRef = useRef(false);
   const requestId = useRef(0); // ignore les réponses obsolètes
@@ -377,21 +540,12 @@ export default function InventairePhysique() {
   }, [notice]);
 
   /* ---------- saisie / liste ---------- */
-  const onChange = useCallback((lotId: number, v: string) => {
-    setSaisies((s) => ({ ...s, [lotId]: v }));
-  }, []);
-
-  const onAdd = useCallback(
-    (lot: Lot) => {
-      const q = parseQuantite(saisies[lot.lotId]);
-      if (q === null) {
-        setNotice({
-          type: "error",
-          message:
-            "Quantité invalide : renseignez un entier supérieur ou égal à 0.",
-        });
-        return;
-      }
+  // Chaque saisie met la liste à jour immédiatement :
+  // quantité valide -> ajoutée / mise à jour ; champ vidé ou invalide -> retirée de la liste.
+  const onChange = useCallback((lot: Lot, v: string) => {
+    setSaisies((s) => ({ ...s, [lot.lotId]: v }));
+    const q = parseQuantite(v);
+    if (q !== null) {
       setListe((l) => ({
         ...l,
         [lot.lotId]: {
@@ -400,19 +554,30 @@ export default function InventairePhysique() {
           lotArtCode: lot.lotArtCode,
           nomArticle: lot.nomArticle,
           ancienneQuantite: lot.lotArtQuantite,
+          prixAchat: lot.prixAchat,
           nouvelleQuantite: q,
           ecart: round(q - lot.lotArtQuantite),
         },
       }));
-    },
-    [saisies],
-  );
+    } else {
+      setListe((l) => {
+        if (!(lot.lotId in l)) return l;
+        const { [lot.lotId]: _removed, ...rest } = l;
+        return rest;
+      });
+    }
+  }, []);
 
-  const retirer = (lotId: number) =>
+  const retirer = (lotId: number) => {
     setListe((l) => {
       const { [lotId]: _removed, ...rest } = l;
       return rest;
     });
+    setSaisies((s) => {
+      const { [lotId]: _removed, ...rest } = s;
+      return rest;
+    });
+  };
 
   const modifierDansListe = (lotId: number, raw: string) => {
     const q = parseQuantite(raw);
@@ -425,6 +590,7 @@ export default function InventairePhysique() {
         ecart: round(q - l[lotId].ancienneQuantite),
       },
     }));
+    setSaisies((s) => ({ ...s, [lotId]: String(q) }));
   };
 
   const modifications = useMemo(() => Object.values(liste), [liste]);
@@ -434,20 +600,27 @@ export default function InventairePhysique() {
     if (savingRef.current || modifications.length === 0) return;
     savingRef.current = true;
     setSaving(true);
+    setSaveError(null);
     try {
-      await apiFetch(ENDPOINT_SAVE, {
-        method: "POST",
-        body: JSON.stringify({
-          modifications: modifications.map((m) => ({
-            lotId: m.lotId,
-            nouvelleQuantite: m.nouvelleQuantite,
-          })),
-        }),
-      });
+      const res: { updated: number; inventaire?: { code: string } } =
+        await apiFetch(ENDPOINT_SAVE, {
+          method: "POST",
+          body: JSON.stringify({
+            modifications: modifications.map((m) => ({
+              lotId: m.lotId,
+              nouvelleQuantite: m.nouvelleQuantite,
+            })),
+          }),
+        });
       const n = modifications.length;
       setListe({});
       setSaisies({});
-      setNotice({ type: "success", message: `${n} lot(s) mis à jour.` });
+      setListeOuverte(false);
+      setConfirmOpen(false);
+      setNotice({
+        type: "success",
+        message: `Inventaire ${res.inventaire?.code ?? ""} enregistré : ${n} lot(s) contrôlé(s), ${res.updated} mis à jour.`,
+      });
       setReloadKey((k) => k + 1); // recharge depuis la BDD (retour à la première tranche)
     } catch (err) {
       // apiFetch attache le corps de la réponse d'erreur dans err.response.data
@@ -457,11 +630,8 @@ export default function InventairePhysique() {
         data && Object.keys(data).length > 0
           ? (data.detail ?? JSON.stringify(data))
           : "Erreur réseau.";
-      setNotice({
-        type: "error",
-        message: `Échec de l'enregistrement : ${detail}`,
-      });
-      // la liste est conservée pour permettre un nouvel essai
+      // l'erreur s'affiche dans le modal (resté ouvert) ; la liste est conservée pour un nouvel essai
+      setSaveError(`Échec de l'enregistrement : ${detail}`);
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -488,6 +658,7 @@ export default function InventairePhysique() {
         lotArtCode: m.lotArtCode,
         nomArticle: m.nomArticle,
         lotArtQuantite: m.ancienneQuantite,
+        prixAchat: m.prixAchat,
       }));
   }, [enModeModifies, lots, modifications, search]);
 
@@ -535,7 +706,7 @@ export default function InventairePhysique() {
           setNotice({ type: "error", message: "Aucun lot à exporter." });
           return;
         }
-        if (kind === "fiche-pdf") pdfFicheComptage(all);
+        if (kind === "fiche-pdf") pdfFicheComptage(all, modifications);
         else
           await exportPng(
             "Fiche de comptage physique",
@@ -577,8 +748,8 @@ export default function InventairePhysique() {
         <div>
           <h1 className="text-2xl font-semibold">Inventaire physique</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Saisissez les quantités comptées, constituez la liste puis
-            enregistrez.
+            Saisissez les quantités comptées : chaque quantité valide est
+            ajoutée automatiquement à la liste, puis enregistrez.
           </p>
         </div>
 
@@ -618,7 +789,7 @@ export default function InventairePhysique() {
       {notice && (
         <div
           role="status"
-          className={`rounded-md border px-4 py-3 text-sm ${
+          className={`fixed right-4 top-4 z-[60] max-w-md rounded-md border px-4 py-3 text-sm shadow-lg ${
             notice.type === "success"
               ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
               : "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
@@ -683,13 +854,13 @@ export default function InventairePhysique() {
         <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
             <tr>
-              <th className="px-3 py-2">Date péremption</th>
+              <th className="px-3 py-2">Code lot</th>
               <th className="px-3 py-2">Code article</th>
               <th className="px-3 py-2">Désignation</th>
               <th className="px-3 py-2 text-right">Stock actuel</th>
               <th className="px-3 py-2">Nouvelle quantité</th>
               <th className="px-3 py-2 text-right">Écart</th>
-              <th className="px-3 py-2" />
+              <th className="px-3 py-2 text-right">Liste</th>
             </tr>
           </thead>
           <tbody>
@@ -731,8 +902,8 @@ export default function InventairePhysique() {
                   lot={lot}
                   saisie={saisies[lot.lotId] ?? ""}
                   inList={!!liste[lot.lotId]}
+                  disabled={saving}
                   onChange={onChange}
-                  onAdd={onAdd}
                 />
               ))
             )}
@@ -842,7 +1013,10 @@ export default function InventairePhysique() {
             </button>
             <button
               type="button"
-              onClick={() => setListe({})}
+              onClick={() => {
+                setListe({});
+                setSaisies({});
+              }}
               disabled={modifications.length === 0 || saving}
               className="rounded-md border border-slate-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-slate-600"
             >
@@ -850,7 +1024,10 @@ export default function InventairePhysique() {
             </button>
             <button
               type="button"
-              onClick={enregistrer}
+              onClick={() => {
+                setSaveError(null);
+                setConfirmOpen(true);
+              }}
               disabled={modifications.length === 0 || saving}
               className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -859,6 +1036,60 @@ export default function InventairePhysique() {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={confirmOpen}
+        title="Confirmer l'enregistrement de l'inventaire"
+        busy={saving}
+        onClose={() => setConfirmOpen(false)}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(false)}
+              disabled={saving}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm disabled:opacity-40 dark:border-slate-600"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={enregistrer}
+              disabled={saving || modifications.length === 0}
+              className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {saving ? "Enregistrement…" : "Confirmer et enregistrer"}
+            </button>
+          </>
+        }
+      >
+        <p>
+          Vous allez enregistrer <strong>{modifications.length} lot(s)</strong>,
+          dont <strong>{stats.avecEcart}</strong> avec écart.
+        </p>
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          Les quantités <strong>numériques</strong> (stock actuel) de ces lots
+          seront <strong>écrasées</strong> par les quantités{" "}
+          <strong>physiques</strong> que vous avez saisies. Cette action
+          enregistre aussi un inventaire dans la base de données.
+        </p>
+        {modifications.some((m) => m.prixAchat != null) && (
+          <p className="text-slate-600 dark:text-slate-300">
+            Valeur de l'écart (prix d'achat) :{" "}
+            <strong>
+              {fmtMontantSigne(totauxRapport(modifications).ecart)}
+            </strong>
+          </p>
+        )}
+        {saveError && (
+          <p
+            role="alert"
+            className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+          >
+            {saveError}
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }
