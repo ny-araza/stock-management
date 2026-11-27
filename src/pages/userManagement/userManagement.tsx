@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../services/api";
 import Button from "../../components/ui/button/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
 import NewUser from "./newUser";
 import { useModal } from "../../hooks/useModal";
 
@@ -71,6 +71,8 @@ export default function UserManagement() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [confirmDisableId, setConfirmDisableId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const { closeModal, isOpen, openModal } = useModal();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
@@ -172,6 +174,29 @@ export default function UserManagement() {
       setConfirmDisableId(user.use_id);
     } else {
       toggleEnabled(user.use_id, true);
+    }
+  }
+
+  async function deleteUser(userId: number) {
+    setDeletingId(userId);
+    setError(null);
+
+    try {
+      await apiFetch(`/api/users/${userId}/`, {
+        method: "DELETE",
+      });
+
+      setUsers((prev) => prev.filter((user) => user.use_id !== userId));
+      setConfirmDeleteId(null);
+      setConfirmDisableId(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de supprimer cet utilisateur.",
+      );
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -456,21 +481,24 @@ export default function UserManagement() {
 
                         {/* Actions */}
                         <td className="px-3 py-3 sm:px-4">
-                          <div className="flex min-w-[190px] items-center justify-end gap-2">
+                          <div className="flex min-w-[260px] items-center justify-end gap-2">
                             {isConfirmingDisable ? (
                               <div className="flex items-center gap-2 text-xs">
                                 <span className="whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">
-                                  Désactiver ce compte ?
+                                  Désactiver ?
                                 </span>
                                 <button
+                                  type="button"
                                   onClick={() =>
                                     toggleEnabled(user.use_id, false)
                                   }
-                                  className="whitespace-nowrap rounded-md bg-rose-600 px-2.5 py-1.5 font-semibold text-white hover:bg-rose-700"
+                                  disabled={isSaving || deletingId !== null}
+                                  className="whitespace-nowrap rounded-md bg-rose-600 px-2.5 py-1.5 font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
                                 >
                                   Confirmer
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => setConfirmDisableId(null)}
                                   className="whitespace-nowrap rounded-md px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                 >
@@ -479,8 +507,9 @@ export default function UserManagement() {
                               </div>
                             ) : (
                               <button
+                                type="button"
                                 onClick={() => requestDisableToggle(user)}
-                                disabled={isSaving}
+                                disabled={isSaving || deletingId !== null}
                                 className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
                                   user.use_enabled
                                     ? "border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
@@ -492,6 +521,44 @@ export default function UserManagement() {
                                   : user.use_enabled
                                     ? "Désactiver"
                                     : "Activer"}
+                              </button>
+                            )}
+
+                            {confirmDeleteId === user.use_id ? (
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <span className="whitespace-nowrap font-medium text-rose-600 dark:text-rose-300">
+                                  Supprimer ?
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteUser(user.use_id)}
+                                  disabled={deletingId === user.use_id}
+                                  className="whitespace-nowrap rounded-md bg-rose-600 px-2.5 py-1.5 font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                                >
+                                  {deletingId === user.use_id ? "..." : "Oui"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  disabled={deletingId === user.use_id}
+                                  className="whitespace-nowrap rounded-md px-2 py-1.5 font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                                >
+                                  Non
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmDeleteId(user.use_id);
+                                  setConfirmDisableId(null);
+                                }}
+                                disabled={isSaving || deletingId !== null}
+                                title="Supprimer cet utilisateur"
+                                aria-label={`Supprimer ${user.use_login}`}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-300 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
                               </button>
                             )}
                           </div>
