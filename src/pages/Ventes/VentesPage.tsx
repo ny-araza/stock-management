@@ -18,10 +18,15 @@ import { formatDate } from "../Home/modal/utils/utilsFucntions";
 import { Enumeration, EnumerationOption } from "../../interfaces/interfaces";
 import { apiFetch } from "../../services/api";
 import html2canvas from "html2canvas";
+import { useEntreprise } from "../../hooks/useEntreprise";
 
 export default function VentesPage() {
   //ticket
-  const entreprise = "TOUT POUR BEBE";
+  const {
+    entreprise,
+    loading: entrepriseLoading,
+    error: entrepriseError,
+  } = useEntreprise();
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [ticketBlob, setTicketBlob] = useState<Blob | null>(null);
@@ -261,7 +266,7 @@ export default function VentesPage() {
     try {
       // Effectuer le paiement
 
-      navigate(`/new-rtc/${vente.vte_id}`)
+      navigate(`/new-rtc/${vente.vte_id}`);
 
       // Actualiser la liste
       refresh();
@@ -670,12 +675,28 @@ export default function VentesPage() {
     // Entreprise
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text(entreprise, marginX, headerY);
+
+    doc.text(entreprise?.etp_nom || "-", marginX, headerY);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
 
-    doc.text("Antananarivo, Madagascar", marginX, headerY + 6);
+    let entrepriseY = headerY + 6;
+
+    const entrepriseInfos = [
+      entreprise?.etp_adresse,
+      entreprise?.etp_mail ? `Email : ${entreprise.etp_mail}` : null,
+      entreprise?.etp_nif ? `NIF : ${entreprise.etp_nif}` : null,
+      entreprise?.etp_stat ? `STAT : ${entreprise.etp_stat}` : null,
+    ].filter(Boolean);
+
+    entrepriseInfos.forEach((info) => {
+      const wrapped = doc.splitTextToSize(String(info), 65);
+
+      doc.text(wrapped, marginX, entrepriseY);
+
+      entrepriseY += wrapped.length * 4;
+    });
 
     // Titre facture
     doc.setFont("helvetica", "bold");
@@ -1050,10 +1071,15 @@ export default function VentesPage() {
 
     element.innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:25px">
-        <div style="flex:1">
-          <h2>${escapeHTML(entreprise)}</h2>
-          <p>Antananarivo, Madagascar</p>
-        </div>
+      <div style="flex:1">
+        <h2 style="margin:0 0 10px;color:#111827">
+          ${escapeHTML(entreprise?.etp_nom || "-")}
+        </h2>
+        <p>Adresse : ${escapeHTML(entreprise?.etp_adresse || "-")}</p>
+        <p>Email : ${escapeHTML(entreprise?.etp_mail || "-")}</p>
+        <p>NIF : ${escapeHTML(entreprise?.etp_nif || "-")}</p>
+        <p>STAT : ${escapeHTML(entreprise?.etp_stat || "-")}</p>
+      </div>
 
         <div style="flex:1;text-align:center">
           <h1 style="font-size:30px;margin:0">FACTURE</h1>

@@ -35,6 +35,7 @@ import mettreAJourProforma, { DataUpdate } from "../../services/update";
 import { useAuth } from "../../services/authLogin";
 import mettreAJourDocument from "../../services/update";
 import NewClts from "../Clients/newClts";
+import { useEntreprise } from "../../hooks/useEntreprise";
 
 interface NewVentePageProps {
   mode?: "creation" | "modification";
@@ -50,7 +51,7 @@ export default function NewVentePage({
   onSuccess,
 }: NewVentePageProps) {
   const navigate = useNavigate();
-
+ 
   const isModification = mode === "modification";
   const today = new Date().toISOString().split("T")[0];
 
