@@ -13,6 +13,27 @@ export interface UserFull {
   use_usermdf: null | "ADMIN";
 }
 
+export interface Entreprise {
+  etp_id: number;
+  etp_nom: string;
+  etp_adresse: string | null;
+  etp_ville: string | null;
+  etp_quartier: string | null;
+  etp_codepostal: number | null;
+  etp_mobile: string | null;
+  etp_fixe: string | null;
+  etp_fax: string | null;
+  etp_nif: string | null;
+  etp_stat: string | null;
+  etp_activite: string | null;
+  etp_siteweb: string | null;
+  etp_codebanque: string | null;
+  etp_logo: string | null;
+  etp_mail: string | null;
+  etp_banque: string | null;
+  etp_isdateperimp: number | null;
+}
+
 export interface Client {
   cli_id: number;
   cli_code: string;

@@ -6,7 +6,7 @@ import {
   ProLigneArticle,
 } from "../../../../interfaces/interfaces";
 
-import { CompanyInfo, DEFAULT_COMPANY } from "../../../proforma/generatePdf";
+import { CompanyInfo } from "../../../proforma/generatePdf";
 
 interface ProformaPrintProps {
   form: Proforma;
@@ -20,7 +20,7 @@ const ProformaPrint: React.FC<ProformaPrintProps> = ({
   form,
   client,
   ligneArticle,
-  company = DEFAULT_COMPANY,
+  company,
   onClose,
 }) => {
   const formatMontant = (value: number) => {
@@ -41,7 +41,6 @@ const ProformaPrint: React.FC<ProformaPrintProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:bg-white print:py-0">
-
       <div
         id="proforma-print"
         className="
@@ -65,6 +64,7 @@ const ProformaPrint: React.FC<ProformaPrintProps> = ({
         <div className="border-b-2 border-gray-900 pb-4">
           <div className="grid grid-cols-3 items-start gap-4">
             {/* Société (gauche) */}
+            {/* Société (gauche) */}
             <div>
               <h2 className="text-base font-bold uppercase tracking-wide">
                 {company.nom}
@@ -75,6 +75,10 @@ const ProformaPrint: React.FC<ProformaPrintProps> = ({
               <p className="text-sm">Tél : {company.tel}</p>
 
               <p className="text-sm">Email : {company.email}</p>
+
+              {company.nif && <p className="text-sm">NIF : {company.nif}</p>}
+
+              {company.stat && <p className="text-sm">STAT : {company.stat}</p>}
             </div>
 
             {/* Titre (centre) */}
@@ -112,21 +116,6 @@ const ProformaPrint: React.FC<ProformaPrintProps> = ({
         {/* =========================
             INFORMATIONS PROFORMA
         ========================== */}
-        <div className="mt-6 grid grid-cols-3 gap-4 border-y border-gray-300 py-3 text-sm">
-          <div>
-            <span className="font-semibold">Mode de commande :</span>{" "}
-            {form.pro_modecmd || "-"}
-          </div>
-
-          <div>
-            <span className="font-semibold">Date livraison :</span>{" "}
-            {formatDate(form.pro_dateliv)}
-          </div>
-
-          <div>
-            <span className="font-semibold">Client :</span> {form.pro_cli_code}
-          </div>
-        </div>
 
         {/* =========================
             TABLEAU ARTICLES

@@ -7,20 +7,15 @@ export interface CompanyInfo {
   adresse: string;
   tel: string;
   email: string;
+  nif?: string;
+  stat?: string;
 }
-
-export const DEFAULT_COMPANY: CompanyInfo = {
-  nom: "TOUT POUR BEBE ET ENFANT",
-  adresse: "Antananarivo, Madagascar",
-  tel: "+261 XX XX XXX XX",
-  email: "notre email",
-};
 
 export interface GenerateProformaPdfOptions {
   form: Proforma;
   client: Client;
   ligneArticle: ProLigneArticle[];
-  company?: CompanyInfo;
+  company: CompanyInfo;
   /** Nom du fichier sans extension. Par défaut : Proforma_<code> */
   fileName?: string;
   /** Si true, retourne le Blob au lieu de télécharger le fichier */
@@ -52,7 +47,7 @@ export const generateProformaPdf = ({
   form,
   client,
   ligneArticle,
-  company = DEFAULT_COMPANY,
+  company,
   fileName,
   returnBlob = false,
 }: GenerateProformaPdfOptions): Blob | void => {
@@ -71,6 +66,7 @@ export const generateProformaPdf = ({
   const headerY = 20;
 
   // Société
+  // Société
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text(company.nom, marginX, headerY);
@@ -80,6 +76,14 @@ export const generateProformaPdf = ({
   doc.text(company.adresse, marginX, headerY + 6);
   doc.text(`Tél : ${company.tel}`, marginX, headerY + 11);
   doc.text(`Email : ${company.email}`, marginX, headerY + 16);
+
+  if (company.nif) {
+    doc.text(`NIF : ${company.nif}`, marginX, headerY + 21);
+  }
+
+  if (company.stat) {
+    doc.text(`STAT : ${company.stat}`, marginX, headerY + 26);
+  }
 
   // Titre
   doc.setFont("helvetica", "bold");
@@ -123,7 +127,9 @@ export const generateProformaPdf = ({
     cy += wrapped.length * 4.5;
   });
 
-  const headerBottom = Math.max(headerY + 16, cy) + 3;
+  const companyBottom = headerY + (company.stat ? 26 : company.nif ? 21 : 16);
+
+  const headerBottom = Math.max(companyBottom, cy) + 3;
   doc.setDrawColor(...DARK);
   doc.setLineWidth(0.6);
   doc.line(marginX, headerBottom, rightX, headerBottom);
@@ -132,27 +138,6 @@ export const generateProformaPdf = ({
   // INFORMATIONS PROFORMA
   // =========================
   const infoY = headerBottom + 7;
-  doc.setDrawColor(...GRAY_BORDER);
-  doc.setLineWidth(0.3);
-  doc.line(marginX, infoY, rightX, infoY);
-  doc.line(marginX, infoY + 10, rightX, infoY + 10);
-
-  const colW = (rightX - marginX) / 3;
-  const infos: [string, string][] = [
-    ["Mode de commande : ", form.pro_modecmd || "-"],
-    ["Date livraison : ", formatDate(form.pro_dateliv)],
-    ["Client : ", form.pro_cli_code || ""],
-  ];
-
-  doc.setFontSize(9);
-  infos.forEach(([label, value], i) => {
-    const x = marginX + i * colW;
-    doc.setFont("helvetica", "bold");
-    doc.text(label, x, infoY + 6.5);
-    const labelW = doc.getTextWidth(label);
-    doc.setFont("helvetica", "normal");
-    doc.text(String(value), x + labelW, infoY + 6.5);
-  });
 
   const rows = ligneArticle.length
     ? ligneArticle.map((a) => [
